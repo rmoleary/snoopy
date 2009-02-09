@@ -26,31 +26,35 @@ void remap_output(	PRECISION wri[],
 	tremap = fmod(t + LY / (2.0 * LX) , LY /  LX) - LY / (2.0 * LX);
 	
 	for( i = 0 ; i < NX ; i++) {
-		for( j = 0 ; j < NY ; j++) {
-			w1d[j] = wri[j + NY * i];
-		}
+		for( k = 0 ; k < NZ ; k++) {
+			for( j = 0 ; j < NY ; j++) {
+				w1d[j] = wri[k + j * (NZ + 2) + NY * (NZ + 2) * i];
+			}
 		
-		// Transform w1d, which will be stored in w2d
-		fftw_execute(fft_1d_forward);
+			// Transform w1d, which will be stored in w2d
+			fftw_execute(fft_1d_forward);
 					
-		for( j = 0 ; j < NY ; j++) {
-		// advection
-			phase = (PRECISION complex) ((2.0 * M_PI) / LY * (fmod( j + (NY / 2) ,  NY ) - NY / 2 ) * 
-										( ((double) i / (double) NX ) * tremap - tvelocity / 2.0 ) * LX );
-			wexp = cexp( - I * phase);
+			for( j = 0 ; j < NY ; j++) {
+			// advection
+				phase = (PRECISION complex) ((2.0 * M_PI) / LY * (fmod( j + (NY / 2) ,  NY ) - NY / 2 ) * 
+											( ((double) i / (double) NX ) * tremap - tvelocity / 2.0 ) * LX );
+				wexp = cexp( - I * phase);
 									
-			w2d[ j ] = w2d[ j ] * wexp;
-		}
+				w2d[ j ] = w2d[ j ] * wexp;
+			}
+			
+			fftw_execute(fft_1d_backward);
 		
-		fftw_execute(fft_1d_backward);
-		
-		for( j = 0 ; j < NY ; j++) {
-			wri[j + NY * i] = w1d[j] / NY;
+			for( j = 0 ; j < NY ; j++) {
+				wri[k + j * (NZ + 2) + NY * (NZ + 2) * i] = w1d[j] / NY;
+			}
 		}
 	}
 	return;
 }
 
+/*
+This term is pretty useless in 3D
 void compute_shear( PRECISION dwro[], PRECISION wri[]) {
 	int i,j;
 	complex PRECISION phase;
@@ -79,7 +83,6 @@ void compute_shear( PRECISION dwro[], PRECISION wri[]) {
 	}
 	return;
 }
-
 
 void init1Dspectrum() {
 	int i,j,m;
@@ -148,131 +151,59 @@ void output1Dspectrum(const struct Field fldi) {
 	fclose(ht);
 	return;
 }
-					  
-void output_flow(const int n, const PRECISION t) {
-	int i,j;
-	struct Field dw;
+*/
+			
+void write_snap(const PRECISION t, const char filename[], const PRECISION complex wi[]) {
+	// Write the complex field wi[] in file filename. We need t for the remap thing.
 	FILE *ht;
-	char filenamewz[50];
-	
-	// Init the working field with a working field variable (we should not use boussinesq, otherwise crash!)
-	dw.wz = w9;
-	dw.th = w10;
-
-	timestep(dw, fld, t, 0.0);
+	int i,j,k;
 	
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
-		w1[i] = fld.wz[i];
-		w2[i] = dw.wz[i];
-		w3[i] = - nu * k2t[i] * fld.wz[i];
-		w4[i] = I * N2 * ky[i] * fld.th[i];;
-		w5[i] = w2[i] + w3[i];
+		w1[i] = wi[i];
 	}
 	
-	fftw_execute_dft_c2r( c2rfft, w1, wr1);
-	fftw_execute_dft_c2r( c2rfft, w2, wr2);
-	fftw_execute_dft_c2r( c2rfft, w3, wr3);
-	fftw_execute_dft_c2r( c2rfft, w4, wr4);
-	fftw_execute_dft_c2r( c2rfft, w5, wr5);
+	fftw_execute_dft_c2r(c2rfft(w1,wr1);
 	
 	for( i = 0 ; i < NTOTAL ; i++) {
 		wr1[i] = wr1[i] / ((double) NTOTAL );
-		wr2[i] = wr2[i] / ((double) NTOTAL );
-		wr3[i] = wr3[i] / ((double) NTOTAL );
-		wr4[i] = wr4[i] / ((double) NTOTAL );
-		wr5[i] = wr5[i] / ((double) NTOTAL );
 	}
-	
-	// Compute the shear term hidden in dw (actually due to the sheared frame)
-	compute_shear(wr2, wr1);
-	compute_shear(wr5, wr1);
 	
 	remap_output(wr1,t);
 	
-	sprintf(filenamewz,"data/wz%04i.raw",n);
-
-	ht=fopen(filenamewz,"w");
+	ht=fopen(filename,"w");
 #ifdef FORTRAN_OUTPUT_ORDER	
 	for( j = 0; j < NY; j++) {
 		for( i = 0; i < NX; i++) {
+			for( k = 0 ; k < NZ; k++) {
 #else
 	for( i = 0; i < NX; i++) {
 		for( j = 0; j < NY; j++) {
+			for( k = 0 ; k < NZ; k++) {
 #endif
-			fwrite(&wr1[j + i * NY], sizeof(PRECISION), 1, ht);
+				fwrite(&wr1[k + j * (NZ + 2) + i * NY * (NZ + 2) ], sizeof(PRECISION), 1, ht);
+			}
 		}
 	}
 	fclose(ht);
+}
 
-	remap_output(wr2,t);
 	
-	sprintf(filenamewz,"data/dw%04i.raw",n);
-
-	ht=fopen(filenamewz,"w");
-#ifdef FORTRAN_OUTPUT_ORDER	
-	for( j = 0; j < NY; j++) {
-		for( i = 0; i < NX; i++) {
-#else
-	for( i = 0; i < NX; i++) {
-		for( j = 0; j < NY; j++) {
-#endif
-			fwrite(&wr2[j + i * NY], sizeof(PRECISION), 1, ht);
-		}
-	}
-	fclose(ht);
-
-	remap_output(wr3,t);
 	
-	sprintf(filenamewz,"data/nw%04i.raw",n);
-
-	ht=fopen(filenamewz,"w");
-#ifdef FORTRAN_OUTPUT_ORDER	
-	for( j = 0; j < NY; j++) {
-		for( i = 0; i < NX; i++) {
-#else
-	for( i = 0; i < NX; i++) {
-		for( j = 0; j < NY; j++) {
-#endif
-			fwrite(&wr3[j + i * NY], sizeof(PRECISION), 1, ht);
-		}
-	}
-	fclose(ht);
 	
-	remap_output(wr4,t);
+void output_flow(const int n, const PRECISION t) {
+	int i,j;
+	struct Field dw;
 	
-	sprintf(filenamewz,"data/bc%04i.raw",n);
-
-	ht=fopen(filenamewz,"w");
-#ifdef FORTRAN_OUTPUT_ORDER	
-	for( j = 0; j < NY; j++) {
-		for( i = 0; i < NX; i++) {
-#else
-	for( i = 0; i < NX; i++) {
-		for( j = 0; j < NY; j++) {
-#endif
-			fwrite(&wr4[j + i * NY], sizeof(PRECISION), 1, ht);
-		}
-	}
-	fclose(ht);
-
-
-    remap_output(wr5,t);
+	char filename[50];
 	
-	sprintf(filenamewz,"data/tt%04i.raw",n);
-
-	ht=fopen(filenamewz,"w");
-#ifdef FORTRAN_OUTPUT_ORDER	
-	for( j = 0; j < NY; j++) {
-		for( i = 0; i < NX; i++) {
-#else
-	for( i = 0; i < NX; i++) {
-		for( j = 0; j < NY; j++) {
-#endif
-			fwrite(&wr5[j + i * NY], sizeof(PRECISION), 1, ht);
-		}
-	}
-	fclose(ht);
-
+	sprintf(filename,"data/vx%04i.raw",n);
+	write_snap(t, filename, fld.vx);
+	
+	sprintf(filename,"data/vy%04i.raw",n);
+	write_snap(t, filename, fld.vy);
+	
+	sprintf(filename,"data/vz%04i.raw",n);
+	write_snap(t, filename, fld.vz);
 
 	return;
 }
