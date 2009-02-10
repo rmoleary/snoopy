@@ -27,10 +27,13 @@ void remap(PRECISION complex qi[]) {
 	for( i = 0; i < NX_COMPLEX; i++) {
 		nx = fmod( i + (NX_COMPLEX / 2) ,  NX_COMPLEX ) - NX_COMPLEX / 2 ;
 		for( j = 0; j < NY_COMPLEX; j++) {
-			ny = j;
+			ny = fmod( j + (NY_COMPLEX / 2) ,  NY_COMPLEX ) - NY_COMPLEX / 2 ;
 			
-			nxtarget = nx - ny;
+			nxtarget = nx + ny;		// We have a negative shear, hence nx plus ny
+			
 			if ( nxtarget <= - NX_COMPLEX / 2 ) break;
+			if ( nxtarget >=   NX_COMPLEX / 2 ) break;
+			
 			if ( nxtarget <0 ) nxtarget = nxtarget + NX_COMPLEX;
 			
 			for( k = 0; k < NZ_COMPLEX; k++) {
@@ -55,7 +58,7 @@ void kvolve(const PRECISION tremap) {
 	for( i = 0; i < NX_COMPLEX; i++) {
 		for( j = 0; j < NY_COMPLEX; j++) {
 			for( k = 0; k < NZ_COMPLEX; k++) {
-				kxt[ IDX3D ] = kx[ IDX3D ] - tremap * SHEAR * ky[ IDX3D ];
+				kxt[ IDX3D ] = kx[ IDX3D ] + tremap * SHEAR * ky[ IDX3D ];
 			
 				k2t[ IDX3D ] = kxt[IDX3D] * kxt[IDX3D] +
 						       ky[IDX3D] * ky[IDX3D]+
