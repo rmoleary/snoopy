@@ -11,7 +11,12 @@ void timestep( struct Field dfldo,
 			   const double dt ) {
 			   
 	int i;
+	PRECISION complex q0;
 	// This is the timesteping algorithm, solving the physics.
+
+/******************************************
+** Velocity Self Advection ****************
+*******************************************/
 
 #pragma omp parallel private(i) num_threads ( NTHREADS )
 {
@@ -21,25 +26,17 @@ void timestep( struct Field dfldo,
 		w1[i] =  fldi.vx[i];
 		w2[i] =  fldi.vy[i];
 		w3[i] =  fldi.vz[i];
-#ifdef BOUSSINESQ
-		w6[i] = fldi.th[i];
-#endif
 	}
 }
 	fftw_execute_dft_c2r( c2rfft, w1, wr1);
 	fftw_execute_dft_c2r( c2rfft, w2, wr2);
 	fftw_execute_dft_c2r( c2rfft, w3, wr3);
 	
-	
-#ifdef BOUSSINESQ
-	fftw_execute_dft_c2r( c2rfft, w6, wr6);
-#endif
-	
 #pragma omp parallel private(i) num_threads ( NTHREADS )
 {
 		/* Compute the convolution for the advection process */
 	#pragma omp for schedule(static) nowait
-	for( i = 0 ; i < NTOTAL ; i++) {
+	for( i = 0 ; i < 2*NTOTAL_COMPLEX ; i++) {
 		wr4[i] = wr1[i] * wr1[i] / ((double) NTOTAL*NTOTAL);
 		wr5[i] = wr2[i] * wr2[i] / ((double) NTOTAL*NTOTAL);
 		wr6[i] = wr3[i] * wr3[i] / ((double) NTOTAL*NTOTAL);
@@ -69,6 +66,10 @@ void timestep( struct Field dfldo,
 	}
 }
 
+/**********************************************
+** BOUSSINESQ TERMS (if needed) ***************
+***********************************************/
+
 #ifdef BOUSSINESQ
 #pragma omp parallel private(i) num_threads ( NTHREADS )
 {
@@ -84,7 +85,7 @@ void timestep( struct Field dfldo,
 {
 		/* Compute the convolution */
 	#pragma omp for schedule(static) nowait	
-	for( i = 0 ; i < NTOTAL ; i++) {		
+	for( i = 0 ; i < 2*NTOTAL_COMPLEX ; i++) {		
 		wr5[i] = wr1[i] * wr4[i] / ((double) NTOTAL*NTOTAL);
 		wr6[i] = wr2[i] * wr4[i] / ((double) NTOTAL*NTOTAL);
 		wr7[i] = wr3[i] * wr4[i] / ((double) NTOTAL*NTOTAL);
@@ -107,10 +108,50 @@ void timestep( struct Field dfldo,
 	}
 }
 #endif
+
+/************************************
+** SOURCE TERMS  ********************
+************************************/
+
+#pragma omp parallel private(i) num_threads ( NTHREADS )
+{
+	#pragma omp for schedule(static ) nowait
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		dfldo.vx[i] += 2.0 * OMEGA * fldi.vy[i];
+#ifdef WITH_SHEAR
+		dfldo.vy[i] += (SHEAR - 2.0 * OMEGA) * fldi.vx[i];
+#else
+		dfldo.vy[i] += (- 2.0 * OMEGA) * fldi.vx[i];
+#endif
+	}
+}
+			
+			
+/************************************
+** PRESSURE TERMS *******************
+************************************/
+#pragma omp parallel private(i) num_threads ( NTHREADS )
+{
+	#pragma omp for schedule(static ) nowait
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+#ifdef WITH_SHEAR
+		q0= SHEAR * ky[i] * fldi.vx[i] + kxt[i] * dfldo.vx[i] + ky[i] * dfldo.vy[i] + kz[i] * dfldo.vz[i];
+#else
+		q0= SHEAR * ky[i] * fldi.vx[i] + kxt[i] * dfldo.vx[i] + ky[i] * dfldo.vy[i] + kz[i] * dfldo.vz[i];
+#endif
+		dfldo.vx[i] += -kxt[i]* q0 * ik2t[i];
+		dfldo.vy[i] += -ky[i] * q0 * ik2t[i];
+		dfldo.vz[i] += -kz[i] * q0 * ik2t[i];
+	}
+}
 		
 	return;
 }
 		
+/************************************
+** Implicit steps called by mainloop
+*************************************/
+ 
 void implicitstep(
 			   struct Field fldi,
 			   const double t,
