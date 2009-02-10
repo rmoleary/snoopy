@@ -17,6 +17,7 @@
 #define		BOUSSINESQ
 #define		N2				(-0.01)
 
+#define		OMEGA			(2.0 / 3.0)
 #define		WITH_SHEAR
 #define		SHEAR			1.0
 

@@ -15,18 +15,30 @@ void init_vortex(PRECISION complex wzf[]) {
 		x = - LX / 2 + (LX * i) / NX;
 		for(j = 0 ; j < NY ; j++) {
 			y = - LY / 2 + (LY * j) / NY;
-			if(x * x / (a * a) + y * y / (b * b) < 1) {
-				// we are in the vortex
-				wr1[j + NY * i] = w0;
-			}
-			else {
-				wr1[j + NY * i] = 0.0;
+			for(k = 0 ; k < NZ ; k++) {
+				if(x * x / (a * a) + y * y / (b * b) < 1) {
+					// we are in the vortex
+					wr1[k + j*(NZ+2) + (NZ+2) * NY * i] = -w0;
+				}
+				else {
+					wr1[k + j*(NZ+2) + (NZ+2) * NY * i] = 0.0;
+				}
 			}
 		}
 	}
 	
 	// transform
-	fftw_execute_dft_r2c( r2cfft, wr1, wzf);
+	fftw_execute_dft_r2c( r2cfft, wr1, w1);
+	
+	for(i = 0 ; i < NX_COMPLEX ; i++) {
+		for(j = 0 ; j < NY_COMPLEX ; j++) {
+			for(k = 0 ; k < NZ_COMPLEX ; k++) {
+				fld.vx[ IDX3D ] +=  I * ky[i] * w1[i] * ik2[i];
+				fld.vy[ IDX3D ] += -I * kx[i] * w1[i] * ik2[i];
+			}
+		}
+	}
+	
 	
 	// Remove mean vorticity
 	wzf[0] = 0.0;
@@ -43,22 +55,24 @@ void init_flow() {
 	
 	for( i = 0; i < NX_COMPLEX; i++) {
 		for( j = 0; j < NY_COMPLEX; j++) {
-			fld.wz[ IDX2D ] = 0.0;
+			for( k = 0; k < NY_COMPLEX; k++) {
+				fld.vx[ IDX3D ] = 0.0;
+				fld.vy[ IDX3D ] = 0.0;
+				fld.vz[ IDX3D ] = 0.0;
+				
 #ifdef BOUSSINESQ
-			fld.th[ IDX2D ] = 0.0;
+				fld.th[ IDX3D ] = 0.0;
 #endif
 		}
 	}
 	// Put some noise on the large scales
+	i=NX_COMPLEX-2;
+	j=1;
+	k=0;
 	
+	fld.vx[IDX3D] = 1.0;
+	fld.vy[IDX3D] = 1.0;
 	
-	for( i = 0; i < 6; i++) {
-		for( j = 0; j < 6; j++) {
-			fld.wz[ IDX2D ] = PER_AMPLITUDE * randm() * cexp( I * 2.0 * M_PI * randm() ) * NTOTAL / 5;
-		}
-	}
-	
-	init_vortex(fld.wz);
 	
 	return;
 }
