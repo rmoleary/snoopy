@@ -17,6 +17,9 @@
 #define		BOUSSINESQ
 #define		N2				(-0.01)
 
+#define		WITH_SHEAR
+#define		SHEAR			1.0
+
 #define		PER_AMPLITUDE	1.0
 
 #define		FORCING_TIME	4e-2

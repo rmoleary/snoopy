@@ -127,50 +127,6 @@ static void force_big_endian(unsigned char *bytes)
     }
 }
 
-/* ****************************************************************************
- *  Function: force_double_big_endian
- *
- *  Purpose:
- *      Determines if the machine is little-endian.  If so, then, for binary
- *      data, it will force the data to be big-endian.
- *
- *  Note:       This assumes that all inputs are 8 bytes long.
- *
- *  Programmer: Hank Childs
- *  Creation:   September 3, 2004
- *
- * ************************************************************************* */
-
-static void force_double_big_endian(unsigned char *bytes)
-{
-    static int doneTest = 0;
-    static int shouldSwap = 0;
-    if (!doneTest)
-    {
-        int tmp1 = 1;
-        unsigned char *tmp2 = (unsigned char *) &tmp1;
-        if (*tmp2 != 0)
-            shouldSwap = 1;
-        doneTest = 1;
-    }
-
-    if (shouldSwap & useBinary)
-    {
-        unsigned char tmp = bytes[0];
-        bytes[0] = bytes[7];
-        bytes[7] = tmp;
-        tmp = bytes[1];
-        bytes[1] = bytes[6];
-        bytes[6] = tmp;
-        tmp = bytes[2];
-        bytes[2] = bytes[5];
-        bytes[5] = tmp;
-        tmp = bytes[3];
-        bytes[3] = bytes[4];
-        bytes[4] = tmp;
-    }
-}
-
 
 /* ****************************************************************************
  *  Function: write_string
@@ -278,41 +234,6 @@ static void write_float(float val)
         }
     }
 }
-/* ****************************************************************************
- *  Function: write_double
- *
- *  Purpose:
- *      Writes a double to the currently open file.  This routine takes
- *      care of ASCII vs binary issues.
- *
- *  Programmer: Hank Childs
- *  Creation:   September 3, 2004
- *
- *  Modifications:
- *
- *    Hank Childs, Fri Apr 22 09:14:44 PDT 2005
- *    Make precision changes suggested by Jeff McAninch
- *
- * ************************************************************************* */
-
-static void write_double(double val)
-{
-    if (useBinary)
-    {
-        force_double_big_endian((unsigned char *) &val);
-        fwrite(&val, sizeof(double), 1, fp);
-    }
-    else
-    {
-        char str[128];
-        sprintf(str, "%20.12e ", val);
-        fprintf(fp, str);
-        if (((numInColumn++) % 9) == 8)
-        {
-            end_line();
-        }
-    }
-}
 
 
 /* ****************************************************************************
@@ -359,7 +280,7 @@ static void write_header(void)
  * ************************************************************************* */
 
 void write_variables(int nvars, int *vardim, int *centering, 
-                     const char * const * varname, double **vars,
+                     const char * const * varname, float **vars,
                      int npts, int ncells)
 {
     char str[1024];
@@ -391,7 +312,7 @@ void write_variables(int nvars, int *vardim, int *centering,
                 if (first_scalar == 0)
                 {
                     should_write = 1;
-                    sprintf(str, "SCALARS %s double\n", varname[i]);
+                    sprintf(str, "SCALARS %s float\n", varname[i]);
                     write_string(str);
                     write_string("LOOKUP_TABLE default\n");
                     first_scalar = 1;
@@ -404,7 +325,7 @@ void write_variables(int nvars, int *vardim, int *centering,
                 if (first_vector == 0)
                 {
                     should_write = 1;
-                    sprintf(str, "VECTORS %s double\n", varname[i]);
+                    sprintf(str, "VECTORS %s float\n", varname[i]);
                     write_string(str);
                     first_vector = 1;
                 }
@@ -423,7 +344,7 @@ void write_variables(int nvars, int *vardim, int *centering,
                 num_to_write = ncells*vardim[i];
                 for (j = 0 ; j < num_to_write ; j++)
                 {
-                    write_double(vars[i][j]);
+                    write_float(vars[i][j]);
                 }
                 end_line();
             }
@@ -449,7 +370,7 @@ void write_variables(int nvars, int *vardim, int *centering,
                     else
                     {
                         should_write = 1;
-                        sprintf(str, "%s 1 %d double\n", varname[i], ncells);
+                        sprintf(str, "%s 1 %d float\n", varname[i], ncells);
                         write_string(str);
                     }
                 }
@@ -460,7 +381,7 @@ void write_variables(int nvars, int *vardim, int *centering,
                 int num_to_write = ncells*vardim[i];
                 for (j = 0 ; j < num_to_write ; j++)
                 {
-                    write_double(vars[i][j]);
+                    write_float(vars[i][j]);
                 }
                 end_line();
             }
@@ -488,7 +409,7 @@ void write_variables(int nvars, int *vardim, int *centering,
                     else
                     {
                         should_write = 1;
-                        sprintf(str, "%s 3 %d double\n", varname[i], ncells);
+                        sprintf(str, "%s 3 %d float\n", varname[i], ncells);
                         write_string(str);
                     }
                 }
@@ -499,7 +420,7 @@ void write_variables(int nvars, int *vardim, int *centering,
                 int num_to_write = ncells*vardim[i];
                 for (j = 0 ; j < num_to_write ; j++)
                 {
-                    write_double(vars[i][j]);
+                    write_float(vars[i][j]);
                 }
                 end_line();
             }
@@ -530,7 +451,7 @@ void write_variables(int nvars, int *vardim, int *centering,
                 if (first_scalar == 0)
                 {
                     should_write = 1;
-                    sprintf(str, "SCALARS %s double\n", varname[i]);
+                    sprintf(str, "SCALARS %s float\n", varname[i]);
                     write_string(str);
                     write_string("LOOKUP_TABLE default\n");
                     first_scalar = 1;
@@ -543,7 +464,7 @@ void write_variables(int nvars, int *vardim, int *centering,
                 if (first_vector == 0)
                 {
                     should_write = 1;
-                    sprintf(str, "VECTORS %s double\n", varname[i]);
+                    sprintf(str, "VECTORS %s float\n", varname[i]);
                     write_string(str);
                     first_vector = 1;
                 }
@@ -562,7 +483,7 @@ void write_variables(int nvars, int *vardim, int *centering,
                 num_to_write = npts*vardim[i];
                 for (j = 0 ; j < num_to_write ; j++)
                 {
-                    write_double(vars[i][j]);
+                    write_float(vars[i][j]);
                 }
                 end_line();
             }
@@ -588,7 +509,7 @@ void write_variables(int nvars, int *vardim, int *centering,
                     else
                     {
                         should_write = 1;
-                        sprintf(str, "%s 1 %d double\n", varname[i], npts);
+                        sprintf(str, "%s 1 %d float\n", varname[i], npts);
                         write_string(str);
                     }
                 }
@@ -599,7 +520,7 @@ void write_variables(int nvars, int *vardim, int *centering,
                 int num_to_write = npts*vardim[i];
                 for (j = 0 ; j < num_to_write ; j++)
                 {
-                    write_double(vars[i][j]);
+                    write_float(vars[i][j]);
                 }
                 end_line();
             }
@@ -627,7 +548,7 @@ void write_variables(int nvars, int *vardim, int *centering,
                     else
                     {
                         should_write = 1;
-                        sprintf(str, "%s 3 %d double\n", varname[i], npts);
+                        sprintf(str, "%s 3 %d float\n", varname[i], npts);
                         write_string(str);
                     }
                 }
@@ -638,7 +559,7 @@ void write_variables(int nvars, int *vardim, int *centering,
                 int num_to_write = npts*vardim[i];
                 for (j = 0 ; j < num_to_write ; j++)
                 {
-                    write_double(vars[i][j]);
+                    write_float(vars[i][j]);
                 }
                 end_line();
             }
@@ -675,7 +596,7 @@ void write_variables(int nvars, int *vardim, int *centering,
 
 void write_point_mesh(const char *filename, int ub, int npts, float *pts,
                       int nvars, int *vardim, const char * const *varnames,
-                      double **vars)
+                      float **vars)
 {
     int   i;
     char  str[128];
@@ -804,7 +725,7 @@ static int num_points_for_cell(int celltype)
 void write_unstructured_mesh(const char *filename, int ub, int npts,
                              float *pts, int ncells, int *celltypes, int *conn,
                              int nvars, int *vardim, int *centering,
-                             const char * const *varnames, double **vars)
+                             const char * const *varnames, float **vars)
 {
     int   i, j;
     char  str[128];
@@ -897,7 +818,7 @@ void write_unstructured_mesh(const char *filename, int ub, int npts,
 void write_rectilinear_mesh(const char *filename, int ub, int *dims,
                             float *x, float *y, float *z,
                             int nvars, int *vardim, int *centering,
-                            const char * const *varnames, double **vars)
+                            const char * const *varnames, float **vars)
 {
     int   i, j;
     char  str[128];
@@ -940,8 +861,8 @@ void write_rectilinear_mesh(const char *filename, int ub, int *dims,
 //
 //  Purpose:
 //      Writes out a regular mesh.  A regular mesh is one where the data lies
-//      along regular intervals.  "Brick of bytes/doubles",
-//      "Block of bytes/double", and MRI data all are examples of data that
+//      along regular intervals.  "Brick of bytes/floats",
+//      "Block of bytes/floats", and MRI data all are examples of data that
 //      lie on regular meshes.
 //
 //
@@ -970,7 +891,7 @@ void write_rectilinear_mesh(const char *filename, int ub, int *dims,
 
 void write_regular_mesh(const char *filename, int ub, int *dims,
                         int nvars, int *vardim, int *centering,
-                        const char * const *varnames, double **vars)
+                        const char * const *varnames, float **vars)
 {
     int  i;
 
@@ -1034,7 +955,7 @@ void write_regular_mesh(const char *filename, int ub, int *dims,
 
 void write_curvilinear_mesh(const char *filename, int ub, int *dims,float *pts,
                             int nvars, int *vardim, int *centering,
-                            const char * const *varnames, double **vars)
+                            const char * const *varnames, float **vars)
 {
     int   i, j;
     char  str[128];

@@ -55,7 +55,7 @@
 
 void write_point_mesh(const char *filename, int useBinary, int npts, 
                       float *pts, int nvars, int *vardim, 
-                      const char * const *varnames, double **vars);
+                      const char * const *varnames, float **vars);
 
 
 
@@ -138,7 +138,7 @@ void write_point_mesh(const char *filename, int useBinary, int npts,
 void write_unstructured_mesh(const char *filename, int useBinary, int npts,
                              float *pts, int ncells, int *celltypes, int *conn, 
                              int nvars, int *vardim, int *centering,
-                             const char * const *varnames, double **vars);
+                             const char * const *varnames, float **vars);
 
 
 
@@ -177,7 +177,7 @@ void write_unstructured_mesh(const char *filename, int useBinary, int npts,
 
 void write_regular_mesh(const char *filename, int useBinary, int *dims, 
                         int nvars, int *vardim, int *centering,
-                        const char * const *varnames, double **vars);
+                        const char * const *varnames, float **vars);
 
 
 
@@ -224,7 +224,7 @@ void write_regular_mesh(const char *filename, int useBinary, int *dims,
 void write_rectilinear_mesh(const char *filename, int useBinary, 
                             int *dims, float *x, float *y, float *z, 
                             int nvars, int *vardim, int *centering, 
-                            const char * const *varnames, double **vars);
+                            const char * const *varnames, float **vars);
 
 
 
@@ -265,7 +265,7 @@ void write_rectilinear_mesh(const char *filename, int useBinary,
 void write_curvilinear_mesh(const char *filename, int useBinary, 
                             int *dims, float *pts,
                             int nvars, int *vardim, int *centering, 
-                            const char * const *varnames, double **vars);
+                            const char * const *varnames, float **vars);
 
 
 

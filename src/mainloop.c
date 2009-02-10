@@ -12,6 +12,7 @@ PRECISION complex		xiRK[2];
 
 PRECISION forcing_last_time;
 
+#ifdef WITH_SHEAR
 void remap(PRECISION complex qi[]) {
 	int i, j, k;
 	int nx, ny, nxtarget;
@@ -54,7 +55,7 @@ void kvolve(const PRECISION tremap) {
 	for( i = 0; i < NX_COMPLEX; i++) {
 		for( j = 0; j < NY_COMPLEX; j++) {
 			for( k = 0; k < NZ_COMPLEX; k++) {
-				kxt[ IDX3D ] = kx[ IDX3D ] - tremap * ky[ IDX3D ];
+				kxt[ IDX3D ] = kx[ IDX3D ] - tremap * SHEAR * ky[ IDX3D ];
 			
 				k2t[ IDX3D ] = kxt[IDX3D] * kxt[IDX3D] +
 						       ky[IDX3D] * ky[IDX3D]+
@@ -68,8 +69,7 @@ void kvolve(const PRECISION tremap) {
 }
 	return;
 }
-
-
+#endif
 
 PRECISION newdt(PRECISION tremap) {
 
@@ -204,9 +204,13 @@ void mainloop() {
 	clear_timevar();
 	output(t);
 #endif
-	
-	tremap = fmod(t + LY / (2.0 * LX) , LY /  LX) - LY / (2.0 * LX);
+
+#ifdef WITH_SHEAR	
+	tremap = fmod(t + LY / (2.0 * SHEAR * LX) , LY / (SHEAR * LX)) - LY / (2.0 * SHEAR * LX);
 	kvolve(tremap);
+#else
+	tremap = 0.0;
+#endif
 	
 	while (t < T_FINAL) {
 		nloop++;
@@ -240,7 +244,9 @@ void mainloop() {
 		}
 }		
 		// 2nd RK3 step
+#ifdef WITH_SHEAR
 		kvolve(tremap+gammaRK[0]*dt);
+#endif
 		
 		timestep(dfld, fld, t, dt);
 
@@ -258,14 +264,15 @@ void mainloop() {
 			
 #ifdef BOUSSINESQ
 			fld.th[i]  = fld1.th[i] + gammaRK[1] * dfld.th[i] * dt;
-			
 			fld1.th[i] = fld.th[i] + xiRK[1] * dfld.th[i] * dt;
 #endif
 		}
 }
 				
 		// 3rd RK3 Step
+#ifdef WITH_SHEAR
 		kvolve(tremap + (gammaRK[0] + xiRK[0] + gammaRK[1]) * dt );
+#endif
 		
 		timestep(dfld, fld, t, dt);
 
@@ -288,10 +295,12 @@ void mainloop() {
 		
 		// evolving the frame
 		t = t + dt;
+
+#ifdef WITH_SHEAR		
 		tremap = tremap + dt;
 		
-		if(tremap > LY / (2.0 * LX)) {
-			tremap = fmod(t + LY / (2.0 * LX) , LY /  LX) - LY / (2.0 * LX);
+		if(tremap > LY / (2.0 * SHEAR * LX)) {
+			tremap = fmod(t + LY / (2.0 * SHEAR * LX) , LY /  (LX * SHEAR)) - LY / (2.0 * SHEAR * LX);
 			remap(fld.vx);
 			remap(fld.vy);
 			remap(fld.vz);
@@ -301,6 +310,7 @@ void mainloop() {
 		}
 		
 		kvolve(tremap);
+#endif
 		
 		// Divergence cleaning
 		projector(fld.vx,fld.vy,fld.vz);
