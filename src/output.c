@@ -25,8 +25,8 @@ void remap_output(	PRECISION wri[],
 	complex PRECISION phase;
 	
 	
-	tvelocity = fmod(t, 2.0 * LX / LY);
-	tremap = fmod(t + LY / (2.0 * LX) , LY /  LX) - LY / (2.0 * LX);
+	tvelocity = fmod(t, 2.0 * LX / (SHEAR * LY));
+	tremap = fmod(t + LY / (2.0 * SHEAR * LX) , LY / (SHEAR * LX)) - LY / (2.0 * SHEAR * LX);
 	
 	for( i = 0 ; i < NX ; i++) {
 		for( k = 0 ; k < NZ ; k++) {
@@ -41,7 +41,7 @@ void remap_output(	PRECISION wri[],
 			// advection
 				phase = (PRECISION complex) ((2.0 * M_PI) / LY * (fmod( j + (NY / 2) ,  NY ) - NY / 2 ) * 
 											( ((double) i / (double) NX ) * tremap - tvelocity / 2.0 ) * LX );
-				wexp = cexp( - I * phase);
+				wexp = cexp( I * phase);
 									
 				w2d[ j ] = w2d[ j ] * wexp;
 			}
@@ -71,7 +71,9 @@ void write_snap(const PRECISION t, const char filename[], const PRECISION comple
 		wr1[i] = wr1[i] / ((double) NTOTAL );
 	}
 	
+#ifdef WITH_SHEAR
 	remap_output(wr1,t);
+#endif
 	
 	ht=fopen(filename,"w");
 #ifdef FORTRAN_OUTPUT_ORDER	
@@ -162,9 +164,11 @@ void output_vtk(const int n, const PRECISION t) {
 		wr6[i] = wr6[i] / ((double) NTOTAL );
 	}
 	
+#ifdef WITH_SHEAR
 	remap_output(wr4,t);
 	remap_output(wr5,t);
 	remap_output(wr6,t);
+#endif
 	
 	for( i = 0; i < NX; i++) {
 		for( j = 0; j < NY; j++) {
