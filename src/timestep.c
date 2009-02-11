@@ -165,7 +165,9 @@ void implicitstep(
 	#pragma omp for schedule(static ) nowait
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
 		q0 = exp( - nu * dt* k2t[i] );
-		fldi.wz[i] = fldi.wz[i] * q0;
+		fldi.vx[i] = fldi.vx[i] * q0;
+		fldi.vy[i] = fldi.vy[i] * q0;
+		fldi.vz[i] = fldi.vz[i] * q0;
 		
 #ifdef BOUSSINESQ
 		q0 = exp( - nu_th * dt* k2t[i] );

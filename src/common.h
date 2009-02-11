@@ -8,7 +8,9 @@
 // Structures
 
 struct Field {
-	PRECISION complex *wz;
+	PRECISION complex *vx;
+	PRECISION complex *vy;
+	PRECISION complex *vz;
 #ifdef BOUSSINESQ
 	PRECISION complex *th;
 #endif
@@ -17,8 +19,8 @@ struct Field {
 
 // All these variables may be used in the code as they are initialized by common.c
 // Wave number pointers
-extern PRECISION	*kx,	*ky,	*kxt,	*k2t,	*ik2t;
-extern PRECISION	kxmax,	kymax, kmax;
+extern PRECISION	*kx,	*ky,	*kz,	*kxt,	*k2t,	*ik2t;
+extern PRECISION	kxmax,	kymax,  kzmax,	kmax;
 
 extern fftw_plan	r2cfft,	c2rfft, fft_1d_forward, fft_1d_backward;
 
@@ -52,6 +54,10 @@ void init_common ( void );
 void finish_common ( void );
 
 PRECISION randm (void);
+
+void projector( PRECISION complex qx[],
+			    PRECISION complex qy[],
+			    PRECISION complex qz[]);
 				
 PRECISION energy(const PRECISION complex q[]);
 				

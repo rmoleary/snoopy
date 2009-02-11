@@ -39,7 +39,7 @@ void please_wait(void)
 int main() {
 	printf("General purpose Spectral Hydro solver v1.0\n");
 	printf("(c) 2008 G. Lesur\n");
-	printf("Using %dx%d grid\n",NX,NY);
+	printf("Using %dx%dx%d grid\n",NX,NY,NZ);
 	printf("Initializing...\n");
 	init_common();
 	init_flow();

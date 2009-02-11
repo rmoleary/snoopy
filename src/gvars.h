@@ -1,8 +1,8 @@
-//#define		DEBUG
+#define		DEBUG
 
-#define		NX				128
-#define		NY				128
-#define		NZ				128
+#define		NX				64
+#define		NY				64
+#define		NZ				64
 
 #define		NTHREADS		2
 
@@ -11,7 +11,7 @@
 #define		LZ				1.0
 
 #define		CFL				1.5
-#define		REYNOLDS		400
+#define		REYNOLDS		4000
 #define		REYNOLDS_TH		400
 
 #define		BOUSSINESQ
@@ -28,9 +28,8 @@
 #define		T_INITIAL		0.0
 #define		T_FINAL			10000.0
 
-#define		TOUTPUT_TIME	0.1
-#define		TOUTPUT_FLOW	0.5
-#define		TOUTPUT_SPECTR	10.0
+#define		TOUTPUT_TIME	0.01
+#define		TOUTPUT_FLOW	0.01
 #define		TOUTPUT_DUMP	1.0
 
 //#define		RESTART

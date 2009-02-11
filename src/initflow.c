@@ -4,7 +4,7 @@ void init_vortex(PRECISION complex wzf[]) {
 	const PRECISION a = 0.04;
 	const PRECISION b = 0.16;
 	
-	int i,j;
+	int i,j,k;
 	PRECISION w0, x, y;
 	PRECISION chi;
 	
@@ -33,15 +33,11 @@ void init_vortex(PRECISION complex wzf[]) {
 	for(i = 0 ; i < NX_COMPLEX ; i++) {
 		for(j = 0 ; j < NY_COMPLEX ; j++) {
 			for(k = 0 ; k < NZ_COMPLEX ; k++) {
-				fld.vx[ IDX3D ] +=  I * ky[i] * w1[i] * ik2[i];
-				fld.vy[ IDX3D ] += -I * kx[i] * w1[i] * ik2[i];
+				fld.vx[ IDX3D ] +=  I * ky[i] * w1[i] * ik2t[i];
+				fld.vy[ IDX3D ] += -I * kxt[i] * w1[i] * ik2t[i];
 			}
 		}
 	}
-	
-	
-	// Remove mean vorticity
-	wzf[0] = 0.0;
 	
 	// done
 	return;
@@ -49,7 +45,7 @@ void init_vortex(PRECISION complex wzf[]) {
 
 	
 void init_flow() {
-	int i,j;
+	int i,j,k;
 	
 	// Initialise vectors to 0
 	
@@ -63,16 +59,18 @@ void init_flow() {
 #ifdef BOUSSINESQ
 				fld.th[ IDX3D ] = 0.0;
 #endif
+			}
 		}
 	}
 	// Put some noise on the large scales
-	i=NX_COMPLEX-2;
+	i=3;
 	j=1;
 	k=0;
 	
-	fld.vx[IDX3D] = 1.0;
-	fld.vy[IDX3D] = 1.0;
+	fld.vx[ IDX3D ] = NTOTAL;
+	fld.vy[ IDX3D ] = NTOTAL;
 	
+	projector(fld.vx,fld.vy,fld.vz);
 	
 	return;
 }

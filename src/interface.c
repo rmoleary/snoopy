@@ -54,7 +54,7 @@ void check_interface(const struct Field fldi,
 		open_interface_io( &iostream );
 		
 		fprintf(iostream,"STATUS command called.\n");
-		fprintf(iostream,"t=%e, dt=%e, nloop=%d\nwz^2/2=%e\n",t,dt,nloop,energy(fldi.wz));
+		fprintf(iostream,"t=%e, dt=%e, nloop=%d\n E=%e\n",t,dt,nloop,energy(fldi.vx)+energy(fldi.vy)+energy(fldi.vz));
 		output_status( iostream );
 		fprintf(iostream,"STATUS command end. Resuming execution.\n");
 		

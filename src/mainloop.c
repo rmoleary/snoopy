@@ -64,9 +64,9 @@ void kvolve(const PRECISION tremap) {
 						       ky[IDX3D] * ky[IDX3D]+
 							   kz[IDX3D] * kz[IDX3D];
 							  
-			if ( k2t[IDX3D] == 0.0 ) ik2t[IDX3D] = 1.0;
-			else	ik2t[IDX3D] = 1.0 / k2t[IDX3D];
-
+				if ( k2t[IDX3D] == 0.0 ) ik2t[IDX3D] = 1.0;
+				else	ik2t[IDX3D] = 1.0 / k2t[IDX3D];
+			}
 		}
 	}
 }

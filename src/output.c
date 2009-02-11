@@ -18,7 +18,7 @@ PRECISION lastoutput_time, lastoutput_flow, lastoutput_spectrum, lastoutput_dump
 void remap_output(	PRECISION wri[], 
 					const PRECISION t) {
 					
-	int i,j;
+	int i,j,k;
 	PRECISION tvelocity;
 	PRECISION tremap;
 	complex PRECISION wexp;
@@ -65,7 +65,7 @@ void write_snap(const PRECISION t, const char filename[], const PRECISION comple
 		w1[i] = wi[i];
 	}
 	
-	fftw_execute_dft_c2r(c2rfft(w1,wr1);
+	fftw_execute_dft_c2r(c2rfft,w1,wr1);
 	
 	for( i = 0 ; i < 2 * NTOTAL_COMPLEX ; i++) {
 		wr1[i] = wr1[i] / ((double) NTOTAL );
@@ -109,9 +109,9 @@ void output_vtk(const int n, const PRECISION t) {
 	float zcoord[NZ];
 	
 	float* v[3];
-	int dims[3];
-	int vardims[1];
-	int centering[1];
+	int dims[1];
+	int vardims[3];
+	int centering[3];
 	
 	// Init arrays required by vtk writer
 	dims[0] = NX;
@@ -123,8 +123,12 @@ void output_vtk(const int n, const PRECISION t) {
 	v[1] = vyf;
 	v[2] = vzf;
 	
-	vardims[0] = 3;
-	centering[0] = 0;
+	vardims[0] = 1;
+	vardims[1] = 1;
+	vardims[2] = 1;
+	centering[0] = 1;
+	centering[1] = 1;
+	centering[2] = 1;
 	
 	// Init varnames
 	sprintf(varname1,"vx");
@@ -154,9 +158,9 @@ void output_vtk(const int n, const PRECISION t) {
 		w6[i] = fld.vz[i];
 	}
 	
-	fftw_execute_dft_c2r(c2rfft(w4,wr4);
-	fftw_execute_dft_c2r(c2rfft(w5,wr5);
-	fftw_execute_dft_c2r(c2rfft(w6,wr6);
+	fftw_execute_dft_c2r(c2rfft,w4,wr4);
+	fftw_execute_dft_c2r(c2rfft,w5,wr5);
+	fftw_execute_dft_c2r(c2rfft,w6,wr6);
 	
 	for( i = 0 ; i < 2*NTOTAL_COMPLEX ; i++) {
 		wr4[i] = wr4[i] / ((double) NTOTAL );
@@ -173,9 +177,9 @@ void output_vtk(const int n, const PRECISION t) {
 	for( i = 0; i < NX; i++) {
 		for( j = 0; j < NY; j++) {
 			for( k = 0 ; k < NZ; k++) {
-				vxf[k + j * NZ + i * NZ * NY] = (float) wr4[k + j * (NZ + 2) + i * (NZ + 2) * NY];
-				vyf[k + j * NZ + i * NZ * NY] = (float) wr5[k + j * (NZ + 2) + i * (NZ + 2) * NY];
-				vzf[k + j * NZ + i * NZ * NY] = (float) wr6[k + j * (NZ + 2) + i * (NZ + 2) * NY];
+				vxf[i + j * NX + k * NX * NY] = (float) wr4[k + j * (NZ + 2) + i * (NZ + 2) * NY];
+				vyf[i + j * NX + k * NX * NY] = (float) wr5[k + j * (NZ + 2) + i * (NZ + 2) * NY];
+				vzf[i + j * NX + k * NX * NY] = (float) wr6[k + j * (NZ + 2) + i * (NZ + 2) * NY];
 			}
 		}
 	}
@@ -184,13 +188,11 @@ void output_vtk(const int n, const PRECISION t) {
 	sprintf(filename,"data/v%04i.vtk",n);
 	
 	// Output everything
-	write_rectilinear_mesh(filename, 1, dims, xcoord, ycoord, zcoord, 1, vardims, centering, varnames, v);
+	write_rectilinear_mesh(filename, 1, dims, xcoord, ycoord, zcoord, 3, vardims, centering, varnames, v);
 	
 }
 	
 void output_flow(const int n, const PRECISION t) {
-	int i,j;
-	struct Field dw;
 	
 	char filename[50];
 	
@@ -225,7 +227,7 @@ void output_timevar(const struct Field fldi,
 #endif
 	}
 
-	energy_total = energy(w3) + energy(w4) + energy(w5);
+	energy_total = energy(w1) + energy(w2) + energy(w3);
 	
 	fftw_execute_dft_c2r( c2rfft, w1, wr1);
 	fftw_execute_dft_c2r( c2rfft, w2, wr2);
@@ -274,7 +276,10 @@ void output_timevar(const struct Field fldi,
 	ht=fopen("timevar","a");
 	fprintf(ht,"%08e\t",t);
 	fprintf(ht,"%08e\t",energy_total);
-	fprintf(ht,"%08e\t%08e\t%08e\t%08e\t%08e\t%08e\t%08e\t%08e\t",vxmax,vxmin,vymax,vymin,vzmax,vzmin,thmax,thmin);
+	fprintf(ht,"%08e\t%08e\t%08e\t%08e\t%08e\t%08e\t",vxmax,vxmin,vymax,vymin,vzmax,vzmin);
+#ifdef BOUSSINESQ
+	fprintf(ht,"%08e\t%08e\t",thmax,thmin);
+#endif
 	fprintf(ht,"%08e\n",transport);
 	fclose(ht);
 	return;
@@ -384,11 +389,8 @@ void init_output() {
 	noutput_flow=0;
 	lastoutput_time = T_INITIAL - TOUTPUT_TIME;
 	lastoutput_flow = T_INITIAL - TOUTPUT_FLOW;
-	lastoutput_spectrum = T_INITIAL - TOUTPUT_SPECTR;
 	lastoutput_dump = T_INITIAL - TOUTPUT_DUMP;
 	
-	// Init the spectrum file
-	init1Dspectrum();
 #endif
 	return;
 }

@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <complex.h>
-#include <fftw.h>
+#include <fftw3.h>
 
 #include "gvars.h"
 #include "error.h"
@@ -21,7 +21,7 @@ struct Field {
 // This are global variables used throughout the code
 // Wave number pointers
 PRECISION	*kx,	*ky,	*kz,	*kxt,	*k2t,	*ik2t;
-PRECISION	kxmax,	kymax,  kmax;
+PRECISION	kxmax,	kymax,  kzmax,	kmax;
 
 fftw_plan	r2cfft,	c2rfft, fft_1d_forward, fft_1d_backward;
 
@@ -217,10 +217,10 @@ void init_common(void) {
 	
 	fftw_plan_with_nthreads( NTHREADS );
 	
-	r2cfft = fftw_plan_dft_r2c_2d( NX, NY, wr1, w1,  FFT_PLANNING | FFTW_DESTROY_INPUT);
+	r2cfft = fftw_plan_dft_r2c_3d( NX, NY, NZ, wr1, w1,  FFT_PLANNING);
 	if (r2cfft == NULL) ERROR_HANDLER( ERROR_CRITICAL, "FFTW R2C plan creation failed");
 
-	c2rfft = fftw_plan_dft_c2r_2d( NX, NY, w1,  wr1, FFT_PLANNING | FFTW_DESTROY_INPUT);
+	c2rfft = fftw_plan_dft_c2r_3d( NX, NY, NZ, w1,  wr1, FFT_PLANNING);
 	if (c2rfft == NULL) ERROR_HANDLER( ERROR_CRITICAL, "FFTW C2R plan creation failed");
 	
 	fft_1d_forward = fftw_plan_dft_1d(NY, w1d, w2d, FFTW_FORWARD, FFT_PLANNING);
@@ -292,7 +292,7 @@ void projector( PRECISION complex qx[],
 // Compute the energy of a given field.
 PRECISION energy(const PRECISION complex q[]) {
 	
-	int i,j;
+	int i,j,k;
 	PRECISION energ_tot;
 	
 	energ_tot=0.0;
