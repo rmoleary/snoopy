@@ -84,7 +84,7 @@ void init_common(void) {
 				ky[ IDX3D ] = (2.0 * M_PI) / LY *
 						(fmod( j + (NY_COMPLEX / 2) ,  NY_COMPLEX ) - NY_COMPLEX / 2 );
 					 
-				kz[ IDX3D ] = (2.0 * M_PI) * k / LZ;
+				kz[ IDX3D ] = (2.0 * M_PI) / LZ * k;
 
 				kxt[ IDX3D ]= kx[IDX3D];
 			
@@ -123,7 +123,7 @@ void init_common(void) {
 				if( fabs( ky[ IDX3D ] ) > 2.0/3.0 * kymax)
 					mask[ IDX3D ] = 0.0;
 					
-				if( fabs( kz[ IDX3D ] ) > 2.0/3.0 * kymax)
+				if( fabs( kz[ IDX3D ] ) > 2.0/3.0 * kzmax)
 					mask[ IDX3D ] = 0.0;
 
 #else			

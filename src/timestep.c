@@ -115,7 +115,7 @@ void timestep( struct Field dfldo,
 
 #pragma omp parallel private(i) num_threads ( NTHREADS )
 {
-	#pragma omp for schedule(static ) nowait
+	#pragma omp for schedule(static )
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
 		dfldo.vx[i] += 2.0 * OMEGA * fldi.vy[i];
 #ifdef WITH_SHEAR
@@ -124,20 +124,17 @@ void timestep( struct Field dfldo,
 		dfldo.vy[i] += (- 2.0 * OMEGA) * fldi.vx[i];
 #endif
 	}
-}
 			
 			
 /************************************
 ** PRESSURE TERMS *******************
 ************************************/
-#pragma omp parallel private(i) num_threads ( NTHREADS )
-{
 	#pragma omp for schedule(static ) nowait
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
 #ifdef WITH_SHEAR
 		q0= SHEAR * ky[i] * fldi.vx[i] + kxt[i] * dfldo.vx[i] + ky[i] * dfldo.vy[i] + kz[i] * dfldo.vz[i];
 #else
-		q0= SHEAR * ky[i] * fldi.vx[i] + kxt[i] * dfldo.vx[i] + ky[i] * dfldo.vy[i] + kz[i] * dfldo.vz[i];
+		q0= kxt[i] * dfldo.vx[i] + ky[i] * dfldo.vy[i] + kz[i] * dfldo.vz[i];
 #endif
 		dfldo.vx[i] += -kxt[i]* q0 * ik2t[i];
 		dfldo.vy[i] += -ky[i] * q0 * ik2t[i];

@@ -63,12 +63,24 @@ void init_flow() {
 		}
 	}
 	// Put some noise on the large scales
-	i=3;
+	/*
+	i=NX_COMPLEX-2;
 	j=1;
 	k=0;
 	
 	fld.vx[ IDX3D ] = NTOTAL;
 	fld.vy[ IDX3D ] = NTOTAL;
+	*/
+	
+	for( i = 0; i < NX_COMPLEX; i++) {
+		for( j = 0; j < NY_COMPLEX; j++) {
+			for( k = 1; k < NZ_COMPLEX; k++) {
+				fld.vx[ IDX3D ] = PER_AMPLITUDE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() );
+				fld.vy[ IDX3D ] = PER_AMPLITUDE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() );
+				fld.vz[ IDX3D ] = PER_AMPLITUDE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() );
+			}
+		}
+	}
 	
 	projector(fld.vx,fld.vy,fld.vz);
 	

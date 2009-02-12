@@ -99,19 +99,23 @@ void output_vtk(const int n, const PRECISION t) {
 	char  varname1[10];
 	char  varname2[10];
 	char  varname3[10];
-	char* varnames[3];
+	char  varname4[10];
+	
+	char* varnames[4];
 	
 	float* vxf = (float *) wr1;
 	float* vyf = (float *) wr2;
 	float* vzf = (float *) wr3;
+	float* thf = (float *) wr4;
+	
 	float xcoord[NX];
 	float ycoord[NY];
 	float zcoord[NZ];
 	
-	float* v[3];
+	float* v[4];
 	int dims[1];
-	int vardims[3];
-	int centering[3];
+	int vardims[4];
+	int centering[4];
 	
 	// Init arrays required by vtk writer
 	dims[0] = NX;
@@ -122,22 +126,28 @@ void output_vtk(const int n, const PRECISION t) {
 	v[0] = vxf;
 	v[1] = vyf;
 	v[2] = vzf;
+	v[3] = thf;
 	
 	vardims[0] = 1;
 	vardims[1] = 1;
 	vardims[2] = 1;
+	vardims[3] = 1;
+	
 	centering[0] = 1;
 	centering[1] = 1;
 	centering[2] = 1;
+	centering[3] = 1;
 	
 	// Init varnames
 	sprintf(varname1,"vx");
 	sprintf(varname2,"vy");
 	sprintf(varname3,"vz");
+	sprintf(varname4,"theta");
 	
 	varnames[0] = varname1;
 	varnames[1] = varname2;
 	varnames[2] = varname3;
+	varnames[3] = varname4;
 	
 	// Init coordinate system
 	
@@ -153,33 +163,48 @@ void output_vtk(const int n, const PRECISION t) {
 	
 	// Put variables in the right format.
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
-		w4[i] = fld.vx[i];
-		w5[i] = fld.vy[i];
-		w6[i] = fld.vz[i];
+		w5[i] = fld.vx[i];
+		w6[i] = fld.vy[i];
+		w7[i] = fld.vz[i];
+#ifdef BOUSSINESQ
+		w8[i] = fld.th[i];
+#endif
 	}
 	
-	fftw_execute_dft_c2r(c2rfft,w4,wr4);
 	fftw_execute_dft_c2r(c2rfft,w5,wr5);
 	fftw_execute_dft_c2r(c2rfft,w6,wr6);
+	fftw_execute_dft_c2r(c2rfft,w7,wr7);
+#ifdef BOUSSINESQ
+	fftw_execute_dft_c2r(c2rfft,w8,wr8);
+#endif
 	
 	for( i = 0 ; i < 2*NTOTAL_COMPLEX ; i++) {
-		wr4[i] = wr4[i] / ((double) NTOTAL );
 		wr5[i] = wr5[i] / ((double) NTOTAL );
 		wr6[i] = wr6[i] / ((double) NTOTAL );
+		wr7[i] = wr7[i] / ((double) NTOTAL );
+#ifdef BOUSSINESQ
+		wr8[i] = wr8[i] / ((double) NTOTAL );
+#endif
 	}
 	
 #ifdef WITH_SHEAR
-	remap_output(wr4,t);
 	remap_output(wr5,t);
 	remap_output(wr6,t);
+	remap_output(wr7,t);
+#ifdef BOUSSINESQ
+	remap_output(wr8,t);
+#endif
 #endif
 	
 	for( i = 0; i < NX; i++) {
 		for( j = 0; j < NY; j++) {
 			for( k = 0 ; k < NZ; k++) {
-				vxf[i + j * NX + k * NX * NY] = (float) wr4[k + j * (NZ + 2) + i * (NZ + 2) * NY];
-				vyf[i + j * NX + k * NX * NY] = (float) wr5[k + j * (NZ + 2) + i * (NZ + 2) * NY];
-				vzf[i + j * NX + k * NX * NY] = (float) wr6[k + j * (NZ + 2) + i * (NZ + 2) * NY];
+				vxf[i + j * NX + k * NX * NY] = (float) wr5[k + j * (NZ + 2) + i * (NZ + 2) * NY];
+				vyf[i + j * NX + k * NX * NY] = (float) wr6[k + j * (NZ + 2) + i * (NZ + 2) * NY];
+				vzf[i + j * NX + k * NX * NY] = (float) wr7[k + j * (NZ + 2) + i * (NZ + 2) * NY];
+#ifdef BOUSSINESQ
+				thf[i + j * NX + k * NX * NY] = (float) wr8[k + j * (NZ + 2) + i * (NZ + 2) * NY];
+#endif
 			}
 		}
 	}
@@ -188,8 +213,11 @@ void output_vtk(const int n, const PRECISION t) {
 	sprintf(filename,"data/v%04i.vtk",n);
 	
 	// Output everything
+#ifdef BOUSSINESQ
+	write_rectilinear_mesh(filename, 1, dims, xcoord, ycoord, zcoord, 4, vardims, centering, varnames, v);
+#else
 	write_rectilinear_mesh(filename, 1, dims, xcoord, ycoord, zcoord, 3, vardims, centering, varnames, v);
-	
+#endif
 }
 	
 void output_flow(const int n, const PRECISION t) {
@@ -204,6 +232,11 @@ void output_flow(const int n, const PRECISION t) {
 	
 	sprintf(filename,"data/vz%04i.raw",n);
 	write_snap(t, filename, fld.vz);
+	
+#ifdef BOUSSINESQ
+	sprintf(filename,"data/th%04i.raw",n);
+	write_snap(t, filename, fld.th);
+#endif
 
 	return;
 }
@@ -279,6 +312,8 @@ void output_timevar(const struct Field fldi,
 	fprintf(ht,"%08e\t%08e\t%08e\t%08e\t%08e\t%08e\t",vxmax,vxmin,vymax,vymin,vzmax,vzmin);
 #ifdef BOUSSINESQ
 	fprintf(ht,"%08e\t%08e\t",thmax,thmin);
+#else
+	fprintf(ht,"%08e\t%08e\t",0.0,0.0);
 #endif
 	fprintf(ht,"%08e\n",transport);
 	fclose(ht);

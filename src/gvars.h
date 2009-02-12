@@ -1,4 +1,4 @@
-#define		DEBUG
+//#define		DEBUG
 
 #define		NX				64
 #define		NY				64
@@ -11,25 +11,25 @@
 #define		LZ				1.0
 
 #define		CFL				1.5
-#define		REYNOLDS		4000
-#define		REYNOLDS_TH		400
+#define		REYNOLDS		40000.0
+#define		REYNOLDS_TH		40000.0
 
-#define		BOUSSINESQ
-#define		N2				(-0.01)
+//#define		BOUSSINESQ
+#define		N2				(-1.0)
 
 #define		OMEGA			(2.0 / 3.0)
 #define		WITH_SHEAR
 #define		SHEAR			1.0
 
-#define		PER_AMPLITUDE	1.0
+#define		PER_AMPLITUDE	100.0
 
 #define		FORCING_TIME	4e-2
 
 #define		T_INITIAL		0.0
 #define		T_FINAL			10000.0
 
-#define		TOUTPUT_TIME	0.01
-#define		TOUTPUT_FLOW	0.01
+#define		TOUTPUT_TIME	0.1
+#define		TOUTPUT_FLOW	0.1
 #define		TOUTPUT_DUMP	1.0
 
 //#define		RESTART

@@ -115,7 +115,13 @@ PRECISION newdt(PRECISION tremap) {
 	maxfy = maxfy / ((double) NTOTAL);
 	maxfz = maxfz / ((double) NTOTAL);
 	
-	gamma_v = (kxmax + fabs(tremap)*kymax) * maxfx + kymax * maxfy + kzmax * maxfz;
+	gamma_v = (kxmax + fabs(tremap)*kymax) * maxfx + kymax * maxfy + kzmax * maxfz + fabs(OMEGA);
+#ifdef WITH_SHEAR
+	gamma_v += fabs(SHEAR);
+#endif
+#ifdef BOUSSINESQ
+	gamma_v += pow(fabs(N2), 0.5);
+#endif
 	
 	dt = CFL / gamma_v;
 
