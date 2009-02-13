@@ -38,9 +38,7 @@ void remap(PRECISION complex qi[]) {
 			
 			for( k = 0; k < NZ_COMPLEX; k++) {
 				w1[k + NZ_COMPLEX * ny + NZ_COMPLEX * NY_COMPLEX * nxtarget] = qi[ IDX3D ];
-				
 			}
-			
 		}
 	}
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {

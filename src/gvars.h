@@ -1,24 +1,25 @@
 //#define		DEBUG
 
-#define		NX				64
+#define		NX				128
 #define		NY				64
 #define		NZ				64
 
+//#define		WITH_MPI
 #define		NTHREADS		2
 
-#define		LX				1.0
+#define		LX				2.0
 #define		LY				1.0
 #define		LZ				1.0
 
 #define		CFL				1.5
-#define		REYNOLDS		40000.0
-#define		REYNOLDS_TH		40000.0
+#define		REYNOLDS		1000.0
+#define		REYNOLDS_TH		1000.0
 
-//#define		BOUSSINESQ
+#define		BOUSSINESQ
 #define		N2				(-1.0)
 
-#define		OMEGA			(2.0 / 3.0)
-#define		WITH_SHEAR
+#define		OMEGA			(0.0)
+//#define		WITH_SHEAR
 #define		SHEAR			1.0
 
 #define		PER_AMPLITUDE	100.0
