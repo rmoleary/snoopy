@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "timestep.h"
+#include "gfft.h"
 #include "vtk_writer.h"
 
 #define OUTPUT_SPECTRUM_N_BIN		64
@@ -65,7 +66,7 @@ void write_snap(const PRECISION t, const char filename[], const PRECISION comple
 		w1[i] = wi[i];
 	}
 	
-	fftw_execute_dft_c2r(c2rfft,w1,wr1);
+	gfft_c2r(w1);
 	
 	for( i = 0 ; i < 2 * NTOTAL_COMPLEX ; i++) {
 		wr1[i] = wr1[i] / ((double) NTOTAL );
@@ -113,7 +114,7 @@ void output_vtk(const int n, const PRECISION t) {
 	float zcoord[NZ];
 	
 	float* v[4];
-	int dims[1];
+	int dims[3];
 	int vardims[4];
 	int centering[4];
 	
@@ -121,13 +122,13 @@ void output_vtk(const int n, const PRECISION t) {
 	dims[0] = NX;
 	dims[1] = NY;
 	dims[2] = NZ;
-	
+
 	// 
 	v[0] = vxf;
 	v[1] = vyf;
 	v[2] = vzf;
 	v[3] = thf;
-	
+
 	vardims[0] = 1;
 	vardims[1] = 1;
 	vardims[2] = 1;
@@ -137,7 +138,7 @@ void output_vtk(const int n, const PRECISION t) {
 	centering[1] = 1;
 	centering[2] = 1;
 	centering[3] = 1;
-	
+
 	// Init varnames
 	sprintf(varname1,"vx");
 	sprintf(varname2,"vy");
@@ -150,7 +151,6 @@ void output_vtk(const int n, const PRECISION t) {
 	varnames[3] = varname4;
 	
 	// Init coordinate system
-	
 	for( i = 0 ; i < NX ; i++) {
 		xcoord[i] = ((float) i) / ((float) NX) * LX - LX / 2.0;
 	}
@@ -160,7 +160,6 @@ void output_vtk(const int n, const PRECISION t) {
 	for( i = 0 ; i < NZ ; i++) {
 		zcoord[i] = ((float) i) / ((float) NZ) * LZ - LZ / 2.0;
 	}
-	
 	// Put variables in the right format.
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
 		w5[i] = fld.vx[i];
@@ -170,14 +169,13 @@ void output_vtk(const int n, const PRECISION t) {
 		w8[i] = fld.th[i];
 #endif
 	}
-	
-	fftw_execute_dft_c2r(c2rfft,w5,wr5);
-	fftw_execute_dft_c2r(c2rfft,w6,wr6);
-	fftw_execute_dft_c2r(c2rfft,w7,wr7);
+	gfft_c2r(w5);
+	gfft_c2r(w6);
+	gfft_c2r(w7);
 #ifdef BOUSSINESQ
-	fftw_execute_dft_c2r(c2rfft,w8,wr8);
+	gfft_c2r(w8);
 #endif
-	
+
 	for( i = 0 ; i < 2*NTOTAL_COMPLEX ; i++) {
 		wr5[i] = wr5[i] / ((double) NTOTAL );
 		wr6[i] = wr6[i] / ((double) NTOTAL );
@@ -186,7 +184,7 @@ void output_vtk(const int n, const PRECISION t) {
 		wr8[i] = wr8[i] / ((double) NTOTAL );
 #endif
 	}
-	
+
 #ifdef WITH_SHEAR
 	remap_output(wr5,t);
 	remap_output(wr6,t);
@@ -195,7 +193,7 @@ void output_vtk(const int n, const PRECISION t) {
 	remap_output(wr8,t);
 #endif
 #endif
-	
+
 	for( i = 0; i < NX; i++) {
 		for( j = 0; j < NY; j++) {
 			for( k = 0 ; k < NZ; k++) {
@@ -208,10 +206,9 @@ void output_vtk(const int n, const PRECISION t) {
 			}
 		}
 	}
-				
 	
 	sprintf(filename,"data/v%04i.vtk",n);
-	
+
 	// Output everything
 #ifdef BOUSSINESQ
 	write_rectilinear_mesh(filename, 1, dims, xcoord, ycoord, zcoord, 4, vardims, centering, varnames, v);
@@ -262,11 +259,11 @@ void output_timevar(const struct Field fldi,
 
 	energy_total = energy(w1) + energy(w2) + energy(w3);
 	
-	fftw_execute_dft_c2r( c2rfft, w1, wr1);
-	fftw_execute_dft_c2r( c2rfft, w2, wr2);
-	fftw_execute_dft_c2r( c2rfft, w3, wr3);
+	gfft_c2r(w1);
+	gfft_c2r(w2);
+	gfft_c2r(w3);
 #ifdef BOUSSINESQ
-	fftw_execute_dft_c2r( c2rfft, w4, wr4);
+	gfft_c2r(w4);
 #endif
 
 	for( i = 0 ; i < 2*NTOTAL_COMPLEX ; i++) {

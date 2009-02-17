@@ -22,7 +22,7 @@ struct Field {
 extern PRECISION	*kx,	*ky,	*kz,	*kxt,	*k2t,	*ik2t;
 extern PRECISION	kxmax,	kymax,  kzmax,	kmax;
 
-extern fftw_plan	r2cfft,	c2rfft, fft_1d_forward, fft_1d_backward;
+extern fftw_plan	fft_1d_forward, fft_1d_backward;
 
 
 // Mask for dealiasing

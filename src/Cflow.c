@@ -9,6 +9,7 @@
 #include "mainloop.h"
 #include "output.h"
 #include "initflow.h"
+#include "gfft.h"
 
 void please_wait(void)
 {
@@ -42,6 +43,8 @@ int main() {
 	printf("Using %dx%dx%d grid\n",NX,NY,NZ);
 	printf("Initializing...\n");
 	init_common();
+	init_gfft();
+	//init_transpose();
 	init_flow();
 	init_output();
 	

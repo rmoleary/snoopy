@@ -1,9 +1,9 @@
 #include <math.h>
 #include <complex.h>
-#include <fftw3.h>
 
 #include "gvars.h"
 #include "common.h"
+#include "gfft.h"
 
 void timestep( struct Field dfldo,
 			   struct Field fldi,
@@ -28,9 +28,8 @@ void timestep( struct Field dfldo,
 		w3[i] =  fldi.vz[i];
 	}
 }
-	fftw_execute_dft_c2r( c2rfft, w1, wr1);
-	fftw_execute_dft_c2r( c2rfft, w2, wr2);
-	fftw_execute_dft_c2r( c2rfft, w3, wr3);
+
+	gfft3_c2r_t(w1, w2, w3);
 	
 #pragma omp parallel private(i) num_threads ( NTHREADS )
 {
@@ -46,12 +45,9 @@ void timestep( struct Field dfldo,
 		
 	}
 }
-	fftw_execute_dft_r2c( r2cfft, wr4, w4);
-	fftw_execute_dft_r2c( r2cfft, wr5, w5);	
-	fftw_execute_dft_r2c( r2cfft, wr6, w6);
-	fftw_execute_dft_r2c( r2cfft, wr7, w7);
-	fftw_execute_dft_r2c( r2cfft, wr8, w8);
-	fftw_execute_dft_r2c( r2cfft, wr9, w9);	
+
+	gfft3_r2c_t(wr4, wr5, wr6);
+	gfft3_r2c_t(wr7, wr8, wr9);	
 	
 #pragma omp parallel private(i) num_threads ( NTHREADS )
 {
@@ -79,7 +75,8 @@ void timestep( struct Field dfldo,
 	}
 	
 }
-	fftw_execute_dft_c2r( c2rfft, w4, wr4);
+
+	gfft_c2r_t(w4);
 		
 #pragma omp parallel private(i) num_threads ( NTHREADS )
 {
@@ -91,10 +88,7 @@ void timestep( struct Field dfldo,
 		wr7[i] = wr3[i] * wr4[i] / ((double) NTOTAL*NTOTAL);
 	}
 }
-
-	fftw_execute_dft_r2c( r2cfft, wr5, w5);
-	fftw_execute_dft_r2c( r2cfft, wr6, w6);
-	fftw_execute_dft_r2c( r2cfft, wr7, w7);
+	gfft3_r2c_t(wr5, wr6, wr7);
 	
 #pragma omp parallel private(i) num_threads ( NTHREADS )
 {

@@ -1,4 +1,5 @@
 #include "common.h"
+#include "gfft.h"
 
 void init_vortex(PRECISION complex wzf[]) {
 	const PRECISION a = 0.04;
@@ -28,7 +29,7 @@ void init_vortex(PRECISION complex wzf[]) {
 	}
 	
 	// transform
-	fftw_execute_dft_r2c( r2cfft, wr1, w1);
+	gfft_r2c(wr1);
 	
 	for(i = 0 ; i < NX_COMPLEX ; i++) {
 		for(j = 0 ; j < NY_COMPLEX ; j++) {

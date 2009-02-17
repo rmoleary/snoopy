@@ -1,7 +1,7 @@
 #include "gvars.h"
 #include "common.h"
 
-#ifdef WITH_MPI
+#ifdef MPI_SUPPORT
 // That's a long MPI if def...
 
 #include "transpose.h"
@@ -434,8 +434,8 @@ void gfft_r2c_t(PRECISION *wrin) {
 }
 
 void gfft_c2r_t(PRECISION complex *win){
-	PRECISION *wrin = (PRECISION *) wrin;
-	fftw_execute_dft_c2r(c2rfft, wrin, win);
+	PRECISION *wrin = (PRECISION *) win;
+	fftw_execute_dft_c2r(c2rfft, win, wrin);
 	return;
 }
 
@@ -446,8 +446,8 @@ void gfft_r2c(PRECISION *wrin) {
 }
 
 void gfft_c2r(PRECISION complex *win){
-	PRECISION *wrin = (PRECISION *) wrin;
-	fftw_execute_dft_c2r(c2rfft, wrin, win);
+	PRECISION *wrin = (PRECISION *) win;
+	fftw_execute_dft_c2r(c2rfft, win, wrin);
 	return;
 }
 
@@ -467,7 +467,6 @@ void gfft3_c2r_t(PRECISION complex *win1, PRECISION complex *win2, PRECISION com
 }
 
 void init_gfft() {
-	int i;
 	
 	wi1 = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
 	if (wi1 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for wi1 allocation");
@@ -491,7 +490,7 @@ void init_gfft() {
 	return;
 }
 
-
+#endif
 
 														   
 	

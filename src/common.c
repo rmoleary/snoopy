@@ -23,7 +23,7 @@ struct Field {
 PRECISION	*kx,	*ky,	*kz,	*kxt,	*k2t,	*ik2t;
 PRECISION	kxmax,	kymax,  kzmax,	kmax;
 
-fftw_plan	r2cfft,	c2rfft, fft_1d_forward, fft_1d_backward;
+fftw_plan	fft_1d_forward, fft_1d_backward;
 
 // Mask for dealiasing
 PRECISION   *mask;
@@ -52,8 +52,9 @@ PRECISION	nu_th;
 void init_common(void) {
 	/* This routine will initialize everything */
 	int i,j,k;
-	
+#ifdef OPEN_SUPPORT	
 	if( !(fftw_init_threads()) ) ERROR_HANDLER( ERROR_CRITICAL, "Threads initialisation failed");
+#endif
 	
 	/* We start with the coordinate system */
 	kx = (PRECISION *) fftw_malloc( sizeof(PRECISION) * NTOTAL_COMPLEX );
@@ -214,15 +215,11 @@ void init_common(void) {
 
 // FFT plans (we use dummy arrays since we use the "guru" interface of fft3 in the code)
 // The in place/ out of place will be set automatically at this stage
-	
-	fftw_plan_with_nthreads( NTHREADS );
-	
-	r2cfft = fftw_plan_dft_r2c_3d( NX, NY, NZ, wr1, w1,  FFT_PLANNING);
-	if (r2cfft == NULL) ERROR_HANDLER( ERROR_CRITICAL, "FFTW R2C plan creation failed");
 
-	c2rfft = fftw_plan_dft_c2r_3d( NX, NY, NZ, w1,  wr1, FFT_PLANNING);
-	if (c2rfft == NULL) ERROR_HANDLER( ERROR_CRITICAL, "FFTW C2R plan creation failed");
-	
+#ifdef OPENMP_SUPPORT	
+	fftw_plan_with_nthreads( 1 );
+#endif
+
 	fft_1d_forward = fftw_plan_dft_1d(NY, w1d, w2d, FFTW_FORWARD, FFT_PLANNING);
 	if (fft_1d_forward == NULL) ERROR_HANDLER( ERROR_CRITICAL, "FFTW 1D forward plan creation failed");
 	

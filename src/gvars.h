@@ -4,7 +4,6 @@
 #define		NY				64
 #define		NZ				64
 
-//#define		WITH_MPI
 #define		NTHREADS		2
 
 #define		LX				2.0
@@ -29,8 +28,8 @@
 #define		T_INITIAL		0.0
 #define		T_FINAL			10000.0
 
-#define		TOUTPUT_TIME	0.1
-#define		TOUTPUT_FLOW	0.1
+#define		TOUTPUT_TIME	1.0
+#define		TOUTPUT_FLOW	1.0
 #define		TOUTPUT_DUMP	1.0
 
 //#define		RESTART

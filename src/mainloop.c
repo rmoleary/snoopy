@@ -4,6 +4,7 @@
 #include "timestep.h"
 #include "output.h"
 #include "interface.h"
+#include "gfft.h"
 
 struct Field			dfld, fld1;
 
@@ -89,9 +90,8 @@ PRECISION newdt(PRECISION tremap) {
 		w3[i] =  fld.vz[i];
 	}
 }
-	fftw_execute_dft_c2r( c2rfft, w1, wr1);
-	fftw_execute_dft_c2r( c2rfft, w2, wr2);
-	fftw_execute_dft_c2r( c2rfft, w3, wr3);
+
+	gfft3_c2r_t(w1, w2, w3);
 	
 	maxfx=0.0;
 	maxfy=0.0;

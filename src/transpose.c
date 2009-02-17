@@ -1,8 +1,13 @@
+
+
 #include <pthread.h>
 #include <string.h>
 #include "gvars.h"
 #include "common.h"
 #include <fftw3.h>
+
+#ifdef MPI_SUPPORT
+
 #ifdef FFTW3_MPI_SUPPORT
 #include <fftw3-mpi.h>
 #endif
@@ -338,4 +343,4 @@ void *transpose_complex_YX_thread(void *win) {
 	pthread_exit(NULL);
 }
 
-	
+#endif
