@@ -91,7 +91,9 @@ PRECISION newdt(PRECISION tremap) {
 	}
 }
 
-	gfft3_c2r_t(w1, w2, w3);
+	gfft_c2r_t(w1);
+	gfft_c2r_t(w2);
+	gfft_c2r_t(w3);
 	
 	maxfx=0.0;
 	maxfy=0.0;

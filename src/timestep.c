@@ -29,7 +29,9 @@ void timestep( struct Field dfldo,
 	}
 }
 
-	gfft3_c2r_t(w1, w2, w3);
+	gfft_c2r_t(w1);
+	gfft_c2r_t(w2);
+	gfft_c2r_t(w3);
 	
 #pragma omp parallel private(i) num_threads ( NTHREADS )
 {
@@ -45,10 +47,13 @@ void timestep( struct Field dfldo,
 		
 	}
 }
-
-	gfft3_r2c_t(wr4, wr5, wr6);
-	gfft3_r2c_t(wr7, wr8, wr9);	
-	
+	gfft_r2c_t(wr4);
+	gfft_r2c_t(wr5);
+	gfft_r2c_t(wr6);
+	gfft_r2c_t(wr7);
+	gfft_r2c_t(wr8);
+	gfft_r2c_t(wr9);
+		
 #pragma omp parallel private(i) num_threads ( NTHREADS )
 {
 	#pragma omp for schedule(static ) nowait
@@ -88,7 +93,10 @@ void timestep( struct Field dfldo,
 		wr7[i] = wr3[i] * wr4[i] / ((double) NTOTAL*NTOTAL);
 	}
 }
-	gfft3_r2c_t(wr5, wr6, wr7);
+
+	gfft_r2c_t(wr5);
+	gfft_r2c_t(wr6);
+	gfft_r2c_t(wr7);
 	
 #pragma omp parallel private(i) num_threads ( NTHREADS )
 {

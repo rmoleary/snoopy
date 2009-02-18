@@ -1,10 +1,9 @@
-
-
-#include <pthread.h>
 #include <string.h>
 #include "gvars.h"
 #include "common.h"
 #include <fftw3.h>
+
+// Global ifdef. No transpose if no MPI.
 
 #ifdef MPI_SUPPORT
 
@@ -14,17 +13,15 @@
 
 PRECISION complex * temp1;
 PRECISION complex * temp2;
+#ifdef FFTW3_MPI_SUPPORT
 fftw_plan	plan_t_XY, plan_t_YX;
-
-double MPI_Communication_time;
+#endif
 
 void init_transpose() {
 	temp1 = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
 	if (temp1 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for temp1 allocation");
 	temp2 = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
 	if (temp2 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for temp2 allocation");
-	
-	MPI_Communication_time = 0.0;
 
 #ifdef FFTW3_MPI_SUPPORT
 #ifdef OPENMP_SUPPORT
@@ -70,18 +67,8 @@ void transpose_complex_XY(PRECISION complex *qin, PRECISION complex *qout) {
 	const int local_nxin = nxin / nproc;
 	const int local_nyin = nyin / nproc;
 	
-/*// First, transpose locally the array in qout (will be erased anyway...)
+// First, transpose locally the array in qout (will be erased anyway...)
 
-#pragma omp parallel private(i,j) num_threads ( NTHREADS )
-{
-	#pragma omp for schedule(static) nowait	
-	for(i=0 ; i < local_nxin ; i++) {
-		for(j=0 ; j < nyin ; j++) {
-			memcpy((void *) &temp1[j*local_nxin*nzin + i*nzin], (void *) &qin[i*nyin*nzin + j*nzin],nzin*sizeof(PRECISION complex));
-		}
-	}
-}
-*/
 	
 #pragma omp parallel private(i,j) num_threads ( NTHREADS )
 {
@@ -98,33 +85,14 @@ void transpose_complex_XY(PRECISION complex *qin, PRECISION complex *qout) {
 // Next, MPI the whole thing... Have to be out of place
 // Here we could use qin as destination, if qin could be destroyed (might be an interesting optimisation...)
 // This step corresponds to an exchange of chuncks of size (local_nyin,local_nxin,nzin)
-	MPI_Communication_time = MPI_Communication_time - get_walltime();
 	
 	MPI_Alltoall(temp1, local_nxin*local_nyin*nzin*sizeof(PRECISION complex), MPI_BYTE,
 				 temp2,   local_nxin*local_nyin*nzin*sizeof(PRECISION complex), MPI_BYTE, MPI_COMM_WORLD);
 				 
-	MPI_Communication_time = MPI_Communication_time + get_walltime();
-				 
 // From here, temp is made of a contiguous array of chunks of size (local_nyin,local_nxin,nzin)
 // Which can be seen as a 4D Array of size (nproc,local_nyin,local_nxin,nzin);
 // One have to reorder the chunks to get the array right
-//	for(i=0 ; i < NTOTAL_COMPLEX ; i++) {
-//		qout[i]=w1[i];
-//	}
 
-/*
-#pragma omp parallel private(i,j,n) num_threads ( NTHREADS )
-{
-	#pragma omp for schedule(static) nowait		
-	for(i=0 ; i < local_nyin ; i++) {
-		for(n=0 ; n < nproc ; n++) {
-			for(j=0 ; j < local_nxin ; j++) {
-				memcpy((void *) &qout[i*nxin*nzin + (j+n*local_nxin)*nzin], &temp2[n*local_nyin*local_nxin*nzin + i*local_nxin*nzin + j*nzin], nzin*sizeof(PRECISION complex));
-			}
-		}
-	}
-}
-*/
 
 #pragma omp parallel private(i,j,n) num_threads ( NTHREADS )
 {
@@ -161,18 +129,6 @@ void transpose_complex_YX(PRECISION complex *qin, PRECISION complex *qout) {
 	const int local_nyin = nyin / nproc;
 	
 // First, transpose locally the array in qout (will be erased anyway...)
-
-/*
-#pragma omp parallel private(i,j) num_threads ( NTHREADS )
-{
-	#pragma omp for schedule(static) nowait	
-	for(i=0 ; i < local_nxin ; i++) {
-		for(j=0 ; j < nyin ; j++) {
-			memcpy((void *) &temp1[j*local_nxin*nzin + i*nzin], (void *) &qin[i*nyin*nzin + j*nzin],nzin*sizeof(PRECISION complex));
-		}
-	}
-}
-*/
 	
 #pragma omp parallel private(i,j,k) num_threads ( NTHREADS )
 {
@@ -190,33 +146,14 @@ void transpose_complex_YX(PRECISION complex *qin, PRECISION complex *qout) {
 // Next, MPI the whole thing... Have to be out of place
 // Here we could use qin as destination, if qin could be destroyed (might be an interesting optimisation...)
 // This step corresponds to an exchange of chuncks of size (local_nyin,local_nxin,nzin)
-	MPI_Communication_time = MPI_Communication_time - get_walltime();
 	
 	MPI_Alltoall(temp1, local_nxin*local_nyin*nzin*sizeof(PRECISION complex), MPI_BYTE,
 				 temp2,   local_nxin*local_nyin*nzin*sizeof(PRECISION complex), MPI_BYTE, MPI_COMM_WORLD);
 	
-	MPI_Communication_time = MPI_Communication_time + get_walltime();
 // From here, temp is made of a contiguous array of chunks of size (local_nyin,local_nxin,nzin)
 // Which can be seen as a 4D Array of size (nproc,local_nyin,local_nxin,nzin);
 // One have to reorder the chunks to get the array right
-//	for(i=0 ; i < NTOTAL_COMPLEX ; i++) {
-//		qout[i]=w1[i];
-//	}
 
-
-/*
-#pragma omp parallel private(i,j,n) num_threads ( NTHREADS )
-{
-	#pragma omp for schedule(static) nowait		
-	for(i=0 ; i < local_nyin ; i++) {
-		for(n=0 ; n < nproc ; n++) {
-			for(j=0 ; j < local_nxin ; j++) {
-				memcpy((void *) &qout[i*nxin*nzin + (j+n*local_nxin)*nzin], &temp2[n*local_nyin*local_nxin*nzin + i*local_nxin*nzin + j*nzin], nzin*sizeof(PRECISION complex));
-			}
-		}
-	}
-}
-*/
 
 #pragma omp parallel private(i,j,k,n) num_threads ( NTHREADS )
 {
@@ -329,18 +266,6 @@ void transpose_real(const int nxin, const int nyin, const int nzin, const int np
 	}
 
     return;
-}
-
-void *transpose_complex_XY_thread(void *win) {
-	// This is a threaded version for transpose_complex_XY
-	transpose_complex_XY((PRECISION complex*) win, (PRECISION complex*) win);
-	pthread_exit(NULL);
-}
-
-void *transpose_complex_YX_thread(void *win) {
-	// This is a threaded version for transpose_complex_YX
-	transpose_complex_YX((PRECISION complex*) win, (PRECISION complex*) win);
-	pthread_exit(NULL);
 }
 
 #endif
