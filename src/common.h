@@ -1,6 +1,11 @@
 #include <math.h>
 #include <complex.h>
 #include <fftw3.h>
+
+#ifdef MPI_SUPPORT
+#include <mpi.h>
+#endif
+
 #include "gvars.h"
 #include "error.h"
 
@@ -54,9 +59,7 @@ extern PRECISION	nu_th;
 #endif
 
 // MPI
-#ifdef MPI_SUPPORT
 extern int rank;
-#endif
 
 // Functions provided by the common routine
 

@@ -33,7 +33,7 @@ void please_wait(void)
      int choices = sizeof(s) / sizeof(*s);
 	 srand (time (NULL));
      i = rand() % choices;
-     printf("Please wait %s...\n", s[i < 0 ? -i : i]);
+     MPI_Printf("Please wait %s...\n", s[i < 0 ? -i : i]);
 }
 
 
@@ -41,24 +41,25 @@ int main(int argc, char *argv[]) {
 #ifdef MPI_SUPPORT
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD,&rank);
-	
-	printf("General purpose Spectral Hydro solver v1.0\n");
-	printf("(c) 2008 G. Lesur\n");
-	printf("Using %dx%dx%d grid\n",NX,NY,NZ);
-	printf("Initializing...\n");
+#else
+	rank=0;
+#endif
+	MPI_Printf("General purpose Spectral Hydro solver v1.0\n");
+	MPI_Printf("(c) 2004-2009 G. Lesur\n");
+	MPI_Printf("Using %dx%dx%d grid\n",NX,NY,NZ);
+	MPI_Printf("Initializing...\n");
 	init_common();
 	init_gfft();
-	//init_transpose();
 	init_flow();
 	init_output();
 	
-	printf("Calling mainloop... touch status, output or stop to print more information.\n");
+	MPI_Printf("Calling mainloop... touch status, output or stop to print more information.\n");
 	please_wait();
 	mainloop();
 	
 	finish_common();
 	
-	printf("Terminated.\n");
+	MPI_Printf("Terminated.\n");
 	
 	return(0);
 }
