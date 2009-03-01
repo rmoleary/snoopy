@@ -37,7 +37,11 @@ void please_wait(void)
 }
 
 
-int main() {
+int main(int argc, char *argv[]) {
+#ifdef MPI_SUPPORT
+	MPI_Init(&argc, &argv);
+	MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+	
 	printf("General purpose Spectral Hydro solver v1.0\n");
 	printf("(c) 2008 G. Lesur\n");
 	printf("Using %dx%dx%d grid\n",NX,NY,NZ);

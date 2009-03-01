@@ -3,6 +3,12 @@
 #include <complex.h>
 #include <fftw3.h>
 
+#ifdef MPI_SUPPORT
+#ifdef FFTW3_MPI_SUPPORT
+#include <fftw3-mpi.h>
+#endif
+#endif
+
 #include "gvars.h"
 #include "error.h"
 
@@ -48,10 +54,17 @@ PRECISION	nu;
 PRECISION	nu_th;
 #endif
 
+#ifdef MPI_SUPPORT
+int		rank
+#endif
 
 void init_common(void) {
 	/* This routine will initialize everything */
 	int i,j,k;
+#ifdef FFTW3_MPI_SUPPORT	
+	if( !(fftw_mpi_init()) ) ERROR_HANDLER( ERROR_CRITICAL, "FFTW3 MPI Library initialisation failed. Try with custom transpose library");
+#endif
+#endif
 #ifdef OPEN_SUPPORT	
 	if( !(fftw_init_threads()) ) ERROR_HANDLER( ERROR_CRITICAL, "Threads initialisation failed");
 #endif
@@ -80,7 +93,7 @@ void init_common(void) {
 		for( j = 0; j < NY_COMPLEX; j++) {
 			for( k = 0; k < NZ_COMPLEX; k++) {
 				kx[ IDX3D ] = (2.0 * M_PI) / LX *
-						(fmod( i + (NX_COMPLEX / 2) ,  NX_COMPLEX ) - NX_COMPLEX / 2 );
+						(fmod( NX_COMPLEX/NPROC * rank i + (NX_COMPLEX / 2) ,  NX_COMPLEX ) - NX_COMPLEX / 2 );
 					 
 				ky[ IDX3D ] = (2.0 * M_PI) / LY *
 						(fmod( j + (NY_COMPLEX / 2) ,  NY_COMPLEX ) - NY_COMPLEX / 2 );

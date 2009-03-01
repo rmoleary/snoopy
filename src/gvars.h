@@ -1,10 +1,12 @@
 //#define		DEBUG
 
+// Caution: when using MPI, NX and NY must be multiples of NPROC
 #define		NX				128
 #define		NY				64
 #define		NZ				64
 
 #define		NTHREADS		2
+#define		NPROC			1
 
 #define		LX				2.0
 #define		LY				1.0
@@ -39,15 +41,15 @@
 #define		INTERFACE_CHECK	4
 //#define		INTERFACE_OUTPUT_FILE
 
-// ANTIALIASING option need to be coded in init_code routine
-#define		ANTIALIASING
-
-// USE the INPLACE option to save some of the memory used by temporary arrays.
-//#define		INPLACE
 
 // FFT_PLANNING can be either FFTW_ESTIMATE, FFTW_MEASURE, FFTW_PATIENT or FFTW_EXHAUSTIVE (see fftw3 doc)
 //#define		FFT_PLANNING	FFTW_ESTIMATE
 #define		FFT_PLANNING	FFTW_MEASURE
+
+// Ignore NPROC if MPI_SUPPORT is disabled
+#ifndef	MPI_SUPPORT
+#define		NPROC			1
+#endif
 
 #define		NTOTAL			NX * NY * NZ
 
@@ -55,7 +57,7 @@
 #define		NY_COMPLEX		NY
 #define		NZ_COMPLEX		(NZ / 2 + 1)
 
-#define		NTOTAL_COMPLEX			NX_COMPLEX * NY_COMPLEX * NZ_COMPLEX
+#define		NTOTAL_COMPLEX	(NX_COMPLEX * NY_COMPLEX * NZ_COMPLEX/NPROC)
 
 #define		PRECISION		double
 

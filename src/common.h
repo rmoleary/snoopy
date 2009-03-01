@@ -4,6 +4,11 @@
 #include "gvars.h"
 #include "error.h"
 
+#ifdef MPI_SUPPORT
+#define		MPI_Printf			if (rank==0) printf
+#else
+#define		MPI_Printf			printf
+#endif
 
 // Structures
 
@@ -46,6 +51,11 @@ extern PRECISION	nu;
 
 #ifdef BOUSSINESQ
 extern PRECISION	nu_th;
+#endif
+
+// MPI
+#ifdef MPI_SUPPORT
+extern int rank;
 #endif
 
 // Functions provided by the common routine
