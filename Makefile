@@ -1,5 +1,5 @@
-OPENMP=yes
-MPI=no
+OPENMP=no
+MPI=yes
 FFTW3_MPI=no
 DEBUG=no
 

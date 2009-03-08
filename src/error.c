@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include "common.h"
 #include "error.h"
 
 void error_h (const int ErrorType,
@@ -7,27 +8,30 @@ void error_h (const int ErrorType,
 			  const char ErrorRoutine[], 
 			  const int line, 
 			  const char Filename[] ) {
-	printf("*************************************************\n");
+	MPI_Printf("*************************************************\n");
 	if ( ErrorType == ERROR_WARNING )
-		printf("Warning in ");
+		MPI_Printf("Warning in ");
 	if ( ErrorType == ERROR_NONCRITICAL )
-		printf("Non Critical Error in ");
+		MPI_Printf("Non Critical Error in ");
 	if ( ErrorType == ERROR_CRITICAL )
-		printf("Critical Error in ");
-	printf("File: ");
-	printf(Filename);
-	printf(" Routine: ");
-	printf(ErrorRoutine);
-		printf(" Line: %d \n",line);
-	printf(ErrorMessage);
+		MPI_Printf("Critical Error in ");
+	MPI_Printf("File: ");
+	MPI_Printf(Filename);
+	MPI_Printf(" Routine: ");
+	MPI_Printf(ErrorRoutine);
+		MPI_Printf(" Line: %d \n",line);
+	MPI_Printf(ErrorMessage);
 	
 	if(ErrorType == ERROR_CRITICAL) {
-		printf("\n Terminating.\n");
+		MPI_Printf("\n Terminating.\n");
+#ifdef MPI_SUPPORT
+		MPI_Finalize();
+#endif
 		exit(1);
 	}
 	else {
-		printf("\nResuming execution...\n");
-		printf("*************************************************\n");
+		MPI_Printf("\nResuming execution...\n");
+		MPI_Printf("*************************************************\n");
 	}
 	return;
 }
