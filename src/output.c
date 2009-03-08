@@ -372,7 +372,82 @@ void output_timevar(const struct Field fldi,
 #endif
 	return;
 }
+
+void write_field(FILE *handler, PRECISION complex *fldwrite) {
+#ifdef MPI_SUPPORT
+	MPI_Status status;
+	// Write in rank order using the file opened if handler
+	int current_rank;
+#endif
+	int i;
+
+#ifdef MPI_SUPPORT	
+	if(rank==0) {
+		for(current_rank=0; current_rank < NPROC; current_rank++) {
+			if(current_rank==0) {
+				// Copy the dump in the rank=0 process
+#endif
+				for(i=0; i< NTOTAL_COMPLEX; i++) {
+					w1[i]=fldwrite[i];
+				}
+#ifdef MPI_SUPPORT
+			}
+			else {
+				MPI_Recv( w1, NTOTAL_COMPLEX * 2, MPI_DOUBLE, current_rank, 2, MPI_COMM_WORLD, &status);
+			}
+#endif
+			fwrite(w1, sizeof(PRECISION complex), NTOTAL_COMPLEX, handler);
+#ifdef MPI_SUPPORT
+		}
+		MPI_Barrier(MPI_COMM_WORLD);
+	}
+	else {
+		MPI_Send(fldwrite, NTOTAL_COMPLEX * 2, MPI_DOUBLE, 0, 2, MPI_COMM_WORLD);
+		MPI_Barrier(MPI_COMM_WORLD);
+	}
+#endif
+	return();
+}
+
 	
+void read_field(FILE *handler, PRECISION complex *fldread) {
+#ifdef MPI_SUPPORT
+	MPI_Status status;
+	// Write in rank order using the file opened if handler
+	int current_rank;
+#endif
+	int i;
+
+#ifdef MPI_SUPPORT
+	if(rank==0) {
+		for(current_rank=0; current_rank < NPROC; current_rank++) {
+#endif
+			fread(w1, sizeof(PRECISION complex), NTOTAL_COMPLEX, handler);
+
+#ifdef MPI_SUPPORT
+			if(current_rank==0) {
+#endif
+				// Copy the dump in the rank=0 process
+				for(i=0; i< NTOTAL_COMPLEX; i++) {
+					fldread[i]=w1[i];
+				}
+#ifdef MPI_SUPPORT
+			}
+			else {
+				MPI_Send( w1, NTOTAL_COMPLEX * 2, MPI_DOUBLE, current_rank, 3, MPI_COMM_WORLD);
+			}
+		}
+		MPI_Barrier(MPI_COMM_WORLD);
+	}
+	else {
+		MPI_Recv(fldread, NTOTAL_COMPLEX * 2, MPI_DOUBLE, 0, 3, MPI_COMM_WORLD,&status);
+		MPI_Barrier(MPI_COMM_WORLD);
+	}
+#endif
+	return();
+}
+
+
 void output_dump( const struct Field fldi,
 				  const PRECISION t) {	
 				  
@@ -391,35 +466,40 @@ void output_dump( const struct Field fldi,
 	// This is a hard coded marker to check that we have read correctly the file
 	marker = DUMP_MARKER;
 	
-	ht=fopen(OUTPUT_DUMP,"w");
-	if(ht==NULL) ERROR_HANDLER( ERROR_CRITICAL, "Error opening dump file.");
+	if(rank==0) {
+		ht=fopen(OUTPUT_DUMP,"w");
+		if(ht==NULL) ERROR_HANDLER( ERROR_CRITICAL, "Error opening dump file.");
 	
-	fwrite(&dump_version, sizeof(int), 1, ht);
+		fwrite(&dump_version, sizeof(int), 1, ht);
 	
-	fwrite(&size_x		, sizeof(int), 1, ht);
-	fwrite(&size_y		, sizeof(int), 1, ht);
-	fwrite(&size_z		, sizeof(int), 1, ht);
+		fwrite(&size_x		, sizeof(int), 1, ht);
+		fwrite(&size_y		, sizeof(int), 1, ht);
+		fwrite(&size_z		, sizeof(int), 1, ht);
+	}
 	
-	fwrite(fldi.vx			, sizeof(PRECISION complex), NTOTAL_COMPLEX, ht);
-	fwrite(fldi.vy			, sizeof(PRECISION complex), NTOTAL_COMPLEX, ht);
-	fwrite(fldi.vz			, sizeof(PRECISION complex), NTOTAL_COMPLEX, ht);
+	write_field(ht, fldi.vx);
+	write_field(ht, fldi.vy);
+	write_field(ht, fldi.vz);
 	
 #ifdef BOUSSINESQ
-	fwrite(fldi.th			, sizeof(PRECISION complex), NTOTAL_COMPLEX, ht);
+	write_field(ht, fldi.th);
 #endif
-	fwrite(&t			, sizeof(PRECISION)		   , 1			   , ht);
+
+	if(rank==0) {
+		fwrite(&t			, sizeof(PRECISION)		   , 1			   , ht);
 	
-	fwrite(&noutput_flow		, sizeof(int)			   , 1             , ht);
-	fwrite(&lastoutput_time 	, sizeof(PRECISION)		   , 1			   , ht);
-	fwrite(&lastoutput_flow 	, sizeof(PRECISION)		   , 1			   , ht);
-	fwrite(&lastoutput_spectrum	, sizeof(PRECISION)		   , 1			   , ht);
-	fwrite(&lastoutput_dump 	, sizeof(PRECISION)		   , 1			   , ht);
+		fwrite(&noutput_flow		, sizeof(int)			   , 1             , ht);
+		fwrite(&lastoutput_time 	, sizeof(PRECISION)		   , 1			   , ht);
+		fwrite(&lastoutput_flow 	, sizeof(PRECISION)		   , 1			   , ht);
+		fwrite(&lastoutput_spectrum	, sizeof(PRECISION)		   , 1			   , ht);
+		fwrite(&lastoutput_dump 	, sizeof(PRECISION)		   , 1			   , ht);
 	
 // Any extra information should be put here.	
 	
-	fwrite(&marker		, sizeof(int)			   , 1			   , ht);
+		fwrite(&marker		, sizeof(int)			   , 1			   , ht);
 	
-	fclose(ht);
+		fclose(ht);
+	}
 	
 	return;
 }
@@ -432,40 +512,57 @@ void read_dump(   struct Field fldo,
 	int size_x,	size_y, size_z;
 	int marker;
 		
-	ht=fopen(OUTPUT_DUMP,"r");
-	if(ht==NULL) ERROR_HANDLER( ERROR_CRITICAL, "Error opening dump file.");
+	if(rank==0) {
+		ht=fopen(OUTPUT_DUMP,"r");
+		if(ht==NULL) ERROR_HANDLER( ERROR_CRITICAL, "Error opening dump file.");
 	
-	fread(&dump_version, sizeof(int), 1, ht);
-	if( dump_version != OUTPUT_DUMP_VERSION) ERROR_HANDLER( ERROR_CRITICAL, "Incorrect dump file version.");
+		fread(&dump_version, sizeof(int), 1, ht);
+		if( dump_version != OUTPUT_DUMP_VERSION) ERROR_HANDLER( ERROR_CRITICAL, "Incorrect dump file version.");
 	
-	fread(&size_x		, sizeof(int), 1, ht);
-	fread(&size_y		, sizeof(int), 1, ht);
-	fread(&size_z		, sizeof(int), 1, ht);
+		fread(&size_x		, sizeof(int), 1, ht);
+		fread(&size_y		, sizeof(int), 1, ht);
+		fread(&size_z		, sizeof(int), 1, ht);
 	
-	if(size_x != NX) ERROR_HANDLER( ERROR_CRITICAL, "Incorrect X grid size in dump file.");
-	if(size_y != NY) ERROR_HANDLER( ERROR_CRITICAL, "Incorrect Y grid size in dump file.");
-	if(size_z != NZ) ERROR_HANDLER( ERROR_CRITICAL, "Incorrect Y grid size in dump file.");
+		if(size_x != NX) ERROR_HANDLER( ERROR_CRITICAL, "Incorrect X grid size in dump file.");
+		if(size_y != NY) ERROR_HANDLER( ERROR_CRITICAL, "Incorrect Y grid size in dump file.");
+		if(size_z != NZ) ERROR_HANDLER( ERROR_CRITICAL, "Incorrect Y grid size in dump file.");
 	
-	fread(fldo.vx	, sizeof(PRECISION complex), NTOTAL_COMPLEX, ht);
-	fread(fldo.vy	, sizeof(PRECISION complex), NTOTAL_COMPLEX, ht);
-	fread(fldo.vz	, sizeof(PRECISION complex), NTOTAL_COMPLEX, ht);
+	}
+	
+	read_field(ht, fldo.vx);
+	read_field(ht, fldo.vy);
+	read_field(ht, fldo.vz);
+	
 #ifdef BOUSSINESQ
-	fread(fldo.th	, sizeof(PRECISION complex), NTOTAL_COMPLEX, ht);
+	read_field(ht, fldo.th);
 #endif
-	fread(t			, sizeof(PRECISION)		   , 1			   , ht);
 	
-	fread(&noutput_flow			, sizeof(int)			   , 1             , ht);
-	fread(&lastoutput_time		, sizeof(PRECISION)		   , 1			   , ht);
-	fread(&lastoutput_flow		, sizeof(PRECISION)		   , 1			   , ht);
-	fread(&lastoutput_spectrum	, sizeof(PRECISION)		   , 1			   , ht);
-	fread(&lastoutput_dump		, sizeof(PRECISION)		   , 1			   , ht);
+	if(rank==0) {
+		fread(&t			, sizeof(PRECISION)		   , 1			   , ht);
 	
-	fread(&marker , sizeof(int)			   , 1, ht);
+		fread(&noutput_flow			, sizeof(int)			   , 1             , ht);
+		fread(&lastoutput_time		, sizeof(PRECISION)		   , 1			   , ht);
+		fread(&lastoutput_flow		, sizeof(PRECISION)		   , 1			   , ht);
+		fread(&lastoutput_spectrum	, sizeof(PRECISION)		   , 1			   , ht);
+		fread(&lastoutput_dump		, sizeof(PRECISION)		   , 1			   , ht);
 	
-	if(marker != DUMP_MARKER) ERROR_HANDLER( ERROR_CRITICAL, "Incorrect marker. Probably an incorrect dump file!");	
-	fclose(ht);
+		fread(&marker , sizeof(int)			   , 1, ht);
 	
-	printf("Restarting at t=%e...\n",*t);
+		if(marker != DUMP_MARKER) ERROR_HANDLER( ERROR_CRITICAL, "Incorrect marker. Probably an incorrect dump file!");	
+		fclose(ht);
+	}
+	
+	// Transmit the values to all processes
+#ifdef MPI_SUPPORT
+	MPI_Bcast( &t,					1, MPI_DOUBLE,	0, MPI_COMM_WORLD);
+	MPI_Bcast( &noutput_flow,		1, MPI_INT,		0, MPI_COMM_WORLD);
+	MPI_Bcast( &lastoutput_time,	1, MPI_DOUBLE,	0, MPI_COMM_WORLD);
+	MPI_Bcast( &lastoutput_flow,	1, MPI_DOUBLE,	0, MPI_COMM_WORLD);
+	MPI_Bcast(&lastoutput_spectrum,	1, MPI_DOUBLE,	0, MPI_COMM_WORLD);
+	MPI_Bcast( &lastoutput_dump,	1, MPI_DOUBLE,	0, MPI_COMM_WORLD);
+#endif
+	
+	MPI_Printf("Restarting at t=%e...\n",*t);
 	return;
 }
 	
