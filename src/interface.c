@@ -40,10 +40,11 @@ int check_file(char filename[]) {
 	int is_present;
 	if(rank==0) { 
 		command_file = fopen(filename,"r");
-		if(command_file)
+		if(command_file) {
 			is_present=1;
 			fclose(command_file);
-			remove(filename);
+			remove(filename); 
+		}
 		else
 			is_present=0;
 	}
@@ -60,7 +61,6 @@ void check_interface(const struct Field fldi,
 	// This routine check the interface file and print the relevant informations
 	
 	FILE * iostream;
-	FILE * command_file;
 	
 	// STATUS command
 	if(check_file(STATUS_COMMAND)) {
@@ -69,7 +69,7 @@ void check_interface(const struct Field fldi,
 			open_interface_io( &iostream );
 		
 			fprintf(iostream,"STATUS command called.\n");
-			fprintf(iostream,"t=%e, dt=%e, nloop=%d\n\n",t,dt,nloop);
+			fprintf(iostream,"t=%e, dt=%e, nloop=%d\n",t,dt,nloop);
 		}
 		output_status( iostream );
 		if(rank==0) {

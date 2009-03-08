@@ -85,7 +85,7 @@ void write_snap(const PRECISION t, const char filename[], const PRECISION comple
 	
 	ht=fopen(filename,"w");
 	
-#ifdef MPI_CUPPORT
+#ifdef MPI_SUPPORT
 		for(current_rank=0; current_rank<NPROC; current_rank++) {
 			if(current_rank!=0) {
 				// We're not writing the array of the local_process...
@@ -93,12 +93,12 @@ void write_snap(const PRECISION t, const char filename[], const PRECISION comple
 			}
 #endif	
 
-#ifdef FORTRAN_OUTPUT_ORDER	
-	for( j = 0; j < NY; j++) {
-		for( i = 0; i < NX; i++) {
-			for( k = 0 ; k < NZ; k++) {
+#ifdef FORTRAN_OUTPUT_ORDER
+	for( k = 0 ; k < NZ; k++) {
+		for( j = 0; j < NY; j++) {
+			for( i = 0; i < NX/NPROC; i++) {
 #else
-	for( i = 0; i < NX; i++) {
+	for( i = 0; i < NX/NPROC; i++) {
 		for( j = 0; j < NY; j++) {
 			for( k = 0 ; k < NZ; k++) {
 #endif
@@ -292,7 +292,7 @@ void output_timevar(const struct Field fldi,
 	}
 
 	energy_total = energy(w1) + energy(w2) + energy(w3);
-	reduce(&energ_total,1);
+	reduce(&energy_total,1);
 	
 	gfft_c2r(w1);
 	gfft_c2r(w2);
@@ -406,7 +406,7 @@ void write_field(FILE *handler, PRECISION complex *fldwrite) {
 		MPI_Barrier(MPI_COMM_WORLD);
 	}
 #endif
-	return();
+	return;
 }
 
 	
@@ -444,7 +444,7 @@ void read_field(FILE *handler, PRECISION complex *fldread) {
 		MPI_Barrier(MPI_COMM_WORLD);
 	}
 #endif
-	return();
+	return;
 }
 
 
@@ -455,6 +455,8 @@ void output_dump( const struct Field fldi,
 	int dump_version;
 	int size_x,	size_y, size_z;
 	int marker;
+	
+	ht=NULL;
 	
 	size_x = NX;
 	size_y = NY;
@@ -511,7 +513,9 @@ void read_dump(   struct Field fldo,
 	int dump_version;
 	int size_x,	size_y, size_z;
 	int marker;
-		
+	
+	ht=NULL;
+	
 	if(rank==0) {
 		ht=fopen(OUTPUT_DUMP,"r");
 		if(ht==NULL) ERROR_HANDLER( ERROR_CRITICAL, "Error opening dump file.");
@@ -538,7 +542,7 @@ void read_dump(   struct Field fldo,
 #endif
 	
 	if(rank==0) {
-		fread(&t			, sizeof(PRECISION)		   , 1			   , ht);
+		fread(t			, sizeof(PRECISION)		   , 1			   , ht);
 	
 		fread(&noutput_flow			, sizeof(int)			   , 1             , ht);
 		fread(&lastoutput_time		, sizeof(PRECISION)		   , 1			   , ht);
@@ -554,7 +558,7 @@ void read_dump(   struct Field fldo,
 	
 	// Transmit the values to all processes
 #ifdef MPI_SUPPORT
-	MPI_Bcast( &t,					1, MPI_DOUBLE,	0, MPI_COMM_WORLD);
+	MPI_Bcast( t,					1, MPI_DOUBLE,	0, MPI_COMM_WORLD);
 	MPI_Bcast( &noutput_flow,		1, MPI_INT,		0, MPI_COMM_WORLD);
 	MPI_Bcast( &lastoutput_time,	1, MPI_DOUBLE,	0, MPI_COMM_WORLD);
 	MPI_Bcast( &lastoutput_flow,	1, MPI_DOUBLE,	0, MPI_COMM_WORLD);
@@ -601,7 +605,8 @@ void output(const PRECISION t) {
 }
 
 void output_status(FILE * iostream) {
-	fprintf(iostream,"Next output in file n %d, at t=%e\n",noutput_flow, lastoutput_flow+TOUTPUT_FLOW);
+	if(rank==0)
+		fprintf(iostream,"Next output in file n %d, at t=%e\n",noutput_flow, lastoutput_flow+TOUTPUT_FLOW);
 	return;
 }
 

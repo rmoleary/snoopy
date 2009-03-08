@@ -79,9 +79,6 @@ PRECISION newdt(PRECISION tremap) {
 	PRECISION gamma_v;
 	PRECISION maxfx   , maxfy, maxfz;
 	PRECISION dt;
-#ifdef MPI_SUPPORT
-	PRECISION mpi_temp;
-#endif
 	
 #pragma omp parallel private(i) num_threads ( NTHREADS )
 {
@@ -119,9 +116,9 @@ PRECISION newdt(PRECISION tremap) {
 	maxfz = maxfz / ((double) NTOTAL);
 	
 #ifdef MPI_SUPPORT
-	reduce(max_fx,2);
-	reduce(max_fy,2);
-	reduce(max_fz,2);
+	reduce(&maxfx,2);
+	reduce(&maxfy,2);
+	reduce(&maxfz,2);
 #endif
 	
 	gamma_v = (kxmax + fabs(tremap)*kymax) * maxfx + kymax * maxfy + kzmax * maxfz + fabs(OMEGA);
@@ -216,6 +213,9 @@ void mainloop() {
 	nloop=0;
 	
 #ifdef RESTART
+#ifdef DEBUG
+	MPI_Printf("Reading dump file\n");
+#endif
 	read_dump(fld,&t);
 #else
 	t = T_INITIAL;

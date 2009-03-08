@@ -5,8 +5,8 @@
 #define		NY				64
 #define		NZ				64
 
-#define		NTHREADS		2
-#define		NPROC			1
+#define		NTHREADS		1
+#define		NPROC			2
 
 #define		LX				2.0
 #define		LY				1.0
@@ -48,6 +48,7 @@
 
 // Ignore NPROC if MPI_SUPPORT is disabled
 #ifndef	MPI_SUPPORT
+#undef		NPROC
 #define		NPROC			1
 #endif
 

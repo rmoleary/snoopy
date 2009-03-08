@@ -51,7 +51,7 @@ void init_vortex(PRECISION complex wzf[]) {
 
 	
 void init_flow() {
-	int i,j,k;
+	int i,j,k,k0;
 	
 	// Initialise vectors to 0
 	
@@ -78,9 +78,11 @@ void init_flow() {
 	fld.vy[ IDX3D ] = NTOTAL;
 	*/
 	
+	if(rank==0) k0=1;
+	else k0=0;
 	for( i = 0; i < NX_COMPLEX/NPROC; i++) {
 		for( j = 0; j < NY_COMPLEX; j++) {
-			for( k = 1; k < NZ_COMPLEX; k++) {
+			for( k = k0; k < NZ_COMPLEX; k++) {
 				fld.vx[ IDX3D ] = PER_AMPLITUDE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() );
 				fld.vy[ IDX3D ] = PER_AMPLITUDE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() );
 				fld.vz[ IDX3D ] = PER_AMPLITUDE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() );

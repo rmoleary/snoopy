@@ -4,6 +4,7 @@
 #include <fftw3.h>
 
 #ifdef MPI_SUPPORT
+#include <mpi.h>
 #ifdef FFTW3_MPI_SUPPORT
 #include <fftw3-mpi.h>
 #endif
@@ -54,11 +55,12 @@ PRECISION	nu;
 PRECISION	nu_th;
 #endif
 
-int		rank
+int		rank;
 
 void init_common(void) {
 	/* This routine will initialize everything */
 	int i,j,k;
+#ifdef MPI_SUPPORT
 #ifdef FFTW3_MPI_SUPPORT	
 	if( !(fftw_mpi_init()) ) ERROR_HANDLER( ERROR_CRITICAL, "FFTW3 MPI Library initialisation failed. Try with custom transpose library");
 #endif
@@ -324,7 +326,7 @@ PRECISION energy(const PRECISION complex q[]) {
 }
 	
 	
-void reduce(double *var, const int *op) {
+void reduce(double *var, const int op) {
 	// op=1 ADD
 	// op=2 Max
 	// op=3 Min
@@ -334,12 +336,12 @@ void reduce(double *var, const int *op) {
 	
 	mpi_temp=*var;
 	
-	if(op==1) MPI_Allreduce( &mpi_temp, var, 1, MPI_DOUBLE, MPI_ADD, MPI_COMM_WORLD);
+	if(op==1) MPI_Allreduce( &mpi_temp, var, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 	if(op==2) MPI_Allreduce( &mpi_temp, var, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
 	if(op==3) MPI_Allreduce( &mpi_temp, var, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
 	
 #endif	
 
 	// If no MPI, then this routine does nothing...
-	return();
+	return;
 }
