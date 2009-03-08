@@ -29,7 +29,7 @@ void remap_output(	PRECISION wri[],
 	tvelocity = fmod(t, 2.0 * LX / (SHEAR * LY));
 	tremap = fmod(t + LY / (2.0 * SHEAR * LX) , LY / (SHEAR * LX)) - LY / (2.0 * SHEAR * LX);
 	
-	for( i = 0 ; i < NX ; i++) {
+	for( i = 0 ; i < NX / NPROC ; i++) {
 		for( k = 0 ; k < NZ ; k++) {
 			for( j = 0 ; j < NY ; j++) {
 				w1d[j] = wri[k + j * (NZ + 2) + NY * (NZ + 2) * i];
@@ -41,7 +41,7 @@ void remap_output(	PRECISION wri[],
 			for( j = 0 ; j < NY ; j++) {
 			// advection
 				phase = (PRECISION complex) ((2.0 * M_PI) / LY * (fmod( j + (NY / 2) ,  NY ) - NY / 2 ) * 
-											( ((double) i / (double) NX ) * tremap - tvelocity / 2.0 ) * LX );
+											( ((double) (i + rank * (NX/NPROC)) / (double) NX ) * tremap - tvelocity / 2.0 ) * LX );
 				wexp = cexp( I * phase);
 									
 				w2d[ j ] = w2d[ j ] * wexp;
@@ -61,7 +61,10 @@ void write_snap(const PRECISION t, const char filename[], const PRECISION comple
 	// Write the complex field wi[] in file filename. We need t for the remap thing.
 	FILE *ht;
 	int i,j,k;
-	
+#ifdef MPI_SUPPORT
+	int current_rank;
+	MPI_Status status;
+#endif
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
 		w1[i] = wi[i];
 	}
@@ -76,7 +79,20 @@ void write_snap(const PRECISION t, const char filename[], const PRECISION comple
 	remap_output(wr1,t);
 #endif
 	
+#ifdef MPI_SUPPORT
+	if(rank==0) {
+#endif
+	
 	ht=fopen(filename,"w");
+	
+#ifdef MPI_CUPPORT
+		for(current_rank=0; current_rank<NPROC; current_rank++) {
+			if(current_rank!=0) {
+				// We're not writing the array of the local_process...
+				MPI_Recv( wr1, NTOTAL_COMPLEX * 2, MPI_DOUBLE, current_rank, 1, MPI_COMM_WORLD, &status);
+			}
+#endif	
+
 #ifdef FORTRAN_OUTPUT_ORDER	
 	for( j = 0; j < NY; j++) {
 		for( i = 0; i < NX; i++) {
@@ -90,9 +106,26 @@ void write_snap(const PRECISION t, const char filename[], const PRECISION comple
 			}
 		}
 	}
+#ifdef MPI_SUPPORT
+	}	// Close the for loop
+#endif
 	fclose(ht);
+
+#ifdef MPI_SUPPORT
+		// Wait for synchronization once everything is done...
+		MPI_Barrier(MPI_COMM_WORLD);
+	}  // Close the if on the rank
+	else {
+		// Send my array to process 0, and then synchronize
+		MPI_Send( wr1, NTOTAL_COMPLEX * 2, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
+		MPI_Barrier(MPI_COMM_WORLD);
+	}
+#endif
+		
+
 }
 
+#ifndef MPI_SUPPORT
 // VTK output using the visit_writer code.
 void output_vtk(const int n, const PRECISION t) {
 	int i,j,k;
@@ -216,6 +249,7 @@ void output_vtk(const int n, const PRECISION t) {
 	write_rectilinear_mesh(filename, 1, dims, xcoord, ycoord, zcoord, 3, vardims, centering, varnames, v);
 #endif
 }
+#endif
 	
 void output_flow(const int n, const PRECISION t) {
 	
@@ -237,7 +271,7 @@ void output_flow(const int n, const PRECISION t) {
 
 	return;
 }
-	
+
 void output_timevar(const struct Field fldi,
 					const PRECISION t) {
 					
@@ -258,6 +292,7 @@ void output_timevar(const struct Field fldi,
 	}
 
 	energy_total = energy(w1) + energy(w2) + energy(w3);
+	reduce(&energ_total,1);
 	
 	gfft_c2r(w1);
 	gfft_c2r(w2);
@@ -302,23 +337,41 @@ void output_timevar(const struct Field fldi,
 		transport = transport + wr1[i] * wr2[i] / ((double) NTOTAL);
 
 	}
-		
-	ht=fopen("timevar","a");
-	fprintf(ht,"%08e\t",t);
-	fprintf(ht,"%08e\t",energy_total);
-	fprintf(ht,"%08e\t%08e\t%08e\t%08e\t%08e\t%08e\t",vxmax,vxmin,vymax,vymin,vzmax,vzmin);
+	
+	reduce(&vxmax,2);
+	reduce(&vxmin,3);
+	reduce(&vymax,2);
+	reduce(&vymin,3);
+	reduce(&vzmax,2);
+	reduce(&vzmin,3);
+	
 #ifdef BOUSSINESQ
-	fprintf(ht,"%08e\t%08e\t",thmax,thmin);
-#else
-	fprintf(ht,"%08e\t%08e\t",0.0,0.0);
+	reduce(&thmax,2);
+	reduce(&thmin,3);
 #endif
-	fprintf(ht,"%08e\n",transport);
-	fclose(ht);
+	reduce(&transport,1);
+	
+	if(rank==0) {
+		ht=fopen("timevar","a");
+		fprintf(ht,"%08e\t",t);
+		fprintf(ht,"%08e\t",energy_total);
+		fprintf(ht,"%08e\t%08e\t%08e\t%08e\t%08e\t%08e\t",vxmax,vxmin,vymax,vymin,vzmax,vzmin);
+#ifdef BOUSSINESQ
+		fprintf(ht,"%08e\t%08e\t",thmax,thmin);
+#else
+		fprintf(ht,"%08e\t%08e\t",0.0,0.0);
+#endif
+		fprintf(ht,"%08e\n",transport);
+		fclose(ht);
+#ifdef MPI_SUPPORT
+		MPI_Barrier(MPI_COMM_WORLD);
+	}
+	else	MPI_Barrier(MPI_COMM_WORLD);
+#else
+	}
+#endif
 	return;
 }
-		
-	
-					
 	
 void output_dump( const struct Field fldi,
 				  const PRECISION t) {	
@@ -436,7 +489,9 @@ void output(const PRECISION t) {
 	
 	if( (t-lastoutput_flow)>=TOUTPUT_FLOW) {
 		output_flow(noutput_flow,t);
+#ifndef MPI_SUPPORT
 		output_vtk(noutput_flow,t);
+#endif
 		noutput_flow++;
 		lastoutput_flow = lastoutput_flow + TOUTPUT_FLOW;
 	}
@@ -470,8 +525,10 @@ void dump_immediate(const PRECISION t) {
 
 void clear_timevar() {
 	FILE* ht;
+	if(rank==0) {
 	ht=fopen("timevar","w");
 	fclose(ht);
+	}
 }
 	
 	

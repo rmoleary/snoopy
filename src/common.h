@@ -66,6 +66,9 @@ extern int rank;
 void init_common ( void );
 void finish_common ( void );
 
+// Useful only if MPI is active. Can be called without though...
+void reduce(double *var, const int *op);
+
 PRECISION randm (void);
 
 void projector( PRECISION complex qx[],

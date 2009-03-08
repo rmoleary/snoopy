@@ -1,11 +1,16 @@
 #include "common.h"
 #include "gfft.h"
 
+// Caution: Not coded for MPI!
 void init_vortex(PRECISION complex wzf[]) {
 	const PRECISION a = 0.04;
 	const PRECISION b = 0.16;
 	
 	int i,j,k;
+	
+#ifdef SUPPORT_MPI
+	ERROR_HANDLER( ERROR_CRITICAL, "No MPI Support for init_vortex");
+#endif
 	PRECISION w0, x, y;
 	PRECISION chi;
 	
@@ -50,7 +55,7 @@ void init_flow() {
 	
 	// Initialise vectors to 0
 	
-	for( i = 0; i < NX_COMPLEX; i++) {
+	for( i = 0; i < NX_COMPLEX/NPROC; i++) {
 		for( j = 0; j < NY_COMPLEX; j++) {
 			for( k = 0; k < NY_COMPLEX; k++) {
 				fld.vx[ IDX3D ] = 0.0;
@@ -73,7 +78,7 @@ void init_flow() {
 	fld.vy[ IDX3D ] = NTOTAL;
 	*/
 	
-	for( i = 0; i < NX_COMPLEX; i++) {
+	for( i = 0; i < NX_COMPLEX/NPROC; i++) {
 		for( j = 0; j < NY_COMPLEX; j++) {
 			for( k = 1; k < NZ_COMPLEX; k++) {
 				fld.vx[ IDX3D ] = PER_AMPLITUDE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() );

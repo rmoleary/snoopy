@@ -87,7 +87,7 @@ void init_common(void) {
 	if (ik2t == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for ik2t allocation");
 
 
-	for( i = 0; i < NX_COMPLEX; i++) {
+	for( i = 0; i < NX_COMPLEX / NPROC; i++) {
 		for( j = 0; j < NY_COMPLEX; j++) {
 			for( k = 0; k < NZ_COMPLEX; k++) {
 				kx[ IDX3D ] = (2.0 * M_PI) / LX *
@@ -123,7 +123,7 @@ void init_common(void) {
 	mask = (PRECISION *) fftw_malloc( sizeof(PRECISION) * NTOTAL_COMPLEX );
 	if (mask == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for mask allocation");
 	
-	for( i = 0; i < NX_COMPLEX; i++) {
+	for( i = 0; i < NX_COMPLEX/NPROC; i++) {
 		for( j = 0; j < NY_COMPLEX; j++) {
 			for( k = 0; k < NZ_COMPLEX; k++) {
 
@@ -139,7 +139,7 @@ void init_common(void) {
 					mask[ IDX3D ] = 0.0;
 
 #else			
-			if ( i == NX_COMPLEX / 2 ) 
+			if (  NX_COMPLEX / NPROC * rank + i == NX_COMPLEX / 2 ) 
 				mask[ IDX3D ] = 0.0;
 			if ( j == NY_COMPLEX / 2 )  
 				mask[ IDX3D ] = 0.0;
@@ -298,6 +298,8 @@ void projector( PRECISION complex qx[],
 
 
 // Compute the energy of a given field.
+// gives the energy in the current process...
+
 PRECISION energy(const PRECISION complex q[]) {
 	
 	int i,j,k;
@@ -305,7 +307,7 @@ PRECISION energy(const PRECISION complex q[]) {
 	
 	energ_tot=0.0;
 	
-	for( i = 0; i < NX_COMPLEX; i++) {
+	for( i = 0; i < NX_COMPLEX/NPROC; i++) {
 		for( j = 0; j < NY_COMPLEX; j++) {
 			for( k=0; k < NZ_COMPLEX; k++) {
 				if( k == 0) 
@@ -321,3 +323,23 @@ PRECISION energy(const PRECISION complex q[]) {
 	return(energ_tot);
 }
 	
+	
+void reduce(double *var, const int *op) {
+	// op=1 ADD
+	// op=2 Max
+	// op=3 Min
+	
+#ifdef MPI_SUPPORT
+	double mpi_temp;
+	
+	mpi_temp=*var;
+	
+	if(op==1) MPI_Allreduce( &mpi_temp, var, 1, MPI_DOUBLE, MPI_ADD, MPI_COMM_WORLD);
+	if(op==2) MPI_Allreduce( &mpi_temp, var, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+	if(op==3) MPI_Allreduce( &mpi_temp, var, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+	
+#endif	
+
+	// If no MPI, then this routine does nothing...
+	return();
+}

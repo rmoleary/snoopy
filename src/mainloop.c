@@ -79,6 +79,9 @@ PRECISION newdt(PRECISION tremap) {
 	PRECISION gamma_v;
 	PRECISION maxfx   , maxfy, maxfz;
 	PRECISION dt;
+#ifdef MPI_SUPPORT
+	PRECISION mpi_temp;
+#endif
 	
 #pragma omp parallel private(i) num_threads ( NTHREADS )
 {
@@ -103,7 +106,7 @@ PRECISION newdt(PRECISION tremap) {
 //{
 		/* Compute the convolution */
 //	#pragma omp for schedule(static) nowait		
-	for( i = 0 ; i < NTOTAL ; i++) {
+	for( i = 0 ; i < NTOTAL / NPROC ; i++) {
 		if( fabs( wr1[i] ) > maxfx ) maxfx = fabs( wr1[i] );
 		if( fabs( wr2[i] ) > maxfy ) maxfy = fabs( wr2[i] );
 		if( fabs( wr3[i] ) > maxfz ) maxfz = fabs( wr3[i] );
@@ -114,6 +117,12 @@ PRECISION newdt(PRECISION tremap) {
 	maxfx = maxfx / ((double) NTOTAL);
 	maxfy = maxfy / ((double) NTOTAL);
 	maxfz = maxfz / ((double) NTOTAL);
+	
+#ifdef MPI_SUPPORT
+	reduce(max_fx,2);
+	reduce(max_fy,2);
+	reduce(max_fz,2);
+#endif
 	
 	gamma_v = (kxmax + fabs(tremap)*kymax) * maxfx + kymax * maxfy + kzmax * maxfz + fabs(OMEGA);
 #ifdef WITH_SHEAR
@@ -126,7 +135,7 @@ PRECISION newdt(PRECISION tremap) {
 	dt = CFL / gamma_v;
 
 #ifdef DEBUG
-	printf("newdt: maxfx=%e, maxfy=%e, dt=%e\n",maxfx,maxfy,dt);
+	MPI_Printf("newdt: maxfx=%e, maxfy=%e, dt=%e\n",maxfx,maxfy,dt);
 #endif
 
 	return(dt);
