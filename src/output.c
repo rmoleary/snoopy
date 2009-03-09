@@ -125,10 +125,10 @@ void write_snap(const PRECISION t, const char filename[], const PRECISION comple
 
 }
 
-#ifndef MPI_SUPPORT
+#ifdef VTK_OUTPUT
 // VTK output using the visit_writer code.
 void output_vtk(const int n, const PRECISION t) {
-	int i,j,k;
+	int i,j,k, current_rank;
 	char  filename[50];
 	char  varname1[10];
 	char  varname2[10];
@@ -137,10 +137,34 @@ void output_vtk(const int n, const PRECISION t) {
 	
 	char* varnames[4];
 	
-	float* vxf = (float *) wr1;
-	float* vyf = (float *) wr2;
-	float* vzf = (float *) wr3;
-	float* thf = (float *) wr4;
+
+	float* vxf;
+	float* vyf;
+	float* vzf;
+	float* thf;
+	
+#ifdef MPI_SUPPORT
+    MPI_Status status;
+	
+	vxf = (float *) malloc( NTOTAL * sizeof(float));
+	vyf = (float *) malloc( NTOTAL * sizeof(float));
+	vzf = (float *) malloc( NTOTAL * sizeof(float));
+	
+	if (vxf == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for vxf allocation");
+	if (vyf == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for vyf allocation");
+	if (vzf == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for vzf allocation");
+	
+#ifdef BOUSSINESQ
+	thf = (float *) malloc( NTOTAL * sizeof(float));
+	if (thf == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for thf allocation");
+#endif
+	
+#else
+	vxf = (float *) wr1;
+	vyf = (float *) wr2;
+	vzf = (float *) wr3;
+	thf = (float *) wr4;
+#endif
 	
 	float xcoord[NX];
 	float ycoord[NY];
@@ -193,7 +217,7 @@ void output_vtk(const int n, const PRECISION t) {
 	for( i = 0 ; i < NZ ; i++) {
 		zcoord[i] = ((float) i) / ((float) NZ) * LZ - LZ / 2.0;
 	}
-	// Put variables in the right format.
+
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
 		w5[i] = fld.vx[i];
 		w6[i] = fld.vy[i];
@@ -227,29 +251,75 @@ void output_vtk(const int n, const PRECISION t) {
 #endif
 #endif
 
-	for( i = 0; i < NX; i++) {
-		for( j = 0; j < NY; j++) {
-			for( k = 0 ; k < NZ; k++) {
-				vxf[i + j * NX + k * NX * NY] = (float) wr5[k + j * (NZ + 2) + i * (NZ + 2) * NY];
-				vyf[i + j * NX + k * NX * NY] = (float) wr6[k + j * (NZ + 2) + i * (NZ + 2) * NY];
-				vzf[i + j * NX + k * NX * NY] = (float) wr7[k + j * (NZ + 2) + i * (NZ + 2) * NY];
+	// Put variables in the right format.
+	
+	if(rank==0) {
+		for(current_rank=0 ; current_rank < NPROC ; current_rank++) {
+#ifdef MPI_SUPPORT
+			if(current_rank!=0) {
+				// Receive arrays...
+				MPI_Recv( wr5, NTOTAL_COMPLEX * 2, MPI_DOUBLE, current_rank, 1, MPI_COMM_WORLD, &status);
+				MPI_Recv( wr6, NTOTAL_COMPLEX * 2, MPI_DOUBLE, current_rank, 1, MPI_COMM_WORLD, &status);
+				MPI_Recv( wr7, NTOTAL_COMPLEX * 2, MPI_DOUBLE, current_rank, 1, MPI_COMM_WORLD, &status);
 #ifdef BOUSSINESQ
-				thf[i + j * NX + k * NX * NY] = (float) wr8[k + j * (NZ + 2) + i * (NZ + 2) * NY];
+				MPI_Recv( wr8, NTOTAL_COMPLEX * 2, MPI_DOUBLE, current_rank, 1, MPI_COMM_WORLD, &status);
 #endif
 			}
-		}
-	}
-	
-	sprintf(filename,"data/v%04i.vtk",n);
-
-	// Output everything
-#ifdef BOUSSINESQ
-	write_rectilinear_mesh(filename, 1, dims, xcoord, ycoord, zcoord, 4, vardims, centering, varnames, v);
-#else
-	write_rectilinear_mesh(filename, 1, dims, xcoord, ycoord, zcoord, 3, vardims, centering, varnames, v);
 #endif
+			for( i = 0; i < NX/NPROC; i++) {
+				for( j = 0; j < NY; j++) {
+					for( k = 0 ; k < NZ; k++) {
+						vxf[i + current_rank * NX / NPROC + j * NX + k * NX * NY] = (float) wr5[k + j * (NZ + 2) + i * (NZ + 2) * NY];
+						vyf[i + current_rank * NX / NPROC + j * NX + k * NX * NY] = (float) wr6[k + j * (NZ + 2) + i * (NZ + 2) * NY];
+						vzf[i + current_rank * NX / NPROC + j * NX + k * NX * NY] = (float) wr7[k + j * (NZ + 2) + i * (NZ + 2) * NY];
+#ifdef BOUSSINESQ
+						thf[i + current_rank * NX / NPROC + j * NX + k * NX * NY] = (float) wr8[k + j * (NZ + 2) + i * (NZ + 2) * NY];
+#endif
+						vxf[i + current_rank * NX / NPROC + j * NX + k * NX * NY] = (float) (i + current_rank * NX / NPROC);
+						vyf[i + current_rank * NX / NPROC + j * NX + k * NX * NY] = (float) j;
+						vzf[i + current_rank * NX / NPROC + j * NX + k * NX * NY] = (float) k;
+						
+					}
+				}
+			}
+			
+		} // End of loop on processes
+		
+		sprintf(filename,"data/v%04i.vtk",n);
+
+		// Output everything
+#ifdef BOUSSINESQ
+		write_rectilinear_mesh(filename, 1, dims, xcoord, ycoord, zcoord, 4, vardims, centering, varnames, v);
+#else
+		write_rectilinear_mesh(filename, 1, dims, xcoord, ycoord, zcoord, 3, vardims, centering, varnames, v);
+#endif
+		MPI_Barrier(MPI_COMM_WORLD);
+	}
+#ifdef MPI_SUPPORT
+	else {
+		MPI_Send( wr5, NTOTAL_COMPLEX * 2, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
+		MPI_Send( wr6, NTOTAL_COMPLEX * 2, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
+		MPI_Send( wr7, NTOTAL_COMPLEX * 2, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
+#ifdef BOUSSINESQ
+		MPI_Send( wr8, NTOTAL_COMPLEX * 2, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
+#endif
+		MPI_Barrier(MPI_COMM_WORLD);
+	}
+#endif
+	
+	free(vxf);
+	free(vyf);
+	free(vzf);
+#ifdef BOUSSINESQ
+	free(thf);
+#endif
+		
 }
 #endif
+	
+	
+	
+	
 	
 void output_flow(const int n, const PRECISION t) {
 	
@@ -589,9 +659,10 @@ void output(const PRECISION t) {
 	}
 	
 	if( (t-lastoutput_flow)>=TOUTPUT_FLOW) {
-		output_flow(noutput_flow,t);
-#ifndef MPI_SUPPORT
+#ifdef VTK_OUTPUT
 		output_vtk(noutput_flow,t);
+#else
+		output_flow(noutput_flow,t);
 #endif
 		noutput_flow++;
 		lastoutput_flow = lastoutput_flow + TOUTPUT_FLOW;
@@ -614,7 +685,11 @@ void output_immediate(const PRECISION t) {
 	// Very rough output function
 	// Immediate output
 	output_timevar(fld,t);
+#ifdef VTK_OUTPUT
+	output_vtk(noutput_flow,t);
+#else
 	output_flow(noutput_flow,t);
+#endif
 	noutput_flow++;
 	output_dump(fld,t);
 	return;

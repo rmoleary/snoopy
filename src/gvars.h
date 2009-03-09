@@ -30,13 +30,14 @@
 #define		T_INITIAL		0.0
 #define		T_FINAL			10000.0
 
-#define		TOUTPUT_TIME	1.0
-#define		TOUTPUT_FLOW	1.0
+#define		TOUTPUT_TIME	0.1
+#define		TOUTPUT_FLOW	0.1
 #define		TOUTPUT_DUMP	1.0
 
 //#define		RESTART
 
-#define		FORTRAN_OUTPUT_ORDER
+//#define		FORTRAN_OUTPUT_ORDER
+#define		VTK_OUTPUT
 
 #define		INTERFACE_CHECK	4
 //#define		INTERFACE_OUTPUT_FILE

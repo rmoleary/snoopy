@@ -38,9 +38,16 @@ void please_wait(void)
 
 
 int main(int argc, char *argv[]) {
+	int size;
 #ifdef MPI_SUPPORT
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+	MPI_Comm_size(MPI_COMM_WORLD,&size);
+	
+	// Some consistancy check
+	if(size != NPROC) ERROR_HANDLER( ERROR_CRITICAL, "Wrong number of process. Check NPROC.");
+	if(NX/NPROC < 1) ERROR_HANDLER( ERROR_CRITICAL, "NX should be a multiple of NPROC.");
+	if(NY/NPROC < 1) ERROR_HANDLER( ERROR_CRITICAL, "NY should be a multiple of NPROC.");
 #else
 	rank=0;
 #endif
