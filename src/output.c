@@ -275,10 +275,6 @@ void output_vtk(const int n, const PRECISION t) {
 #ifdef BOUSSINESQ
 						thf[i + current_rank * NX / NPROC + j * NX + k * NX * NY] = (float) wr8[k + j * (NZ + 2) + i * (NZ + 2) * NY];
 #endif
-						vxf[i + current_rank * NX / NPROC + j * NX + k * NX * NY] = (float) (i + current_rank * NX / NPROC);
-						vyf[i + current_rank * NX / NPROC + j * NX + k * NX * NY] = (float) j;
-						vzf[i + current_rank * NX / NPROC + j * NX + k * NX * NY] = (float) k;
-						
 					}
 				}
 			}
@@ -293,7 +289,9 @@ void output_vtk(const int n, const PRECISION t) {
 #else
 		write_rectilinear_mesh(filename, 1, dims, xcoord, ycoord, zcoord, 3, vardims, centering, varnames, v);
 #endif
+#ifdef MPI_SUPPORT
 		MPI_Barrier(MPI_COMM_WORLD);
+#endif
 	}
 #ifdef MPI_SUPPORT
 	else {
@@ -307,17 +305,17 @@ void output_vtk(const int n, const PRECISION t) {
 	}
 #endif
 	
+#ifdef MPI_SUPPORT
 	free(vxf);
 	free(vyf);
 	free(vzf);
 #ifdef BOUSSINESQ
 	free(thf);
 #endif
+#endif
 		
 }
 #endif
-	
-	
 	
 	
 	

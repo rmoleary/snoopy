@@ -1,6 +1,10 @@
 #include "common.h"
 #include "gfft.h"
 
+#ifdef DEBUG
+#include "debug.h"
+#endif
+
 // Caution: Not coded for MPI!
 void init_vortex(PRECISION complex wzf[]) {
 	const PRECISION a = 0.04;
@@ -57,7 +61,7 @@ void init_flow() {
 	
 	for( i = 0; i < NX_COMPLEX/NPROC; i++) {
 		for( j = 0; j < NY_COMPLEX; j++) {
-			for( k = 0; k < NY_COMPLEX; k++) {
+			for( k = 0; k < NZ_COMPLEX; k++) {
 				fld.vx[ IDX3D ] = 0.0;
 				fld.vy[ IDX3D ] = 0.0;
 				fld.vz[ IDX3D ] = 0.0;
@@ -80,6 +84,8 @@ void init_flow() {
 	
 	if(rank==0) k0=1;
 	else k0=0;
+	
+	/*
 	for( i = 0; i < NX_COMPLEX/NPROC; i++) {
 		for( j = 0; j < NY_COMPLEX; j++) {
 			for( k = k0; k < NZ_COMPLEX; k++) {
@@ -89,6 +95,25 @@ void init_flow() {
 			}
 		}
 	}
+	*/
+
+	if(rank==0) {
+	for( i = 0; i < 4; i++) {
+		for( j = 0; j < 4; j++) {
+			for( k = k0; k < 4; k++) {
+				fld.vx[ IDX3D ] = PER_AMPLITUDE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() );
+				fld.vy[ IDX3D ] = PER_AMPLITUDE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() );
+				fld.vz[ IDX3D ] = PER_AMPLITUDE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() );
+			}
+		}
+	}
+	}
+
+#ifdef DEBUG
+	MPI_Printf("Initflow:\n");
+	D_show_all(fld);
+	MPI_Printf("**************************************************************************************\n");
+#endif	
 	
 	projector(fld.vx,fld.vy,fld.vz);
 	

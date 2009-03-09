@@ -103,7 +103,7 @@ PRECISION newdt(PRECISION tremap) {
 //{
 		/* Compute the convolution */
 //	#pragma omp for schedule(static) nowait		
-	for( i = 0 ; i < NTOTAL / NPROC ; i++) {
+	for( i = 0 ; i < NTOTAL_COMPLEX * 2 ; i++) {
 		if( fabs( wr1[i] ) > maxfx ) maxfx = fabs( wr1[i] );
 		if( fabs( wr2[i] ) > maxfy ) maxfy = fabs( wr2[i] );
 		if( fabs( wr3[i] ) > maxfz ) maxfz = fabs( wr3[i] );
@@ -132,9 +132,8 @@ PRECISION newdt(PRECISION tremap) {
 	dt = CFL / gamma_v;
 
 #ifdef DEBUG
-	MPI_Printf("newdt: maxfx=%e, maxfy=%e, dt=%e\n",maxfx,maxfy,dt);
+	MPI_Printf("newdt: maxfx=%e, maxfy=%e, maxfz=%e, dt=%e\n",maxfx,maxfy, maxfz, dt);
 #endif
-
 	return(dt);
 }			   			   
 		
@@ -231,6 +230,13 @@ void mainloop() {
 #endif
 	
 	while (t < T_FINAL) {
+#ifdef DEBUG
+		MPI_Printf("Begining of loop:\n");
+		MPI_Printf("fld:\n");
+		D_show_all(fld);
+		MPI_Printf("**************************************************************************************\n");
+#endif
+
 		nloop++;
 		if(!(nloop % INTERFACE_CHECK)) check_interface(fld,t,dt,nloop);
 		
@@ -261,6 +267,17 @@ void mainloop() {
 			
 		}
 }		
+#ifdef DEBUG
+		MPI_Printf("RK, 1st Step:\n");
+		MPI_Printf("fld:\n");
+		D_show_all(fld);
+		MPI_Printf("fld1:\n");
+		D_show_all(fld1);
+		MPI_Printf("dfld:\n");
+		D_show_all(dfld);
+		MPI_Printf("**************************************************************************************\n");
+#endif
+			
 		// 2nd RK3 step
 #ifdef WITH_SHEAR
 		kvolve(tremap+gammaRK[0]*dt);
@@ -286,6 +303,17 @@ void mainloop() {
 #endif
 		}
 }
+#ifdef DEBUG
+		MPI_Printf("RK, 2nd Step:\n");
+		MPI_Printf("fld:\n");
+		D_show_all(fld);
+		MPI_Printf("fld1:\n");
+		D_show_all(fld1);
+		MPI_Printf("dfld:\n");
+		D_show_all(dfld);
+		MPI_Printf("**************************************************************************************\n");
+#endif
+
 				
 		// 3rd RK3 Step
 #ifdef WITH_SHEAR
@@ -306,6 +334,17 @@ void mainloop() {
 #endif
 		}
 }
+#ifdef DEBUG
+		MPI_Printf("RK, 3rd Step:\n");
+		MPI_Printf("fld:\n");
+		D_show_all(fld);
+		MPI_Printf("fld1:\n");
+		D_show_all(fld1);
+		MPI_Printf("dfld:\n");
+		D_show_all(dfld);
+		MPI_Printf("**************************************************************************************\n");
+#endif
+
 		// Runge Kutta finished
 		
 		// Implicit step
@@ -335,7 +374,7 @@ void mainloop() {
 				
 		output(t);
 	}
-	printf("mainloop finished\n");
+	MPI_Printf("mainloop finished\n");
 	finish_mainloop();
 	return;
 

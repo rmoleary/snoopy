@@ -5,8 +5,11 @@
 #define		NY				64
 #define		NZ				64
 
-#define		NTHREADS		1
-#define		NPROC			2
+#define		NTHREADS		2
+
+#ifndef NPROC
+#define		NPROC			16
+#endif
 
 #define		LX				2.0
 #define		LY				1.0
@@ -28,7 +31,7 @@
 #define		FORCING_TIME	4e-2
 
 #define		T_INITIAL		0.0
-#define		T_FINAL			10000.0
+#define		T_FINAL			7.0
 
 #define		TOUTPUT_TIME	0.1
 #define		TOUTPUT_FLOW	0.1
@@ -42,6 +45,7 @@
 #define		INTERFACE_CHECK	4
 //#define		INTERFACE_OUTPUT_FILE
 
+#define ANTIALIASING
 
 // FFT_PLANNING can be either FFTW_ESTIMATE, FFTW_MEASURE, FFTW_PATIENT or FFTW_EXHAUSTIVE (see fftw3 doc)
 //#define		FFT_PLANNING	FFTW_ESTIMATE

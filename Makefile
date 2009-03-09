@@ -1,7 +1,7 @@
 OPENMP=no
-MPI=yes
+MPI=no
 FFTW3_MPI=no
-DEBUG=no
+DEBUG=yes
 
 MACHINE= $(shell uname -s)
 HOSTNAME= $(shell hostname)
@@ -61,6 +61,10 @@ endif
 
 LDFLAGS=-lfftw3
 
+ifeq ($(DEBUG),yes)
+	CFLAGS=-g -DDEBUG
+	LDFLAGS+=-g
+endif
 ifeq ($(OPENMP),yes)
 	CFLAGS+=$(OPENMP_FLAG) -DOPENMP_SUPPORT
 	LDFLAGS+=-lfftw3_threads
@@ -71,10 +75,6 @@ ifeq ($(FFTW3_MPI),yes)
 endif
 ifeq ($(MPI),yes)
 	CFLAGS+=-DMPI_SUPPORT
-endif
-ifeq ($(DEBUG),yes)
-	CFLAGS+=-g -DDEBUG
-	LDFLAGS+=-g
 endif
 
 export CC
