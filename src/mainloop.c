@@ -22,12 +22,13 @@ void remap(PRECISION complex qi[]) {
 	int i, j, k;
 	int nx, ny, nxtarget;
 	
-//#ifdef DEBUG
-	MPI_Printf("remap called\n");
-//#endif
+#ifdef DEBUG
+	MPI_Printf("Remap called\n");
+#endif
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
 		w1[i]=0.0;
 	}
+	
 #ifdef MPI_SUPPORT
 // We have to transpose the array to get the remap properly
 	transpose_complex_XY(qi,w2);
@@ -39,13 +40,13 @@ void remap(PRECISION complex qi[]) {
 			
 			nxtarget = nx + ny;		// We have a negative shear, hence nx plus ny
 			
-			if ( nxtarget <= - NX_COMPLEX / 2 ) break;
-			if ( nxtarget >=   NX_COMPLEX / 2 ) break;
+			if( (nxtarget > -NX_COMPLEX / 2) & (nxtarget < NX_COMPLEX/2)) {
 			
-			if ( nxtarget <0 ) nxtarget = nxtarget + NX_COMPLEX;
+				if ( nxtarget <0 ) nxtarget = nxtarget + NX_COMPLEX;
 			
-			for( k = 0; k < NZ_COMPLEX; k++) {
-				w1[k + NZ_COMPLEX * nxtarget + NZ_COMPLEX * NX_COMPLEX * j] = w2[ k + i * NZ_COMPLEX + j * NZ_COMPLEX * NX_COMPLEX];
+				for( k = 0; k < NZ_COMPLEX; k++) {
+					w1[k + NZ_COMPLEX * nxtarget + NZ_COMPLEX * NX_COMPLEX * j] = w2[ k + i * NZ_COMPLEX + j * NZ_COMPLEX * NX_COMPLEX];
+				}
 			}
 		}
 	}
@@ -65,13 +66,14 @@ void remap(PRECISION complex qi[]) {
 			
 			nxtarget = nx + ny;		// We have a negative shear, hence nx plus ny
 			
-			if ( nxtarget <= - NX_COMPLEX / 2 ) break;
-			if ( nxtarget >=   NX_COMPLEX / 2 ) break;
+			if( (nxtarget > -NX_COMPLEX / 2) & (nxtarget < NX_COMPLEX/2)) {
 			
-			if ( nxtarget <0 ) nxtarget = nxtarget + NX_COMPLEX;
+				if ( nxtarget <0 ) nxtarget = nxtarget + NX_COMPLEX;
 			
-			for( k = 0; k < NZ_COMPLEX; k++) {
-				w1[k + NZ_COMPLEX * j + NZ_COMPLEX * NY_COMPLEX * nxtarget] = qi[ IDX3D ];
+				for( k = 0; k < NZ_COMPLEX; k++) {
+					w1[k + NZ_COMPLEX * j + NZ_COMPLEX * NY_COMPLEX * nxtarget] = qi[ IDX3D ];
+				
+				}
 			}
 		}
 	}
@@ -85,7 +87,7 @@ void remap(PRECISION complex qi[]) {
 
 void kvolve(const PRECISION tremap) {
 	int i, j, k;
-#pragma omp parallel private(i,j) num_threads ( NTHREADS )
+#pragma omp parallel private(i,j,k) num_threads ( NTHREADS )
 {
 		/* Compute the convolution */
 	#pragma omp for schedule(static) nowait	
@@ -409,7 +411,7 @@ void mainloop() {
 				
 		output(t);
 	}
-	MPI_Printf("mainloop finished\n");
+	MPI_Printf("mainloop finished in %d loops\n",nloop);
 	finish_mainloop();
 	return;
 

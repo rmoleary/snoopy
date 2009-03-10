@@ -36,10 +36,40 @@ void please_wait(void)
      MPI_Printf("Please wait %s...\n", s[i < 0 ? -i : i]);
 }
 
+void print_logo(void) {
+	MPI_Printf("                 .88888888:. \n");
+	MPI_Printf("                88888888.88888. \n");
+	MPI_Printf("              .8888888888888888. \n");
+	MPI_Printf("              888888888888888888 \n");
+	MPI_Printf("              88' _`88'_  `88888 \n");
+	MPI_Printf("              88 88 88 88  88888 \n");
+	MPI_Printf("              88_88_::_88_:88888 \n");
+	MPI_Printf("              88:::,::,:::::8888 \n");
+	MPI_Printf("              88`:::::::::'`8888 \n");
+	MPI_Printf("             .88  `::::'    8:88. \n");
+	MPI_Printf("            8888            `8:888. \n");
+	MPI_Printf("          .8888'             `888888. \n");
+	MPI_Printf("         .8888:..  .::.  ...:'8888888:. \n");
+	MPI_Printf("        .8888.'     :'     `'::`88:88888 \n");
+	MPI_Printf("       .8888        '         `.888:8888. \n");
+	MPI_Printf("      888:8         .           888:88888 \n");
+	MPI_Printf("    .888:88        .:           888:88888: \n");
+	MPI_Printf("    8888888.       ::           88:888888 \n");
+	MPI_Printf("    `.::.888.      ::          .88888888 \n");
+	MPI_Printf("   .::::::.888.    ::         :::`8888'.:. \n");
+	MPI_Printf("  ::::::::::.888   '         .:::::::::::: \n");
+	MPI_Printf("  ::::::::::::.8    '      .:8::::::::::::. \n");
+	MPI_Printf(" .::::::::::::::.        .:888::::::::::::: \n");
+	MPI_Printf(" :::::::::::::::88:.__..:88888:::::::::::' \n");
+	MPI_Printf("  `'.:::::::::::88888888888.88:::::::::' \n");
+	MPI_Printf("        `':::_:' -- '' -'-' `':_::::'` \n");
+
+	return;
+}
 
 int main(int argc, char *argv[]) {
-	int size;
 #ifdef MPI_SUPPORT
+	int size;
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD,&rank);
 	MPI_Comm_size(MPI_COMM_WORLD,&size);
@@ -51,6 +81,7 @@ int main(int argc, char *argv[]) {
 #else
 	rank=0;
 #endif
+	print_logo();
 	MPI_Printf("General purpose Spectral Hydro solver v1.0\n");
 	MPI_Printf("(c) 2004-2009 G. Lesur\n");
 	MPI_Printf("Using %dx%dx%d grid\n",NX,NY,NZ);

@@ -8,7 +8,7 @@
 #define		NTHREADS		2
 
 #ifndef NPROC
-#define		NPROC			2
+#define		NPROC			4
 #endif
 
 #define		LX				2.0

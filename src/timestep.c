@@ -65,10 +65,6 @@ void timestep( struct Field dfldo,
 					kxt[i] * w7[i] + ky[i] * w5[i] + kz[i] * w9[i] );
 		dfldo.vz[i] = - I * mask[i] * (
 					kxt[i] * w8[i] + ky[i] * w9[i] + kz[i] * w6[i] );
-					
-		dfldo.vx[i] = 0.0;
-		dfldo.vy[i] = 0.0;
-		dfldo.vz[i] = 0.0;
 		
 	}
 }

@@ -37,7 +37,7 @@ void close_interface_io(FILE ** iostream) {
 
 int check_file(char filename[]) {
 	FILE * command_file;
-	int is_present;
+	int is_present=0;
 	if(rank==0) { 
 		command_file = fopen(filename,"r");
 		if(command_file) {
