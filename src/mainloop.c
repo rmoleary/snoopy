@@ -6,6 +6,10 @@
 #include "interface.h"
 #include "gfft.h"
 
+#ifdef MPI_SUPPORT
+#include "transpose.h"
+#endif
+
 struct Field			dfld, fld1;
 
 PRECISION complex		gammaRK[3];
@@ -18,13 +22,42 @@ void remap(PRECISION complex qi[]) {
 	int i, j, k;
 	int nx, ny, nxtarget;
 	
-#ifdef DEBUG
-	printf("remap called\n");
-#endif
+//#ifdef DEBUG
+	MPI_Printf("remap called\n");
+//#endif
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
 		w1[i]=0.0;
 	}
+#ifdef MPI_SUPPORT
+// We have to transpose the array to get the remap properly
+	transpose_complex_XY(qi,w2);
+	
+	for( i = 0; i < NX_COMPLEX; i++) {
+		nx = fmod( i + (NX_COMPLEX / 2) ,  NX_COMPLEX ) - NX_COMPLEX / 2 ;
+		for( j = 0; j < NY_COMPLEX/NPROC; j++) {
+			ny = fmod( j + rank * NY_COMPLEX / NPROC + (NY_COMPLEX / 2) ,  NY_COMPLEX ) - NY_COMPLEX / 2 ;
+			
+			nxtarget = nx + ny;		// We have a negative shear, hence nx plus ny
+			
+			if ( nxtarget <= - NX_COMPLEX / 2 ) break;
+			if ( nxtarget >=   NX_COMPLEX / 2 ) break;
+			
+			if ( nxtarget <0 ) nxtarget = nxtarget + NX_COMPLEX;
+			
+			for( k = 0; k < NZ_COMPLEX; k++) {
+				w1[k + NZ_COMPLEX * nxtarget + NZ_COMPLEX * NX_COMPLEX * j] = w2[ k + i * NZ_COMPLEX + j * NZ_COMPLEX * NX_COMPLEX];
+			}
+		}
+	}
+	
+	// transpose back
+	transpose_complex_YX(w1,w2);
+	
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		qi[i] = w2[i] * mask[i];
+	}
 
+#else
 	for( i = 0; i < NX_COMPLEX; i++) {
 		nx = fmod( i + (NX_COMPLEX / 2) ,  NX_COMPLEX ) - NX_COMPLEX / 2 ;
 		for( j = 0; j < NY_COMPLEX; j++) {
@@ -38,13 +71,15 @@ void remap(PRECISION complex qi[]) {
 			if ( nxtarget <0 ) nxtarget = nxtarget + NX_COMPLEX;
 			
 			for( k = 0; k < NZ_COMPLEX; k++) {
-				w1[k + NZ_COMPLEX * ny + NZ_COMPLEX * NY_COMPLEX * nxtarget] = qi[ IDX3D ];
+				w1[k + NZ_COMPLEX * j + NZ_COMPLEX * NY_COMPLEX * nxtarget] = qi[ IDX3D ];
 			}
 		}
 	}
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
 		qi[i] = w1[i] * mask[i];
 	}
+#endif
+	
 	return;
 }
 
@@ -54,7 +89,7 @@ void kvolve(const PRECISION tremap) {
 {
 		/* Compute the convolution */
 	#pragma omp for schedule(static) nowait	
-	for( i = 0; i < NX_COMPLEX; i++) {
+	for( i = 0; i < NX_COMPLEX/NPROC; i++) {
 		for( j = 0; j < NY_COMPLEX; j++) {
 			for( k = 0; k < NZ_COMPLEX; k++) {
 				kxt[ IDX3D ] = kx[ IDX3D ] + tremap * SHEAR * ky[ IDX3D ];

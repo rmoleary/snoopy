@@ -8,7 +8,7 @@
 #define		NTHREADS		2
 
 #ifndef NPROC
-#define		NPROC			16
+#define		NPROC			2
 #endif
 
 #define		LX				2.0
@@ -23,15 +23,16 @@
 #define		N2				(-1.0)
 
 #define		OMEGA			(0.0)
-//#define		WITH_SHEAR
+
+#define		WITH_SHEAR
 #define		SHEAR			1.0
 
-#define		PER_AMPLITUDE	100.0
+#define		PER_AMPLITUDE	10000.0
 
 #define		FORCING_TIME	4e-2
 
 #define		T_INITIAL		0.0
-#define		T_FINAL			7.0
+#define		T_FINAL			1.0
 
 #define		TOUTPUT_TIME	0.1
 #define		TOUTPUT_FLOW	0.1
