@@ -285,9 +285,9 @@ void output_vtk(const int n, const PRECISION t) {
 
 		// Output everything
 #ifdef BOUSSINESQ
-		write_rectilinear_mesh(filename, 1, dims, xcoord, ycoord, zcoord, 4, vardims, centering, varnames, v);
+		write_rectilinear_mesh(filename, 1, dims, xcoord, ycoord, zcoord, 4, vardims, centering, (const char * const *) varnames, v);
 #else
-		write_rectilinear_mesh(filename, 1, dims, xcoord, ycoord, zcoord, 3, vardims, centering, varnames, v);
+		write_rectilinear_mesh(filename, 1, dims, xcoord, ycoord, zcoord, 3, vardims, centering, (const char * const *) varnames, v);
 #endif
 #ifdef MPI_SUPPORT
 		MPI_Barrier(MPI_COMM_WORLD);

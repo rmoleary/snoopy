@@ -90,9 +90,6 @@ void init_gfft() {
 	// The physical size is [NX, NZ+2]
 	// We use in-place transforms
 	int i;
-#ifndef FORCE_NO_THREADS
-	PRECISION timeinit1, timeinit2;
-#endif
 	
 	wi1 = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
 	if (wi1 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for wi1 allocation");

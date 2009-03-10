@@ -60,7 +60,7 @@ void check_interface(const struct Field fldi,
 					 const int		 nloop) {
 	// This routine check the interface file and print the relevant informations
 	
-	FILE * iostream;
+	FILE * iostream = NULL;
 	
 	// STATUS command
 	if(check_file(STATUS_COMMAND)) {

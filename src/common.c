@@ -62,7 +62,7 @@ void init_common(void) {
 	int i,j,k;
 #ifdef MPI_SUPPORT
 #ifdef FFTW3_MPI_SUPPORT	
-	if( !(fftw_mpi_init()) ) ERROR_HANDLER( ERROR_CRITICAL, "FFTW3 MPI Library initialisation failed. Try with custom transpose library");
+	fftw_mpi_init();
 #endif
 #endif
 #ifdef OPEN_SUPPORT	
