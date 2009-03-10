@@ -53,6 +53,7 @@ void timestep( struct Field dfldo,
 	gfft_r2c_t(wr7);
 	gfft_r2c_t(wr8);
 	gfft_r2c_t(wr9);
+
 		
 #pragma omp parallel private(i) num_threads ( NTHREADS )
 {
@@ -66,6 +67,7 @@ void timestep( struct Field dfldo,
 					kxt[i] * w8[i] + ky[i] * w9[i] + kz[i] * w6[i] );
 	}
 }
+
 
 /**********************************************
 ** BOUSSINESQ TERMS (if needed) ***************
@@ -115,7 +117,7 @@ void timestep( struct Field dfldo,
 ** SOURCE TERMS  ********************
 ************************************/
 
-#pragma omp parallel private(i) num_threads ( NTHREADS )
+#pragma omp parallel private(i,q0) num_threads ( NTHREADS )
 {
 	#pragma omp for schedule(static )
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {

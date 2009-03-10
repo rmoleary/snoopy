@@ -1,7 +1,7 @@
-OPENMP=no
+OPENMP=yes
 MPI=no
 FFTW3_MPI=no
-DEBUG=yes
+DEBUG=no
 
 MACHINE= $(shell uname -s)
 HOSTNAME= $(shell hostname)
