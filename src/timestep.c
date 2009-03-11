@@ -105,11 +105,19 @@ void timestep( struct Field dfldo,
 {
 	#pragma omp for schedule(static ) nowait
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+#ifdef VERTSTRAT
+		dfldo.vz[i] -= N2 * fldi.th[i];
+						
+		dfldo.th[i] = - I * mask[i] * (
+			kxt[i] * w5[i] + ky[i] * w6[i] + kz[i] * w7[i])
+			+ fldi.vz[i];
+#else
 		dfldo.vx[i] -= N2 * fldi.th[i];
 						
 		dfldo.th[i] = - I * mask[i] * (
 			kxt[i] * w5[i] + ky[i] * w6[i] + kz[i] * w7[i])
 			+ fldi.vx[i];
+#endif
 	}
 }
 #endif

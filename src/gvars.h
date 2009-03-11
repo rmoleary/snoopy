@@ -2,17 +2,17 @@
 
 // Caution: when using MPI, NX and NY must be multiples of NPROC
 #define		NX				128
-#define		NY				64
+#define		NY				128
 #define		NZ				64
 
 #define		NTHREADS		2
 
 #ifndef NPROC
-#define		NPROC			4
+#define		NPROC			2
 #endif
 
 #define		LX				2.0
-#define		LY				1.0
+#define		LY				2.0
 #define		LZ				1.0
 
 #define		CFL				1.5
@@ -21,8 +21,9 @@
 
 #define		BOUSSINESQ
 #define		N2				(-1.0)
+#define		VERTSTRAT
 
-#define		OMEGA			(0.0)
+#define		OMEGA			(2.0/3.0)
 
 #define		WITH_SHEAR
 #define		SHEAR			1.0
@@ -32,7 +33,7 @@
 #define		FORCING_TIME	4e-2
 
 #define		T_INITIAL		0.0
-#define		T_FINAL			1.0
+#define		T_FINAL			10.0
 
 #define		TOUTPUT_TIME	0.1
 #define		TOUTPUT_FLOW	0.1
