@@ -1,10 +1,11 @@
-OPENMP=yes
-MPI=no
-FFTW3_MPI=no
+OPENMP=no
+MPI=yes
+FFTW3_MPI=yes
 DEBUG=no
 
 MACHINE= $(shell uname -s)
 HOSTNAME= $(shell hostname)
+DOMAINNAME= $(shell dnsdomainname)
 
 #######################################################
 ## Machine dependant variables
@@ -55,11 +56,20 @@ ifeq ($(HOSTNAME),test-vostro.damtp.cam.ac.uk)
 	OPENMP_FLAG=-openmp
 endif
 
+ifeq ($(DOMAINNAME),moab.cluster)
+	CLUSTER="HPCF Cambridge"
+	CC=mpicc
+	FFTPATH=/home/gl293/usr/lib
+	CFLAGS=-O3 -I/home/gl293/usr/include
+	OPENMP_FLAG=-openmp
+endif
+
+
 ###############################################################
 ## General compilation variables
 ###############################################################
 
-LDFLAGS=-lfftw3
+LDFLAGS=
 
 ifeq ($(DEBUG),yes)
 	CFLAGS=-g -DDEBUG
@@ -77,6 +87,7 @@ ifeq ($(MPI),yes)
 	CFLAGS+=-DMPI_SUPPORT
 endif
 
+LDFLAGS+=-lfftw3
 export CC
 export FFTPATH
 export CFLAGS

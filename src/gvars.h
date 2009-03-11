@@ -3,16 +3,16 @@
 // Caution: when using MPI, NX and NY must be multiples of NPROC
 #define		NX				128
 #define		NY				128
-#define		NZ				64
+#define		NZ				128
 
-#define		NTHREADS		2
+#define		NTHREADS		1
 
 #ifndef NPROC
 #define		NPROC			2
 #endif
 
-#define		LX				2.0
-#define		LY				2.0
+#define		LX				1.0
+#define		LY				1.0
 #define		LZ				1.0
 
 #define		CFL				1.5
@@ -33,11 +33,11 @@
 #define		FORCING_TIME	4e-2
 
 #define		T_INITIAL		0.0
-#define		T_FINAL			10.0
+#define		T_FINAL			2.0
 
-#define		TOUTPUT_TIME	0.1
-#define		TOUTPUT_FLOW	0.1
-#define		TOUTPUT_DUMP	1.0
+#define		TOUTPUT_TIME	2.0
+#define		TOUTPUT_FLOW	2.0
+#define		TOUTPUT_DUMP	2.0
 
 //#define		RESTART
 
