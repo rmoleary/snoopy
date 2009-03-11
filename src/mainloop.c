@@ -31,7 +31,7 @@ void remap(PRECISION complex qi[]) {
 	
 #ifdef MPI_SUPPORT
 // We have to transpose the array to get the remap properly
-	transpose_complex_XY(qi,w2);
+	transpose_complex_XY(qi,qi);
 	
 	for( i = 0; i < NX_COMPLEX; i++) {
 		nx = fmod( i + (NX_COMPLEX / 2) ,  NX_COMPLEX ) - NX_COMPLEX / 2 ;
@@ -45,18 +45,14 @@ void remap(PRECISION complex qi[]) {
 				if ( nxtarget <0 ) nxtarget = nxtarget + NX_COMPLEX;
 			
 				for( k = 0; k < NZ_COMPLEX; k++) {
-					w1[k + NZ_COMPLEX * nxtarget + NZ_COMPLEX * NX_COMPLEX * j] = w2[ k + i * NZ_COMPLEX + j * NZ_COMPLEX * NX_COMPLEX];
+					w1[k + NZ_COMPLEX * nxtarget + NZ_COMPLEX * NX_COMPLEX * j] = qi[ k + i * NZ_COMPLEX + j * NZ_COMPLEX * NX_COMPLEX];
 				}
 			}
 		}
 	}
 	
 	// transpose back
-	transpose_complex_YX(w1,w2);
-	
-	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
-		qi[i] = w2[i] * mask[i];
-	}
+	transpose_complex_YX(w1,w1);
 
 #else
 	for( i = 0; i < NX_COMPLEX; i++) {
@@ -77,10 +73,12 @@ void remap(PRECISION complex qi[]) {
 			}
 		}
 	}
+#endif
+
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
 		qi[i] = w1[i] * mask[i];
 	}
-#endif
+
 	
 	return;
 }

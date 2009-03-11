@@ -35,8 +35,8 @@
 #define		T_INITIAL		0.0
 #define		T_FINAL			2.0
 
-#define		TOUTPUT_TIME	2.0
-#define		TOUTPUT_FLOW	2.0
+#define		TOUTPUT_TIME	0.1
+#define		TOUTPUT_FLOW	0.1
 #define		TOUTPUT_DUMP	2.0
 
 //#define		RESTART
