@@ -4,7 +4,7 @@ OBJ= error.o Cflow.o mainloop.o initflow.o timestep.o common.o output.o interfac
 all: Cflow
 
 Cflow: $(OBJ)
-	$(CC) -o $@ $(CFLAGS) -L$(FFTPATH) $(LDFLAGS) $^
+	$(CC) -o $@ $(CFLAGS) $(FFTPATH) $(LDFLAGS) $^
 
 %.o: %.c gvars.h
 	$(CC) -o $@ $< $(CFLAGS) -c

@@ -148,7 +148,9 @@ int main(int argc, char *argv[]) {
 	finish_common();
 	
 	MPI_Printf("Terminated.\n");
-	
+#ifdef MPI_SUPPORT
+	MPI_Finalize();
+#endif
 	return(0);
 }
 	
