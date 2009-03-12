@@ -241,6 +241,8 @@ void mainloop() {
 	PRECISION		dt = 0.0;
 	PRECISION	    t = 0.0;
 	PRECISION		tremap = 0.0;
+	
+	double tstart, tend;
 	int i,nloop;
 	
 	init_mainloop();
@@ -264,6 +266,8 @@ void mainloop() {
 	tremap = 0.0;
 #endif
 	
+	tstart = get_c_time();
+	
 	while (t < T_FINAL) {
 #ifdef DEBUG
 		MPI_Printf("Begining of loop:\n");
@@ -273,7 +277,7 @@ void mainloop() {
 #endif
 
 		nloop++;
-		if(!(nloop % INTERFACE_CHECK)) check_interface(fld,t,dt,nloop);
+		if(!(nloop % INTERFACE_CHECK)) check_interface(fld,t,dt,nloop,tstart);
 		
 		dt = newdt(tremap);
 		
@@ -409,7 +413,8 @@ void mainloop() {
 				
 		output(t);
 	}
-	MPI_Printf("mainloop finished in %d loops\n",nloop);
+	tend=get_c_time();
+	MPI_Printf("mainloop finished in %d loops and %f seconds (%f sec/loop)\n",nloop,tend-tstart,(tend-tstart)/nloop);
 	finish_mainloop();
 	return;
 

@@ -1,4 +1,13 @@
 #include <stdlib.h>
+
+// Timing support
+#ifndef MPI_SUPPORT
+#ifndef OPENMP_SUPPORT
+#include <stdio.h>
+#include <time.h>
+#endif
+#endif
+
 #include <math.h>
 #include <complex.h>
 #include <fftw3.h>
@@ -8,6 +17,10 @@
 #ifdef FFTW3_MPI_SUPPORT
 #include <fftw3-mpi.h>
 #endif
+#endif
+
+#ifdef OPENMP_SUPPORT
+#include <omp.h>
 #endif
 
 #include "gvars.h"
@@ -322,6 +335,25 @@ PRECISION energy(const PRECISION complex q[]) {
 	}
 //	energ_tot = 0;
 	return(energ_tot);
+}
+	
+double get_c_time(void) {
+#ifdef MPI_SUPPORT
+	// We have MPI
+	return(MPI_Wtime());
+#else
+#ifdef OPENMP_SUPPORT
+	// We don't have MPI, but we have OpenMP
+	return(omp_get_wtime());
+#else
+	// We really have nothing...
+	clock_t now;
+	now = clock();
+	
+	return( (double) now / ( (double) CLOCKS_PER_SEC));
+
+#endif
+#endif
 }
 	
 	

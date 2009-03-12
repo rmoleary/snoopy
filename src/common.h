@@ -65,6 +65,7 @@ extern int rank;
 
 void init_common ( void );
 void finish_common ( void );
+double get_c_time(void);
 
 // Useful only if MPI is active. Can be called without though...
 void reduce(double *var, const int op);
