@@ -117,6 +117,10 @@ PRECISION newdt(PRECISION tremap) {
 	int i;
 	PRECISION gamma_v;
 	PRECISION maxfx   , maxfy, maxfz;
+#ifdef MHD
+	PRECISION gamma_b;
+	PRECISION maxbx   , maxby, maxbz;
+#endif
 	PRECISION dt;
 	
 #pragma omp parallel private(i) num_threads ( NTHREADS )
@@ -168,9 +172,53 @@ PRECISION newdt(PRECISION tremap) {
 	gamma_v += pow(fabs(N2), 0.5);
 #endif
 	
+#ifdef MHD
+#pragma omp parallel private(i) num_threads ( NTHREADS )
+{
+		/* Compute the magnetic CFL condition */
+	#pragma omp for schedule(static) nowait	
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		w1[i] =  fld.bx[i];
+		w2[i] =  fld.by[i];
+		w3[i] =  fld.bz[i];
+	}
+}
+
+	gfft_c2r_t(w1);
+	gfft_c2r_t(w2);
+	gfft_c2r_t(w3);
+	
+	maxbx=0.0;
+	maxby=0.0;
+	maxbz=0.0;
+
+	for( i = 0 ; i < NTOTAL_COMPLEX * 2 ; i++) {
+		if( fabs( wr1[i] ) > maxbx ) maxbx = fabs( wr1[i] );
+		if( fabs( wr2[i] ) > maxby ) maxby = fabs( wr2[i] );
+		if( fabs( wr3[i] ) > maxbz ) maxbz = fabs( wr3[i] );
+	}
+
+	maxbx = maxbx / ((double) NTOTAL);
+	maxby = maxby / ((double) NTOTAL);
+	maxbz = maxbz / ((double) NTOTAL);
+	
+#ifdef MPI_SUPPORT
+	reduce(&maxbx,2);
+	reduce(&maxby,2);
+	reduce(&maxbz,2);
+#endif
+	
+	gamma_b = (kxmax + fabs(tremap)*kymax) * maxbx + kymax * maxby + kzmax * maxbz;
+	
+	dt = CFL / (gamma_v + gamma_b);
+#else
 	dt = CFL / gamma_v;
+#endif
 
 #ifdef DEBUG
+#ifdef MHD
+	MPI_Printf("newdt: maxbx=%e, maxby=%e, maxbz=%e\n",maxbx,maxby, maxbz);
+#endif
 	MPI_Printf("newdt: maxfx=%e, maxfy=%e, maxfz=%e, dt=%e\n",maxfx,maxfy, maxfz, dt);
 #endif
 	return(dt);
@@ -201,6 +249,25 @@ void init_mainloop() {
 	
 	fld1.th = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
 	if (fld1.th == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld1.th allocation");
+#endif
+#ifdef MHD
+	dfld.bx = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	if (dfld.bx == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for dfld.bx allocation");
+	
+	dfld.by = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	if (dfld.by == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for dfld.by allocation");
+	
+	dfld.bz = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	if (dfld.bz == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for dfld.bz allocation");
+	
+	fld1.bx = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	if (fld1.bx == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld1.bx allocation");
+	
+	fld1.by = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	if (fld1.by == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld1.by allocation");
+	
+	fld1.bz = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	if (fld1.bz == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld1.bz allocation");
 #endif
 	
 // Init the Runge-Kutta timestepping
@@ -237,6 +304,15 @@ void finish_mainloop() {
 	free(fld1.th);
 	free(dfld.th);
 #endif
+#ifdef MHD
+	free(fld1.bx);
+	free(fld1.by);
+	free(fld1.bz);
+	
+	free(dfld.bx);
+	free(dfld.by);
+	free(dfld.bz);
+
 	return;
 }
 
@@ -307,6 +383,16 @@ void mainloop() {
 
 			fld1.th[i] = fld.th[i] + xiRK[0] * dfld.th[i] * dt;
 #endif
+#ifdef MHD
+			fld.bx[i]  = fld.bx[i] + gammaRK[0] * dfld.bx[i] * dt;
+			fld.by[i]  = fld.by[i] + gammaRK[0] * dfld.by[i] * dt;
+			fld.bz[i]  = fld.bz[i] + gammaRK[0] * dfld.bz[i] * dt;
+
+			fld1.bx[i] = fld.bx[i] + xiRK[0] * dfld.bx[i] * dt;
+			fld1.by[i] = fld.by[i] + xiRK[0] * dfld.by[i] * dt;
+			fld1.bz[i] = fld.bz[i] + xiRK[0] * dfld.bz[i] * dt;
+#endif
+
 			
 		}
 }		
@@ -344,6 +430,15 @@ void mainloop() {
 			fld.th[i]  = fld1.th[i] + gammaRK[1] * dfld.th[i] * dt;
 			fld1.th[i] = fld.th[i] + xiRK[1] * dfld.th[i] * dt;
 #endif
+#ifdef MHD
+			fld.bx[i]  = fld1.bx[i] + gammaRK[1] * dfld.bx[i] * dt;
+			fld.by[i]  = fld1.by[i] + gammaRK[1] * dfld.by[i] * dt;
+			fld.bz[i]  = fld1.bz[i] + gammaRK[1] * dfld.bz[i] * dt;
+			
+			fld1.bx[i] = fld.bx[i] + xiRK[1] * dfld.bx[i] * dt;
+			fld1.by[i] = fld.by[i] + xiRK[1] * dfld.by[i] * dt;
+			fld1.bz[i] = fld.bz[i] + xiRK[1] * dfld.bz[i] * dt;
+#endif
 		}
 }
 #ifdef DEBUG
@@ -374,6 +469,11 @@ void mainloop() {
 			fld.vz[i]  = fld1.vz[i] + gammaRK[2] * dfld.vz[i] * dt;
 #ifdef BOUSSINESQ
 			fld.th[i]  = fld1.th[i] + gammaRK[2] * dfld.th[i] * dt;
+#endif
+#ifdef MHD
+			fld.bx[i]  = fld1.bx[i] + gammaRK[2] * dfld.bx[i] * dt;
+			fld.by[i]  = fld1.by[i] + gammaRK[2] * dfld.by[i] * dt;
+			fld.bz[i]  = fld1.bz[i] + gammaRK[2] * dfld.bz[i] * dt;
 #endif
 		}
 }
@@ -407,6 +507,10 @@ void mainloop() {
 #ifdef BOUSSINESQ
 			remap(fld.th);
 #endif
+#ifdef MHD
+			remap(fld.bx);
+			remap(fld.by);
+			remap(fld.bz);
 		}
 		
 		kvolve(tremap);
@@ -414,6 +518,7 @@ void mainloop() {
 		
 		// Divergence cleaning
 		projector(fld.vx,fld.vy,fld.vz);
+		projector(fld.bx,fld.by,fld.bz);
 				
 		output(t);
 	}

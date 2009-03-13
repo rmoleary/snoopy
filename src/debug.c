@@ -61,6 +61,14 @@ void D_show_all(struct Field fldi) {
 	MPI_Printf("   th:");
 	D_show_field(fldi.th);
 #endif
+#ifdef MHD
+	MPI_Printf("   bx:");
+	D_show_field(fldi.vx);
+	MPI_Printf("   by:");
+	D_show_field(fldi.vy);
+	MPI_Printf("   bz:");
+	D_show_field(fldi.vz);
+#endif
 	return;
 }
 

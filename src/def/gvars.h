@@ -11,6 +11,8 @@
 #define		NPROC			1
 #endif
 
+//#define MHD
+
 #define		LX				1.0
 #define		LY				1.0
 #define		LZ				1.0
@@ -18,6 +20,7 @@
 #define		CFL				1.5
 #define		REYNOLDS		1000.0
 #define		REYNOLDS_TH		1000.0
+#define		REYNOLDS_M		1000.0
 
 #define		BOUSSINESQ
 #define		N2				(-1.0)

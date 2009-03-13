@@ -24,7 +24,13 @@ struct Field {
 #ifdef BOUSSINESQ
 	PRECISION complex *th;
 #endif
+#ifdef MHD
+	PRECISION complex *bx;
+	PRECISION complex *by;
+	PRECISION complex *bz;
+#endif
 };
+
 
 
 // All these variables may be used in the code as they are initialized by common.c
@@ -41,6 +47,7 @@ extern PRECISION   *mask;
 extern PRECISION	*wr1,	*wr2,	*wr3;
 extern PRECISION	*wr4,	*wr5,	*wr6;
 extern PRECISION	*wr7,	*wr8,	*wr9;
+extern PRECISION	*wr10;
 
 extern struct Field				fld;
 

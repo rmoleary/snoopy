@@ -126,6 +126,89 @@ void timestep( struct Field dfldo,
 }
 #endif
 
+/*********************************************
+**** MHD Terms (if needed)   *****************
+*********************************************/
+#ifdef MHD
+
+// Start with the induction equation
+#pragma omp parallel private(i) num_threads ( NTHREADS )
+{
+		/* Compute the convolution */
+	#pragma omp for schedule(static) nowait	
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		w4[i] =  fldi.bx[i];
+		w5[i] =  fldi.by[i];
+		w6[i] =  fldi.bz[i];
+	}
+}
+
+	gfft_c2r_t(w4);
+	gfft_c2r_t(w5);
+	gfft_c2r_t(w6);
+	
+	// (vx,vy,vz) is in w1-w3 and (bx,by,bz) is in (w4-w6). It is now time to compute the emfs in w7-w9...
+#pragma omp parallel private(i) num_threads ( NTHREADS )
+{
+	#pragma omp for schedule(static) nowait
+	for( i = 0 ; i < 2*NTOTAL_COMPLEX ; i++) {
+		wr7[i] = (wr2[i] * wr6[i] - wr3[i] * wr5[i]) / ((double) NTOTAL*NTOTAL);
+		wr8[i] = (wr3[i] * wr4[i] - wr1[i] * wr6[i]) / ((double) NTOTAL*NTOTAL);
+		wr9[i] = (wr1[i] * wr5[i] - wr2[i] * wr4[i]) / ((double) NTOTAL*NTOTAL);
+	}
+}
+	// Compute the curl of the emf to add in the induction equation.
+	
+	gfft_r2c_t(wr7);
+	gfft_r2c_t(wr8);
+	gfft_r2c_t(wr9);
+	
+#pragma omp parallel private(i) num_threads ( NTHREADS )
+{
+	#pragma omp for schedule(static ) nowait
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		dfldo.bx[i] = I * mask[i] * (ky[i] * w9[i] - kz[i] * w8[i]);
+		dfldo.by[i] = I * mask[i] * (kz[i] * w7[i] - kxt[i]* w9[i]);
+		dfldo.bz[i] = I * mask[i] * (kxt[i]* w8[i] - ky[i] * w7[i]);
+	}
+}
+
+// Let's do the Lorentz Force
+// We already have (bx,by,bz) in w4-w6. No need to compute them again...
+
+#pragma omp parallel private(i) num_threads ( NTHREADS )
+{
+	#pragma omp for schedule(static) nowait
+	for( i = 0 ; i < 2*NTOTAL_COMPLEX ; i++) {
+		wr1[i] = wr4[i] * wr4[i] / ((double) NTOTAL*NTOTAL);
+		wr2[i] = wr5[i] * wr5[i] / ((double) NTOTAL*NTOTAL);
+		wr3[i] = wr6[i] * wr6[i] / ((double) NTOTAL*NTOTAL);
+		wr7[i] = wr4[i] * wr5[i] / ((double) NTOTAL*NTOTAL);
+		wr8[i] = wr4[i] * wr6[i] / ((double) NTOTAL*NTOTAL);
+		wr9[i] = wr5[i] * wr6[i] / ((double) NTOTAL*NTOTAL);
+	}
+}
+
+	gfft_r2c_t(wr1);
+	gfft_r2c_t(wr2);
+	gfft_r2c_t(wr3);
+	gfft_r2c_t(wr7);
+	gfft_r2c_t(wr8);
+	gfft_r2c_t(wr9);
+
+#pragma omp parallel private(i) num_threads ( NTHREADS )
+{
+	#pragma omp for schedule(static ) nowait
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		dfldo.vx[i] += I * mask[i] * (kxt[i] * w1[i] + ky[i] * w7[i] + kz[i] * w8[i]);
+		dfldo.vy[i] += I * mask[i] * (kxt[i] * w7[i] + ky[i] * w2[i] + kz[i] * w9[i]);
+		dfldo.vz[i] += I * mask[i] * (kxt[i] * w8[i] * ky[i] * w9[i] + kz[i] * w3[i]);
+	}
+}
+	
+#endif
+
+
 /************************************
 ** SOURCE TERMS  ********************
 ************************************/
@@ -137,6 +220,9 @@ void timestep( struct Field dfldo,
 		dfldo.vx[i] += 2.0 * OMEGA * fldi.vy[i];
 #ifdef WITH_SHEAR
 		dfldo.vy[i] += (SHEAR - 2.0 * OMEGA) * fldi.vx[i];
+#ifdef MHD
+		dfldo.by[i] -= SHEAR * fldi.bx[i];
+#endif
 #else
 		dfldo.vy[i] += (- 2.0 * OMEGA) * fldi.vx[i];
 #endif

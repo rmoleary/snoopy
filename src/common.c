@@ -35,6 +35,11 @@ struct Field {
 #ifdef BOUSSINESQ
 	PRECISION complex *th;
 #endif
+#ifdef MHD
+	PRECISION complex *bx;
+	PRECISION complex *by;
+	PRECISION complex *bz;
+#endif
 };
 
 
@@ -179,7 +184,7 @@ void init_common(void) {
 	if (fld.vx == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld.vx allocation");
 	
 	fld.vy = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
-	if (fld.vx == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld.vy allocation");
+	if (fld.vy == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld.vy allocation");
 	
 	fld.vz = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
 	if (fld.vz == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld.vz allocation");
@@ -188,7 +193,17 @@ void init_common(void) {
 	fld.th = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
 	if (fld.th == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld.th allocation");
 #endif
+#ifdef MHD
+	fld.bx = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	if (fld.bx == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld.vx allocation");
 	
+	fld.by = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	if (fld.by == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld.vy allocation");
+	
+	fld.bz = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	if (fld.bz == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld.vz allocation");
+#endif
+
 	w1 = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
 	if (w1 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w1 allocation");
 	
@@ -230,6 +245,7 @@ void init_common(void) {
 	wr7 = (PRECISION *) w7;
 	wr8 = (PRECISION *) w8;
 	wr9 = (PRECISION *) w9;
+	wr10 = (PRECISION *) w10;
 
 // 1D arrays
 	w1d = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NY);
@@ -257,7 +273,9 @@ void init_common(void) {
 #ifdef BOUSSINESQ	
 	nu_th = 1.0 / REYNOLDS_TH;
 #endif
-	
+#ifdef MHD
+	eta = 1.0 / REYNOLDS_M;
+#endif
 	return;
 }
 
@@ -271,6 +289,11 @@ void finish_common(void) {
 	free(fld.vz);
 #ifdef BOUSSINESQ
 	free(fld.th);
+#endif
+#ifdef MHD
+	free(fld.bx);
+	free(fld.by);
+	free(fld.bz);
 #endif
 	free(w1);
 	free(w2);
