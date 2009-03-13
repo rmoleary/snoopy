@@ -12,26 +12,20 @@ void D_show_field(PRECISION complex * field) {
 	PRECISION maxfield, minfield, avgfield, avg2field;
 	int i;
 	
-	MPI_Printf("Asking for memory\n");
 	df = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX );
 	if (df == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for df allocation");
-	MPI_Printf("Allocating dfr\n");
 	dfr = (PRECISION *) df;
-	MPI_Printf("Copying df\n");
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
 		df[i] =  field[i];
 	}
 	
-	MPI_Printf("Calling gfft\n");
 	gfft_c2r(df);
 	
-	MPI_Printf("Init\n");
 	maxfield=dfr[0];
 	minfield=dfr[0];
 	avgfield=0.0;
 	avg2field=0.0;
 	
-	MPI_Printf("Loop\n");
 	for( i = 0 ; i < NTOTAL_COMPLEX * 2 ; i++) {
 		if( dfr[i] > maxfield ) maxfield = dfr[i];
 		if( dfr[i] < minfield ) minfield = dfr[i];

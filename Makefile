@@ -1,7 +1,7 @@
 OPENMP=yes
-MPI=yes
+MPI=no
 FFTW3_MPI=no
-DEBUG=yes
+DEBUG=no
 
 MACHINE= $(shell uname -s)
 HOSTNAME= $(shell hostname)
@@ -97,12 +97,13 @@ ifeq ($(MACHINE),AIX)
 	else
 		CC=xlc_r
 	endif
-	CFLAGS=-O3
-	FFTPATH=
+	CFLAGS=-O3 -I/usr/local/pub/FFTW/3.2/include
+	LDFLAGS=-lm
+	FFTPATH=-L/usr/local/pub/FFTW/3.2/lib
 	OPENMP_FLAG= -qsmp=omp
 ifeq ($(DEBUG),yes)
-	CFLAGS=-g -DDEBUG -qnooptimize -qcheck=all -qheapdebug
-	LDFLAGS=-g -qnooptimize -qcheck=all -qheapdebug
+	CFLAGS=-g -I/usr/local/pub/FFTW/3.2/include -DDEBUG -qnooptimize -qcheck=all -qheapdebug
+	LDFLAGS=-g -qnooptimize -qcheck=all -qheapdebug -lm
 endif
 endif
 
