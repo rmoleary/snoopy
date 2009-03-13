@@ -1,2 +1,2 @@
-D_show_all(struct Field fldi);
-D_show_field(PRECISION complex * field);
+void D_show_all(struct Field fldi);
+void D_show_field(PRECISION complex * field);

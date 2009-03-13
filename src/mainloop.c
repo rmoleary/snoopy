@@ -10,6 +10,10 @@
 #include "transpose.h"
 #endif
 
+#ifdef DEBUG
+#include "debug.h"
+#endif
+
 struct Field			dfld, fld1;
 
 PRECISION complex		gammaRK[3];

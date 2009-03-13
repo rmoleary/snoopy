@@ -4,41 +4,34 @@
 #include "gfft.h"
 
 #ifdef DEBUG
-D_show_all(struct Field fldi) {
-	MPI_Printf("   vx:");
-	D_show_field(fldi.vx);
-	MPI_Printf("   vy:");
-	D_show_field(fldi.vy);
-	MPI_Printf("   vz:");
-	D_show_field(fldi.vz);
-#ifdef BOUSSINESQ
-	MPI_Printf("   th:");
-	D_show_field(fldi.th);
-#endif
-	return;
-}
 	
-D_show_field(PRECISION complex * field) {
+void D_show_field(PRECISION complex * field) {
 	// Print several informations about the field field
 	PRECISION complex * df;
 	PRECISION * dfr;
 	PRECISION maxfield, minfield, avgfield, avg2field;
 	int i;
 	
+	MPI_Printf("Asking for memory\n");
 	df = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX );
 	if (df == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for df allocation");
+	MPI_Printf("Allocating dfr\n");
 	dfr = (PRECISION *) df;
-	
+	MPI_Printf("Copying df\n");
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
 		df[i] =  field[i];
 	}
 	
+	MPI_Printf("Calling gfft\n");
 	gfft_c2r(df);
+	
+	MPI_Printf("Init\n");
 	maxfield=dfr[0];
 	minfield=dfr[0];
 	avgfield=0.0;
 	avg2field=0.0;
 	
+	MPI_Printf("Loop\n");
 	for( i = 0 ; i < NTOTAL_COMPLEX * 2 ; i++) {
 		if( dfr[i] > maxfield ) maxfield = dfr[i];
 		if( dfr[i] < minfield ) minfield = dfr[i];
@@ -62,6 +55,21 @@ D_show_field(PRECISION complex * field) {
 	
 	fftw_free(df);
 }
+
+void D_show_all(struct Field fldi) {
+	MPI_Printf("   vx:");
+	D_show_field(fldi.vx);
+	MPI_Printf("   vy:");
+	D_show_field(fldi.vy);
+	MPI_Printf("   vz:");
+	D_show_field(fldi.vz);
+#ifdef BOUSSINESQ
+	MPI_Printf("   th:");
+	D_show_field(fldi.th);
+#endif
+	return;
+}
+
 #endif
 	
 	

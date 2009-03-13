@@ -5,6 +5,10 @@
 #include "common.h"
 #include "gfft.h"
 
+#ifdef DEBUG
+#include "debug.h"
+#endif
+
 void timestep( struct Field dfldo,
 			   struct Field fldi,
 			   const double t,

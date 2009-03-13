@@ -1,7 +1,7 @@
-OPENMP=no
-MPI=no
+OPENMP=yes
+MPI=yes
 FFTW3_MPI=no
-DEBUG=no
+DEBUG=yes
 
 MACHINE= $(shell uname -s)
 HOSTNAME= $(shell hostname)
@@ -14,6 +14,8 @@ DOMAINNAME= $(shell dnsdomainname)
 CLUSTER="Unknown Cluster, using default"
 CC=cc
 FFTPATH=-L/usr/local/lib
+LDFLAGS=
+CFLAGS=
 
 #Compilation variables for MACOS X (geo laptop)
 ifeq ($(MACHINE),Darwin)
@@ -27,6 +29,10 @@ ifeq ($(MACHINE),Darwin)
 	#FFTPATH=/Users/glesur/test/lib
 	CFLAGS=-O3 -Wall
 	OPENMP_FLAG=-fopenmp
+ifeq ($(DEBUG),yes)
+	CFLAGS=-g -DDEBUG
+	LDFLAGS+=-g
+endif
 endif
 
 #Astro2 (DAMTP) on 32 bits
@@ -36,6 +42,10 @@ ifeq ($(HOSTNAME),astro2.damtp.cam.ac.uk)
 	FFTPATH=-L/home/raid/chaos/gl293/usr/lib
 	CFLAGS=-O3 -c99
 	OPENMP_FLAG=-openmp
+ifeq ($(DEBUG),yes)
+	CFLAGS=-g -DDEBUG
+	LDFLAGS+=-g
+endif
 endif
 
 # Hyades
@@ -45,6 +55,10 @@ ifeq ($(HOSTNAME),master.hyades.private.damtp.cam.ac.uk)
 	FFTPATH=-L/home/raid/chaos/gl293/usr/lib
 	CFLAGS=-O3 -static
 	OPENMP_FLAG=-openmp
+ifeq ($(DEBUG),yes)
+	CFLAGS=-g -DDEBUG
+	LDFLAGS+=-g
+endif
 endif
 
 #test-vostro and similar configurations
@@ -54,6 +68,10 @@ ifeq ($(HOSTNAME),test-vostro.damtp.cam.ac.uk)
 	FFTPATH=-L/home/raid/chaos/gl293/vostro/usr/lib
 	CFLAGS=-O3 -c99
 	OPENMP_FLAG=-openmp
+ifeq ($(DEBUG),yes)
+	CFLAGS=-g -DDEBUG
+	LDFLAGS+=-g
+endif
 endif
 
 ifeq ($(DOMAINNAME),moab.cluster)
@@ -66,6 +84,10 @@ ifeq ($(DOMAINNAME),moab.cluster)
 	FFTPATH=-L/home/gl293/usr/lib
 	CFLAGS=-O3 -I/home/gl293/usr/include
 	OPENMP_FLAG=-openmp
+ifeq ($(DEBUG),yes)
+	CFLAGS=-g -DDEBUG
+	LDFLAGS+=-g
+endif
 endif
 
 ifeq ($(MACHINE),AIX)
@@ -78,6 +100,10 @@ ifeq ($(MACHINE),AIX)
 	CFLAGS=-O3
 	FFTPATH=
 	OPENMP_FLAG= -qsmp=omp
+ifeq ($(DEBUG),yes)
+	CFLAGS=-g -DDEBUG -qnooptimize -qcheck=all -qheapdebug
+	LDFLAGS=-g -qnooptimize -qcheck=all -qheapdebug
+endif
 endif
 
 
@@ -85,12 +111,9 @@ endif
 ## General compilation variables
 ###############################################################
 
-LDFLAGS=
 
-ifeq ($(DEBUG),yes)
-	CFLAGS=-g -DDEBUG
-	LDFLAGS+=-g
-endif
+
+
 ifeq ($(OPENMP),yes)
 	CFLAGS+=$(OPENMP_FLAG) -DOPENMP_SUPPORT
 	LDFLAGS+=-lfftw3_threads

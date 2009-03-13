@@ -5,10 +5,10 @@
 #define		NY				128
 #define		NZ				128
 
-#define		NTHREADS		2
+#define		NTHREADS		4
 
 #ifndef NPROC
-#define		NPROC			2
+#define		NPROC			8
 #endif
 
 #define		LX				1.0
@@ -44,7 +44,7 @@
 //#define		FORTRAN_OUTPUT_ORDER
 #define		VTK_OUTPUT
 
-#define		INTERFACE_CHECK	4
+#define		INTERFACE_CHECK	20
 //#define		INTERFACE_OUTPUT_FILE
 
 #define ANTIALIASING
