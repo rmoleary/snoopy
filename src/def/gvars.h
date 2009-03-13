@@ -5,7 +5,7 @@
 #define		NY				128
 #define		NZ				128
 
-#define		NTHREADS		4
+#define		NTHREADS		1
 
 #ifndef NPROC
 #define		NPROC			1

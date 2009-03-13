@@ -9,5 +9,12 @@ Cflow: $(OBJ)
 %.o: %.c gvars.h
 	$(CC) -o $@ $< $(CFLAGS) -c
 	
+def: gvars.h
+
+gvars.h:
+	cp def/gvars.h .
+
 clean:
 	rm -f *.o *.mod
+
+

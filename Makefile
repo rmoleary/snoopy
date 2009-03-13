@@ -162,5 +162,11 @@ clean:
 	@(cd src && $(MAKE) $@)
 	rm Cflow
 
+def:
+	@(cd src && $(MAKE) $@)
+	@echo "***********************************************************"
+	@echo "Configuration files Initialized succesfully"
+	@echo "Please edit src/gvars.h"
+	@echo "***********************************************************"
 
 
