@@ -69,6 +69,11 @@ void init_flow() {
 #ifdef BOUSSINESQ
 				fld.th[ IDX3D ] = 0.0;
 #endif
+#ifdef MHD
+				fld.bx[ IDX3D ] = 0.0;
+				fld.by[ IDX3D ] = 0.0;
+				fld.bz[ IDX3D ] = 0.0;
+#endif
 			}
 		}
 	}
@@ -107,8 +112,13 @@ void init_flow() {
 			}
 		}
 	}
+	fld.by[0] = BY0 * ((double) NTOTAL);
+	fld.bz[0] = BZ0 * ((double) NTOTAL);
 	}
 
+// Init the mean fields.
+
+	
 #ifdef DEBUG
 	MPI_Printf("Initflow:\n");
 	D_show_all(fld);
@@ -116,6 +126,7 @@ void init_flow() {
 #endif	
 	
 	projector(fld.vx,fld.vy,fld.vz);
+	projector(fld.bx,fld.by,fld.bz);
 	
 	return;
 }

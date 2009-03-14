@@ -65,6 +65,10 @@ extern PRECISION	nu;
 extern PRECISION	nu_th;
 #endif
 
+#ifdef MHD
+extern PRECISION	eta;
+#endif
+
 // MPI
 extern int rank;
 

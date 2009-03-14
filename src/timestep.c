@@ -202,7 +202,7 @@ void timestep( struct Field dfldo,
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
 		dfldo.vx[i] += I * mask[i] * (kxt[i] * w1[i] + ky[i] * w7[i] + kz[i] * w8[i]);
 		dfldo.vy[i] += I * mask[i] * (kxt[i] * w7[i] + ky[i] * w2[i] + kz[i] * w9[i]);
-		dfldo.vz[i] += I * mask[i] * (kxt[i] * w8[i] * ky[i] * w9[i] + kz[i] * w3[i]);
+		dfldo.vz[i] += I * mask[i] * (kxt[i] * w8[i] + ky[i] * w9[i] + kz[i] * w3[i]);
 	}
 }
 	
@@ -273,6 +273,13 @@ void implicitstep(
 		q0 = exp( - nu_th * dt* k2t[i] );
 		fldi.th[i] = fldi.th[i] * q0;
 #endif
+#ifdef MHD
+		q0 = exp( - eta * dt* k2t[i] );
+		fldi.bx[i] = fldi.bx[i] * q0;
+		fldi.by[i] = fldi.by[i] * q0;
+		fldi.bz[i] = fldi.bz[i] * q0;
+#endif
+
 	}
 }
 	

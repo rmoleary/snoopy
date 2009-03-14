@@ -9,7 +9,7 @@
 #define	OUTPUT_SPECTRUM_FILENAME	"spectrum.dat"
 
 #define	OUTPUT_DUMP					"dump.dmp"
-#define	OUTPUT_DUMP_VERSION			02
+#define	OUTPUT_DUMP_VERSION			03
 
 #define	DUMP_MARKER					1981
 
@@ -127,6 +127,10 @@ void write_snap(const PRECISION t, const char filename[], const PRECISION comple
 
 #ifdef VTK_OUTPUT
 // VTK output using the visit_writer code.
+/*************************************************
+** VTK For HD*************************************
+**************************************************/
+
 void output_vtk(const int n, const PRECISION t) {
 	int i,j,k, current_rank;
 	char  filename[50];
@@ -315,6 +319,164 @@ void output_vtk(const int n, const PRECISION t) {
 #endif
 		
 }
+
+#ifdef MHD
+/*************************************************
+** VTK For MHD*************************************
+**************************************************/
+/* We're using a separate routine as putting everything in one file would require
+to much temporary memory when using MPI. That should however be fixed in future versions.*/
+
+void output_vtk_mhd(const int n, const PRECISION t) {
+	int i,j,k, current_rank;
+	char  filename[50];
+	char  varname1[10];
+	char  varname2[10];
+	char  varname3[10];
+	
+	char* varnames[3];
+	
+
+	float* bxf;
+	float* byf;
+	float* bzf;
+	
+#ifdef MPI_SUPPORT
+    MPI_Status status;
+	
+	bxf = (float *) malloc( NTOTAL * sizeof(float));
+	byf = (float *) malloc( NTOTAL * sizeof(float));
+	bzf = (float *) malloc( NTOTAL * sizeof(float));
+	
+	if (bxf == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for bxf allocation");
+	if (byf == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for byf allocation");
+	if (bzf == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for bzf allocation");
+		
+#else
+	bxf = (float *) wr1;
+	byf = (float *) wr2;
+	bzf = (float *) wr3;
+#endif
+	
+	float xcoord[NX];
+	float ycoord[NY];
+	float zcoord[NZ];
+	
+	float* v[3];
+	int dims[3];
+	int vardims[3];
+	int centering[3];
+	
+	// Init arrays required by vtk writer
+	dims[0] = NX;
+	dims[1] = NY;
+	dims[2] = NZ;
+
+	// 
+	v[0] = bxf;
+	v[1] = byf;
+	v[2] = bzf;
+
+	vardims[0] = 1;
+	vardims[1] = 1;
+	vardims[2] = 1;
+	
+	centering[0] = 1;
+	centering[1] = 1;
+	centering[2] = 1;
+
+	// Init varnames
+	sprintf(varname1,"bx");
+	sprintf(varname2,"by");
+	sprintf(varname3,"bz");
+	
+	varnames[0] = varname1;
+	varnames[1] = varname2;
+	varnames[2] = varname3;
+	
+	// Init coordinate system
+	for( i = 0 ; i < NX ; i++) {
+		xcoord[i] = ((float) i) / ((float) NX) * LX - LX / 2.0;
+	}
+	for( i = 0 ; i < NY ; i++) {
+		ycoord[i] = ((float) i) / ((float) NY) * LY - LY / 2.0;
+	}
+	for( i = 0 ; i < NZ ; i++) {
+		zcoord[i] = ((float) i) / ((float) NZ) * LZ - LZ / 2.0;
+	}
+
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		w5[i] = fld.bx[i];
+		w6[i] = fld.by[i];
+		w7[i] = fld.bz[i];
+	}
+	gfft_c2r(w5);
+	gfft_c2r(w6);
+	gfft_c2r(w7);
+	
+	for( i = 0 ; i < 2*NTOTAL_COMPLEX ; i++) {
+		wr5[i] = wr5[i] / ((double) NTOTAL );
+		wr6[i] = wr6[i] / ((double) NTOTAL );
+		wr7[i] = wr7[i] / ((double) NTOTAL );
+	}
+
+#ifdef WITH_SHEAR
+	remap_output(wr5,t);
+	remap_output(wr6,t);
+	remap_output(wr7,t);
+#endif
+
+	// Put variables in the right format.
+	
+	if(rank==0) {
+		for(current_rank=0 ; current_rank < NPROC ; current_rank++) {
+#ifdef MPI_SUPPORT
+			if(current_rank!=0) {
+				// Receive arrays...
+				MPI_Recv( wr5, NTOTAL_COMPLEX * 2, MPI_DOUBLE, current_rank, 1, MPI_COMM_WORLD, &status);
+				MPI_Recv( wr6, NTOTAL_COMPLEX * 2, MPI_DOUBLE, current_rank, 1, MPI_COMM_WORLD, &status);
+				MPI_Recv( wr7, NTOTAL_COMPLEX * 2, MPI_DOUBLE, current_rank, 1, MPI_COMM_WORLD, &status);
+			}
+#endif
+			for( i = 0; i < NX/NPROC; i++) {
+				for( j = 0; j < NY; j++) {
+					for( k = 0 ; k < NZ; k++) {
+						bxf[i + current_rank * NX / NPROC + j * NX + k * NX * NY] = (float) wr5[k + j * (NZ + 2) + i * (NZ + 2) * NY];
+						byf[i + current_rank * NX / NPROC + j * NX + k * NX * NY] = (float) wr6[k + j * (NZ + 2) + i * (NZ + 2) * NY];
+						bzf[i + current_rank * NX / NPROC + j * NX + k * NX * NY] = (float) wr7[k + j * (NZ + 2) + i * (NZ + 2) * NY];
+					}
+				}
+			}
+			
+		} // End of loop on processes
+		
+		sprintf(filename,"data/b%04i.vtk",n);
+
+		// Output everything
+
+		write_rectilinear_mesh(filename, 1, dims, xcoord, ycoord, zcoord, 3, vardims, centering, (const char * const *) varnames, v);
+#ifdef MPI_SUPPORT
+		MPI_Barrier(MPI_COMM_WORLD);
+#endif
+	}
+#ifdef MPI_SUPPORT
+	else {
+		MPI_Send( wr5, NTOTAL_COMPLEX * 2, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
+		MPI_Send( wr6, NTOTAL_COMPLEX * 2, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
+		MPI_Send( wr7, NTOTAL_COMPLEX * 2, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
+		MPI_Barrier(MPI_COMM_WORLD);
+	}
+#endif
+	
+#ifdef MPI_SUPPORT
+	free(bxf);
+	free(byf);
+	free(bzf);
+#endif
+		
+}
+
+#endif
 #endif
 	
 	
@@ -337,6 +499,16 @@ void output_flow(const int n, const PRECISION t) {
 	write_snap(t, filename, fld.th);
 #endif
 
+#ifdef MHD
+	sprintf(filename,"data/bx%04i.raw",n);
+	write_snap(t, filename, fld.bx);
+	
+	sprintf(filename,"data/by%04i.raw",n);
+	write_snap(t, filename, fld.by);
+	
+	sprintf(filename,"data/bz%04i.raw",n);
+	write_snap(t, filename, fld.bz);
+#endif
 	return;
 }
 
@@ -345,8 +517,12 @@ void output_timevar(const struct Field fldi,
 					
 	FILE *ht;
 	PRECISION vxmax, vxmin, vymax, vymin, vzmax, vzmin, thmin, thmax;
-	PRECISION energy_total;
-	PRECISION transport;
+	PRECISION bxmax, bxmin, bymax, bymin, bzmax, bzmin;
+	PRECISION energy_total;	
+	PRECISION energy_mag;
+	PRECISION reynolds_stress;
+	PRECISION maxwell_stress;
+
 	int i;
 	
 		
@@ -357,16 +533,32 @@ void output_timevar(const struct Field fldi,
 #ifdef BOUSSINESQ
 		w4[i] = fldi.th[i];
 #endif
+#ifdef MHD
+		w5[i] = fldi.bx[i];
+		w6[i] = fldi.by[i];
+		w7[i] = fldi.bz[i];
+#endif
 	}
 
 	energy_total = energy(w1) + energy(w2) + energy(w3);
 	reduce(&energy_total,1);
+#ifdef MHD
+	energy_mag = energy(w5) + energy(w6) + energy(w7);
+	reduce(&energy_mag,1);
+#else
+	energy_mag=0.0;
+#endif
 	
 	gfft_c2r(w1);
 	gfft_c2r(w2);
 	gfft_c2r(w3);
 #ifdef BOUSSINESQ
 	gfft_c2r(w4);
+#endif
+#ifdef MHD
+	gfft_c2r(w5);
+	gfft_c2r(w6);
+	gfft_c2r(w7);
 #endif
 
 	for( i = 0 ; i < 2*NTOTAL_COMPLEX ; i++) {
@@ -376,6 +568,12 @@ void output_timevar(const struct Field fldi,
 #ifdef BOUSSINESQ
 		wr4[i] = wr4[i] / ((double) NTOTAL );
 #endif
+#ifdef MHD
+		wr5[i] = wr5[i] / ((double) NTOTAL );
+		wr6[i] = wr6[i] / ((double) NTOTAL );
+		wr7[i] = wr7[i] / ((double) NTOTAL );
+#endif
+		
 	}
 	
 	// w1, w2, w3 contains vx vy vz
@@ -389,7 +587,16 @@ void output_timevar(const struct Field fldi,
 	vzmin=0.0;
 	thmax=0.0;
 	thmin=0.0;
-	transport=0.0;
+	reynolds_stress=0.0;
+	bxmax=0.0;
+	bxmin=0.0;
+	bymax=0.0;
+	bymin=0.0;
+	bzmax=0.0;
+	bzmin=0.0;
+	maxwell_stress=0.0;
+
+	
 		
 	for(i = 0 ; i < 2 * NTOTAL_COMPLEX ; i ++) {
 		if(vxmax < wr1[i]) vxmax = wr1[i];
@@ -398,12 +605,22 @@ void output_timevar(const struct Field fldi,
 		if(vymin > wr2[i]) vymin = wr2[i];
 		if(vzmax < wr3[i]) vzmax = wr3[i];
 		if(vzmin > wr3[i]) vzmin = wr3[i];
+		
+		reynolds_stress += wr1[i] * wr2[i] / ((double) NTOTAL);
 #ifdef BOUSSINESQ
 		if(thmax < wr4[i]) thmax = wr4[i];
 		if(thmin > wr4[i]) thmin = wr4[i];
 #endif
-		transport = transport + wr1[i] * wr2[i] / ((double) NTOTAL);
-
+#ifdef MHD
+		if(bxmax < wr5[i]) bxmax = wr5[i];
+		if(bxmin > wr5[i]) bxmin = wr5[i];
+		if(bymax < wr6[i]) bymax = wr6[i];
+		if(bymin > wr6[i]) bymin = wr6[i];
+		if(bzmax < wr7[i]) bzmax = wr7[i];
+		if(bzmin > wr7[i]) bzmin = wr7[i];
+		
+		maxwell_stress += wr5[i] * wr6[i] / ((double) NTOTAL);
+#endif
 	}
 	
 	reduce(&vxmax,2);
@@ -413,23 +630,33 @@ void output_timevar(const struct Field fldi,
 	reduce(&vzmax,2);
 	reduce(&vzmin,3);
 	
+	reduce(&reynolds_stress,1);
 #ifdef BOUSSINESQ
 	reduce(&thmax,2);
 	reduce(&thmin,3);
 #endif
-	reduce(&transport,1);
+#ifdef MHD
+	reduce(&bxmax,2);
+	reduce(&bxmin,3);
+	reduce(&bymax,2);
+	reduce(&bymin,3);
+	reduce(&bzmax,2);
+	reduce(&bzmin,3);
+	
+	reduce(&maxwell_stress,1);
+#endif
+
 	
 	if(rank==0) {
 		ht=fopen("timevar","a");
 		fprintf(ht,"%08e\t",t);
 		fprintf(ht,"%08e\t",energy_total);
 		fprintf(ht,"%08e\t%08e\t%08e\t%08e\t%08e\t%08e\t",vxmax,vxmin,vymax,vymin,vzmax,vzmin);
-#ifdef BOUSSINESQ
-		fprintf(ht,"%08e\t%08e\t",thmax,thmin);
-#else
-		fprintf(ht,"%08e\t%08e\t",0.0,0.0);
-#endif
-		fprintf(ht,"%08e\n",transport);
+		fprintf(ht,"%08e\t",reynolds_stress);
+		fprintf(ht,"%08e\t%08e\t%08e\t%08e\t%08e\t%08e\t",bxmax,bxmin,bymax,bymin,bzmax,bzmin);
+		fprintf(ht,"%08e\t",maxwell_stress);
+		fprintf(ht,"%08e\t%08e\n",thmax,thmin);
+
 		fclose(ht);
 #ifdef MPI_SUPPORT
 		MPI_Barrier(MPI_COMM_WORLD);
@@ -440,6 +667,9 @@ void output_timevar(const struct Field fldi,
 #endif
 	return;
 }
+/**********************************************************
+** Restart DUMP I/O routines ******************************
+***********************************************************/
 
 void write_field(FILE *handler, PRECISION complex *fldwrite) {
 #ifdef MPI_SUPPORT
@@ -522,7 +752,7 @@ void output_dump( const struct Field fldi,
 	FILE *ht;
 	int dump_version;
 	int size_x,	size_y, size_z;
-	int marker;
+	int marker, included_field;
 	
 	ht=NULL;
 	
@@ -545,6 +775,18 @@ void output_dump( const struct Field fldi,
 		fwrite(&size_x		, sizeof(int), 1, ht);
 		fwrite(&size_y		, sizeof(int), 1, ht);
 		fwrite(&size_z		, sizeof(int), 1, ht);
+		// Included fields
+		// First bit is Boussinesq fields
+		// Second bit is MHD fields
+		// Other fields can be added from that stage...
+		included_field=0;
+#ifdef BOUSSINESQ
+		included_field+=1;
+#endif
+#ifdef MHD
+		included_field+=2;
+#endif
+		fwrite(&included_field, sizeof(int), 1, ht);
 	}
 	
 	write_field(ht, fldi.vx);
@@ -553,6 +795,11 @@ void output_dump( const struct Field fldi,
 	
 #ifdef BOUSSINESQ
 	write_field(ht, fldi.th);
+#endif
+#ifdef MHD
+	write_field(ht, fldi.bx);
+	write_field(ht, fldi.by);
+	write_field(ht, fldi.bz);
 #endif
 
 	if(rank==0) {
@@ -579,7 +826,7 @@ void read_dump(   struct Field fldo,
 				  
 	FILE *ht;
 	int dump_version;
-	int size_x,	size_y, size_z;
+	int size_x,	size_y, size_z, included_field;
 	int marker;
 	
 	ht=NULL;
@@ -598,15 +845,44 @@ void read_dump(   struct Field fldo,
 		if(size_x != NX) ERROR_HANDLER( ERROR_CRITICAL, "Incorrect X grid size in dump file.");
 		if(size_y != NY) ERROR_HANDLER( ERROR_CRITICAL, "Incorrect Y grid size in dump file.");
 		if(size_z != NZ) ERROR_HANDLER( ERROR_CRITICAL, "Incorrect Y grid size in dump file.");
+		
+		fread(&included_field, sizeof(int), 1, ht);
+#ifdef MPI_SUPPORT
+		MPI_Bcast( &included_field,		1, MPI_INT,		0, MPI_COMM_WORLD);
+#endif
 	
 	}
 	
+	MPI_Printf("Reading velocity field\n");
 	read_field(ht, fldo.vx);
 	read_field(ht, fldo.vy);
 	read_field(ht, fldo.vz);
 	
 #ifdef BOUSSINESQ
-	read_field(ht, fldo.th);
+	// Do we have Boussinesq Field in the dump?
+	if(included_field & 1) {
+		// Yes
+		MPI_Printf("Reading Boussinesq field\n");
+		read_field(ht, fldo.th);
+	}
+	else {
+		// No
+		ERROR_HANDLER( ERROR_WARNING, "No Boussinesq field in the dump, using initial conditions.");
+	}
+#endif
+#ifdef MHD
+	// Do we have MHD field in the dump?
+	if(included_field & 2) {
+		// Yes
+		MPI_Printf("Reading MHD field\n");
+		read_field(ht, fldo.bx);
+		read_field(ht, fldo.by);
+		read_field(ht, fldo.bz);
+	}
+	else {
+		//No
+		ERROR_HANDLER( ERROR_WARNING, "No MHD field in the dump, using initial conditions.");
+	}
 #endif
 	
 	if(rank==0) {
@@ -638,6 +914,10 @@ void read_dump(   struct Field fldo,
 	return;
 }
 	
+/*********************************************************
+*** General routine, callable from outside ***************
+**********************************************************/
+
 void init_output() {
 #ifndef RESTART
 	noutput_flow=0;
@@ -659,6 +939,9 @@ void output(const PRECISION t) {
 	if( (t-lastoutput_flow)>=TOUTPUT_FLOW) {
 #ifdef VTK_OUTPUT
 		output_vtk(noutput_flow,t);
+#ifdef MHD
+		output_vtk_mhd(noutput_flow,t);
+#endif
 #else
 		output_flow(noutput_flow,t);
 #endif
@@ -685,6 +968,9 @@ void output_immediate(const PRECISION t) {
 	output_timevar(fld,t);
 #ifdef VTK_OUTPUT
 	output_vtk(noutput_flow,t);
+#ifdef MHD
+	output_vtk_mhd(noutput_flow,t);
+#endif
 #else
 	output_flow(noutput_flow,t);
 #endif

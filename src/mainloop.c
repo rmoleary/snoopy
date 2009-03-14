@@ -312,7 +312,7 @@ void finish_mainloop() {
 	free(dfld.bx);
 	free(dfld.by);
 	free(dfld.bz);
-
+#endif
 	return;
 }
 
@@ -511,6 +511,7 @@ void mainloop() {
 			remap(fld.bx);
 			remap(fld.by);
 			remap(fld.bz);
+#endif
 		}
 		
 		kvolve(tremap);

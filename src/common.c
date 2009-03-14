@@ -72,6 +72,9 @@ PRECISION	nu;
 #ifdef BOUSSINESQ
 PRECISION	nu_th;
 #endif
+#ifdef MHD
+PRECISION	eta;
+#endif
 
 int		rank;
 

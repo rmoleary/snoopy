@@ -31,6 +31,9 @@
 #define		WITH_SHEAR
 #define		SHEAR			1.0
 
+#define		BY0				0.0
+#define		BZ0				0.0
+
 #define		PER_AMPLITUDE	10000.0
 
 #define		FORCING_TIME	4e-2

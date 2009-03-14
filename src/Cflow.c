@@ -37,32 +37,20 @@ void please_wait(void)
 }
 
 void print_logo(void) {
-	MPI_Printf("                 .88888888:. \n");
-	MPI_Printf("                88888888.88888. \n");
-	MPI_Printf("              .8888888888888888. \n");
-	MPI_Printf("              888888888888888888 \n");
-	MPI_Printf("              88' _`88'_  `88888 \n");
-	MPI_Printf("              88 88 88 88  88888 \n");
-	MPI_Printf("              88_88_::_88_:88888 \n");
-	MPI_Printf("              88:::,::,:::::8888 \n");
-	MPI_Printf("              88`:::::::::'`8888 \n");
-	MPI_Printf("             .88  `::::'    8:88. \n");
-	MPI_Printf("            8888            `8:888. \n");
-	MPI_Printf("          .8888'             `888888. \n");
-	MPI_Printf("         .8888:..  .::.  ...:'8888888:. \n");
-	MPI_Printf("        .8888.'     :'     `'::`88:88888 \n");
-	MPI_Printf("       .8888        '         `.888:8888. \n");
-	MPI_Printf("      888:8         .           888:88888 \n");
-	MPI_Printf("    .888:88        .:           888:88888: \n");
-	MPI_Printf("    8888888.       ::           88:888888 \n");
-	MPI_Printf("    `.::.888.      ::          .88888888 \n");
-	MPI_Printf("   .::::::.888.    ::         :::`8888'.:. \n");
-	MPI_Printf("  ::::::::::.888   '         .:::::::::::: \n");
-	MPI_Printf("  ::::::::::::.8    '      .:8::::::::::::. \n");
-	MPI_Printf(" .::::::::::::::.        .:888::::::::::::: \n");
-	MPI_Printf(" :::::::::::::::88:.__..:88888:::::::::::' \n");
-	MPI_Printf("  `'.:::::::::::88888888888.88:::::::::' \n");
-	MPI_Printf("        `':::_:' -- '' -'-' `':_::::'` \n");
+	MPI_Printf("\n");
+	MPI_Printf("          .o.				        \n");	
+	MPI_Printf("          |  |    _   ,		        \n");
+	MPI_Printf("        .',  L.-'` `\\ ||	        \n");
+	MPI_Printf("      __\\___,|__--,__`_|__         \n");
+	MPI_Printf("     |    %%     `=`       |        \n");
+	MPI_Printf("     | ___%%_______________|        \n");
+	MPI_Printf("     |    `               |         \n");
+	MPI_Printf("     | -------------------|         \n");
+	MPI_Printf("     |____________________|         \n");
+	MPI_Printf("       |~~~~~~~~~~~~~~~~|           \n");
+	MPI_Printf("       | ---------------|  ,        \n");
+	MPI_Printf("   \\|  | _______________| / /      \n");
+	MPI_Printf("\\. \\,\\\\|, .   .   /,  / |///, / \n\n");
 
 	return;
 }
@@ -132,8 +120,8 @@ int main(int argc, char *argv[]) {
 	rank=0;
 #endif
 	print_logo();
-	MPI_Printf("General purpose Spectral Hydro solver v1.0\n");
-	MPI_Printf("(c) 2004-2009 G. Lesur\n");
+	MPI_Printf("The Snoopy code v1.0\n");
+	MPI_Printf("(c) 2004-2009 G. Lesur (University of Cambridge, UK)\n");
 	print_information();
 	MPI_Printf("Initializing...\n");
 	init_common();

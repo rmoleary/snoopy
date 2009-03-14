@@ -70,7 +70,7 @@ void check_interface(const struct Field fldi,
 			open_interface_io( &iostream );
 		
 			fprintf(iostream,"STATUS command called.\n");
-			fprintf(iostream,"t=%e, dt=%e, nloop=%d, nloop/sec=%f\n",t,dt,nloop, (get_c_time()-tstart)/nloop);
+			fprintf(iostream,"t=%e, dt=%e, nloop=%d, sec/loop=%f\n",t,dt,nloop, (get_c_time()-tstart)/nloop);
 		}
 		output_status( iostream );
 		if(rank==0) {
