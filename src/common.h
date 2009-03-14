@@ -81,6 +81,7 @@ double get_c_time(void);
 // Useful only if MPI is active. Can be called without though...
 void reduce(double *var, const int op);
 
+PRECISION randm_normal(void);
 PRECISION randm (void);
 
 void projector( PRECISION complex qx[],

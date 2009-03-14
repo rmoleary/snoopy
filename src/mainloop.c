@@ -519,7 +519,9 @@ void mainloop() {
 		
 		// Divergence cleaning
 		projector(fld.vx,fld.vy,fld.vz);
+#ifdef MHD
 		projector(fld.bx,fld.by,fld.bz);
+#endif
 				
 		output(t);
 	}

@@ -103,17 +103,29 @@ void init_flow() {
 	*/
 
 	if(rank==0) {
-	for( i = 0; i < 4; i++) {
-		for( j = 0; j < 4; j++) {
-			for( k = k0; k < 4; k++) {
-				fld.vx[ IDX3D ] = PER_AMPLITUDE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() );
-				fld.vy[ IDX3D ] = PER_AMPLITUDE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() );
-				fld.vz[ IDX3D ] = PER_AMPLITUDE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() );
+		for( i = 0; i < 4; i++) {
+			for( j = 0; j < 4; j++) {
+				for( k = k0; k < 4; k++) {
+					fld.vx[ IDX3D ] = PER_AMPLITUDE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() );
+					fld.vy[ IDX3D ] = PER_AMPLITUDE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() );
+					fld.vz[ IDX3D ] = PER_AMPLITUDE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() );
+				}
+			}
+	
+		}
+#ifdef MHD
+		for( i = 0; i < 4; i++) {
+			for( j = 0; j < 4; j++) {
+				for( k = k0; k < 4; k++) {
+					fld.bx[ IDX3D ] = PER_AMPLITUDE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() );
+					fld.by[ IDX3D ] = PER_AMPLITUDE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() );
+					fld.bz[ IDX3D ] = PER_AMPLITUDE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() );
+				}
 			}
 		}
-	}
-	fld.by[0] = BY0 * ((double) NTOTAL);
-	fld.bz[0] = BZ0 * ((double) NTOTAL);
+		fld.by[0] = BY0 * ((double) NTOTAL);
+		fld.bz[0] = BZ0 * ((double) NTOTAL);
+#endif
 	}
 
 // Init the mean fields.
@@ -126,8 +138,9 @@ void init_flow() {
 #endif	
 	
 	projector(fld.vx,fld.vy,fld.vz);
+#ifdef MHD
 	projector(fld.bx,fld.by,fld.bz);
-	
+#endif	
 	return;
 }
 	

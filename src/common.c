@@ -312,14 +312,30 @@ void finish_common(void) {
 	return;
 }
 
-
-PRECISION randm (void) {
+PRECISION randm(void) {
 	PRECISION result;
 	result = ( (PRECISION) rand() )/( (double) RAND_MAX );
 
 	return(result);
 }
 
+/**
+	 * Normal distribution
+	 * Algorithm by D.E. Knut, 1997, The Art of Computer Programmin, Addison-Wesley. 
+	 */
+	 
+PRECISION randm_normal(void) {
+	PRECISION v1, v2;
+	PRECISION rsq=1.0;
+	
+	while(rsq>=1. || rsq==0.0) {
+		v1=2.*randm()-1.0;
+		v2=2.*randm()-1.0;
+		rsq=v1*v1+v2*v2;
+	}
+	
+	return( v1*sqrt(-2.0 * log(rsq) / rsq));
+}
 
 void projector( PRECISION complex qx[],
 			    PRECISION complex qy[],

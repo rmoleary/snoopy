@@ -9,6 +9,42 @@
 #include "debug.h"
 #endif
 
+#ifdef FORCING
+/*************************************************
+** Forcing (if required) *************************
+**************************************************/
+void forcing(struct Field dfldo,
+			 struct Field fldi,
+			 PRECISION dt) {
+			 
+// Force random velocity field
+	const PRECISION kf = 2.0 * M_PI * 5.0;
+	const PRECISION deltakf = kf * 0.2;
+	const PRECISION amplitude_forcing = 10.0;
+	int found_k = 0;
+	int i;
+// Find a valid k vector
+	while(found_k==0) {
+		i = (int) (randm() * NTOTAL_COMPLEX);
+		if( (k2t[i]>(kf-deltakf)*(kf-deltakf)) && (k2t[i]<(kf+deltakf)*(kf+deltakf))) {
+			found_k=1;
+		}
+	}
+	
+// Init V vector
+	dfldo.vx[i] += amplitude_forcing * randm_normal() * NTOTAL * cexp( I * 2.0*M_PI*randm() ) * dt;
+	dfldo.vy[i] += amplitude_forcing * randm_normal() * NTOTAL * cexp( I * 2.0*M_PI*randm() ) * dt;
+	dfldo.vz[i] += amplitude_forcing * randm_normal() * NTOTAL * cexp( I * 2.0*M_PI*randm() ) * dt;
+	
+	return;
+}
+#endif
+
+
+/**************************************************
+*** Timestep, called by runge-kutta loop   ********
+***************************************************/
+
 void timestep( struct Field dfldo,
 			   struct Field fldi,
 			   const double t,
@@ -227,7 +263,10 @@ void timestep( struct Field dfldo,
 		dfldo.vy[i] += (- 2.0 * OMEGA) * fldi.vx[i];
 #endif
 	}
-			
+
+#ifdef FORCING
+	forcing(dfldo, fldi, dt);
+#endif
 			
 /************************************
 ** PRESSURE TERMS *******************
@@ -286,5 +325,7 @@ void implicitstep(
 	return;
 }
 	
-			   
+	
+
+
 			   
