@@ -140,7 +140,7 @@ export LDFLAGS
 
 all: data
 	@(cd src && $(MAKE))
-	cp src/Cflow .
+	cp src/snoopy .
 	@echo "***********************************************************"
 	@echo "Make has compiled for: " $(CLUSTER)
 ifeq ($(OPENMP),yes)
@@ -160,7 +160,7 @@ data:
 
 clean:
 	@(cd src && $(MAKE) $@)
-	rm Cflow
+	rm snoopy
 
 def:
 	@(cd src && $(MAKE) $@)

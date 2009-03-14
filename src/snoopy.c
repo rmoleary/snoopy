@@ -82,13 +82,21 @@ void print_information(void) {
 #else
 	MPI_Printf("No Boussinesq\n");
 #endif
+#ifdef MHD
+	MPI_Printf("\nMHD enabled\n");
+	MPI_Printf("BY0=\t\t%f\n",BY0);
+	MPI_Printf("BZ0=\t\t%f\n",BZ0);
+	MPI_Printf("Reynolds_m=\t%f\n",REYNOLDS_M);
+#else
+	MPI_Printf("\nNo MHD\n");
+#endif
 	MPI_Printf("\nOmega=\t\t%f\n",OMEGA);
 #ifdef SHEAR
 	MPI_Printf("Shear=\t\t%f\n",SHEAR);
 #else
 	MPI_Printf("No Shear\n");
 #endif
-	MPI_Printf("\n T_initial=\t%f\n",T_INITIAL);
+	MPI_Printf("\nT_initial=\t%f\n",T_INITIAL);
 	MPI_Printf("T_final=\t%f\n",T_FINAL);
 	MPI_Printf("Toutput_time=\t%f\n",TOUTPUT_TIME);
 	MPI_Printf("Toutput_flow=\t%f\n",TOUTPUT_FLOW);

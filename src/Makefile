@@ -1,9 +1,9 @@
-OBJ= error.o Cflow.o mainloop.o initflow.o timestep.o common.o output.o interface.o vtk_writer.o gfft.o transpose.o debug.o
+OBJ= error.o snoopy.o mainloop.o initflow.o timestep.o common.o output.o interface.o vtk_writer.o gfft.o transpose.o debug.o
 
 
-all: Cflow
+all: snoopy
 
-Cflow: $(OBJ)
+snoopy: $(OBJ)
 	$(CC) -o $@ $(CFLAGS) $(FFTPATH) $(LDFLAGS) $^
 
 %.o: %.c gvars.h
@@ -15,6 +15,6 @@ gvars.h:
 	cp def/gvars.h .
 
 clean:
-	rm -f *.o *.mod
+	rm -f *.o *.mod snoopy
 
 
