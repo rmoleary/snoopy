@@ -20,7 +20,7 @@ void forcing(struct Field dfldo,
 // Force random velocity field
 	const PRECISION kf = 2.0 * M_PI * 5.0;
 	const PRECISION deltakf = kf * 0.2;
-	const PRECISION amplitude_forcing = 10.0;
+	const PRECISION amplitude_forcing = 1.0;
 	int found_k = 0;
 	int i;
 // Find a valid k vector
@@ -32,9 +32,9 @@ void forcing(struct Field dfldo,
 	}
 	
 // Init V vector
-	dfldo.vx[i] += amplitude_forcing * randm_normal() * NTOTAL * cexp( I * 2.0*M_PI*randm() ) * dt;
-	dfldo.vy[i] += amplitude_forcing * randm_normal() * NTOTAL * cexp( I * 2.0*M_PI*randm() ) * dt;
-	dfldo.vz[i] += amplitude_forcing * randm_normal() * NTOTAL * cexp( I * 2.0*M_PI*randm() ) * dt;
+	dfldo.vx[i] += amplitude_forcing * randm_normal() * NTOTAL * cexp( I * 2.0*M_PI*randm() );
+	dfldo.vy[i] += amplitude_forcing * randm_normal() * NTOTAL * cexp( I * 2.0*M_PI*randm() );
+	dfldo.vz[i] += amplitude_forcing * randm_normal() * NTOTAL * cexp( I * 2.0*M_PI*randm() );
 	
 	return;
 }

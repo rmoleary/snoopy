@@ -28,42 +28,48 @@
 
 // Structures
 
-struct Field {
-	PRECISION complex *vx;
-	PRECISION complex *vy;
-	PRECISION complex *vz;
+/**\brief General structure for fields in snoopy. Holds all the information for the field at a given time*/
+struct Field {						
+	PRECISION complex *vx;			/**< X velocity */
+	PRECISION complex *vy;			/**< Y velocity */
+	PRECISION complex *vz;			/**< Z velocity */
 #ifdef BOUSSINESQ
-	PRECISION complex *th;
+	PRECISION complex *th;			/**< Entropy perturbations (when using boussinesq) */
 #endif
 #ifdef MHD
-	PRECISION complex *bx;
-	PRECISION complex *by;
-	PRECISION complex *bz;
+	PRECISION complex *bx;			/**< X magnetic field */
+	PRECISION complex *by;			/**< Y magnetic field */
+	PRECISION complex *bz;			/**< Z magnetic field */
 #endif
 };
 
 
 // This are global variables used throughout the code
 // Wave number pointers
-PRECISION	*kx,	*ky,	*kz,	*kxt,	*k2t,	*ik2t;
-PRECISION	kxmax,	kymax,  kzmax,	kmax;
+PRECISION	*kx;	/**< x Wavevector */
+PRECISION	*ky;	/**< y Wavevector */
+PRECISION	*kz;	/**< z Wavevector */
+PRECISION	*kxt;	/**< Time dependant x Wavevector. Different from kx only when SHEAR is present.*/
+PRECISION	*k2t;	/**<  k squared Wavevector, function of time when SHEAR is present.*/
+PRECISION	*ik2t;  /**< inverse of k2t Wavevector, function of time when SHEAR is present. set to 0 wheh k2t=0 to avoid singularity*/
+PRECISION	kxmax,	kymax,  kzmax,	kmax;	/**< Maximum wavevectors */
 
-fftw_plan	fft_1d_forward, fft_1d_backward;
+fftw_plan	fft_1d_forward, fft_1d_backward;	/**< 1D FFT transforms. Used by remap routines.*/
 
 // Mask for dealiasing
-PRECISION   *mask;
+PRECISION   *mask;	/**< Deasliasing Mask*/
 
-PRECISION	*wr1,	*wr2,	*wr3;
-PRECISION	*wr4,	*wr5,	*wr6;
-PRECISION	*wr7,	*wr8,	*wr9;
-PRECISION   *wr10;
+PRECISION	*wr1,	*wr2,	*wr3;		/**< Temporary real array (alias of complex w**) */
+PRECISION	*wr4,	*wr5,	*wr6;		/**< Temporary real array (alias of complex w**) */
+PRECISION	*wr7,	*wr8,	*wr9;		/**< Temporary real array (alias of complex w**) */
+PRECISION   *wr10;						/**< Temporary real array (alias of complex w**) */
 
 struct Field			fld;
 
-PRECISION complex		*w1,	*w2,	*w3;
-PRECISION complex		*w4,	*w5,	*w6;
-PRECISION complex		*w7,	*w8,	*w9;
-PRECISION complex		*w10;
+PRECISION complex		*w1,	*w2,	*w3;	/**< Temporary complex array (alias of real wr**) */
+PRECISION complex		*w4,	*w5,	*w6;	/**< Temporary complex array (alias of real wr**) */
+PRECISION complex		*w7,	*w8,	*w9;	/**< Temporary complex array (alias of real wr**) */
+PRECISION complex		*w10;					/**< Temporary complex array (alias of real wr**) */
 
 PRECISION complex		*w1d, *w2d;
 
@@ -78,6 +84,7 @@ PRECISION	eta;
 
 int		rank;
 
+/** Init all global variables, aligning them in memory */
 void init_common(void) {
 	/* This routine will initialize everything */
 	int i,j,k;
