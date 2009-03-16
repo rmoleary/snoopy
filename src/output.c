@@ -26,7 +26,7 @@ void remap_output(	PRECISION wri[],
 	complex PRECISION phase;
 	
 	
-	tvelocity = fmod(t, 2.0 * LX / (SHEAR * LY));
+	tvelocity = fmod(t, 2.0 * LY / (SHEAR * LX));
 	tremap = fmod(t + LY / (2.0 * SHEAR * LX) , LY / (SHEAR * LX)) - LY / (2.0 * SHEAR * LX);
 	
 	for( i = 0 ; i < NX / NPROC ; i++) {
@@ -39,7 +39,7 @@ void remap_output(	PRECISION wri[],
 			fftw_execute(fft_1d_forward);
 					
 			for( j = 0 ; j < NY ; j++) {
-			// advection
+			// advection phase = ky*
 				phase = (PRECISION complex) ((2.0 * M_PI) / LY * (fmod( j + (NY / 2) ,  NY ) - NY / 2 ) * 
 											( ((double) (i + rank * (NX/NPROC)) / (double) NX ) * tremap - tvelocity / 2.0 ) * LX );
 				wexp = cexp( I * phase);

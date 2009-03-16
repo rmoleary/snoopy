@@ -103,7 +103,7 @@ void init_flow() {
 	*/
 
 	if(rank==0) {
-		/*for( i = 0; i < 4; i++) {
+		for( i = 0; i < 4; i++) {
 			for( j = 0; j < 4; j++) {
 				for( k = k0; k < 4; k++) {
 					fld.vx[ IDX3D ] = PER_AMPLITUDE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() );
@@ -112,9 +112,9 @@ void init_flow() {
 				}
 			}
 	
-		}*/
+		}
 #ifdef MHD
-	/*
+	
 		for( i = 0; i < 4; i++) {
 			for( j = 0; j < 4; j++) {
 				for( k = k0; k < 4; k++) {
@@ -123,11 +123,7 @@ void init_flow() {
 					fld.bz[ IDX3D ] = PER_AMPLITUDE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() );
 				}
 			}
-		}*/
-		i=0;
-		j=0;
-		k=1;
-		fld.vx[IDX3D] = 0.1*((double) NTOTAL);
+		}
 		
 		fld.bx[0] = BX0 * ((double) NTOTAL);
 		fld.by[0] = BY0 * ((double) NTOTAL);
