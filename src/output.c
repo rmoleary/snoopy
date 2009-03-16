@@ -650,7 +650,7 @@ void output_timevar(const struct Field fldi,
 	if(rank==0) {
 		ht=fopen("timevar","a");
 		fprintf(ht,"%08e\t",t);
-		fprintf(ht,"%08e\t",energy_total);
+		fprintf(ht,"%08e\t%08e\t",energy_total,energy_mag);
 		fprintf(ht,"%08e\t%08e\t%08e\t%08e\t%08e\t%08e\t",vxmax,vxmin,vymax,vymin,vzmax,vzmin);
 		fprintf(ht,"%08e\t",reynolds_stress);
 		fprintf(ht,"%08e\t%08e\t%08e\t%08e\t%08e\t%08e\t",bxmax,bxmin,bymax,bymin,bzmax,bzmin);

@@ -84,6 +84,7 @@ void print_information(void) {
 #endif
 #ifdef MHD
 	MPI_Printf("\nMHD enabled\n");
+	MPI_Printf("BX0=\t\t%f\n",BX0);
 	MPI_Printf("BY0=\t\t%f\n",BY0);
 	MPI_Printf("BZ0=\t\t%f\n",BZ0);
 	MPI_Printf("Reynolds_m=\t%f\n",REYNOLDS_M);

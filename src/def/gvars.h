@@ -1,7 +1,7 @@
 
 #define		NX				128			/**< X Dimension in real space. Must be multiples of NPROC when using MPI.*/
 #define		NY				128			/**< Y Dimension in real space. Must be multiples of NPROC when using MPI.*/
-#define		NZ				64			/**< Z Dimension in real space. */
+#define		NZ				128			/**< Z Dimension in real space. */
 
 #define		NTHREADS		2			/**< Number of OpenMP Thread. Useful only if OpenMP is activated in the Makefile */
 
@@ -29,12 +29,13 @@
 //#define		WITH_SHEAR				/**< Uncomment to activate mean SHEAR */
 #define		SHEAR			1.0			/**< Shear rate */
 
+#define		BX0				1.0			/**< Mean magnetic field in the x direction */
 #define		BY0				0.0			/**< Mean magnetic field in the y direction */
-#define		BZ0				0.1			/**< Mean magnetic field in the z direction */
+#define		BZ0				0.0			/**< Mean magnetic field in the z direction */
 
 #define		PER_AMPLITUDE	1000.0		/**< Initial perturbation amplitude(arbitrary units) */
 
-#define		FORCING						/**< Uncomment to use internal forcing of the velocity field (see forcing in timestep.c) */
+//#define		FORCING						/**< Uncomment to use internal forcing of the velocity field (see forcing in timestep.c) */
 
 #define		T_INITIAL		0.0			/**< Initial time of the simulation */
 #define		T_FINAL			50.0		/**< Simulation will stop if it reaches this time */
