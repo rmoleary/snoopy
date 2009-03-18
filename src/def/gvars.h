@@ -1,7 +1,7 @@
 
-#define		NX				128			/**< X Dimension in real space. Must be multiples of NPROC when using MPI.*/
-#define		NY				128			/**< Y Dimension in real space. Must be multiples of NPROC when using MPI.*/
-#define		NZ				128			/**< Z Dimension in real space. */
+#define		NX				64			/**< X Dimension in real space. Must be multiples of NPROC when using MPI.*/
+#define		NY				64			/**< Y Dimension in real space. Must be multiples of NPROC when using MPI.*/
+#define		NZ				64			/**< Z Dimension in real space. */
 
 #define		NTHREADS		2			/**< Number of OpenMP Thread. Useful only if OpenMP is activated in the Makefile */
 
@@ -9,16 +9,16 @@
 #define		NPROC			1			/**< Number of MPI Process. Useful only if MPI is activated in the Makefile */
 #endif
 
-//#define MHD							/**< Uncomment to activate MHD*/
+#define MHD							/**< Uncomment to activate MHD*/
 
 #define		LX				1.0			/**< Box length in X*/
 #define		LY				1.0			/**< Box length in Y*/
 #define		LZ				1.0			/**< Box length in Z*/
 
 #define		CFL				1.5			/**< CFL safety factor. Should be smaller than sqrt(3) for RK3 to be stable.*/
-#define		REYNOLDS		1000.0		/**< Reynolds number (actully the inverse of the viscosity) */
-#define		REYNOLDS_TH		1000.0		/**< Thermal Reynolds number (actully the inverse of the thermal diffusivity)  Used only when Boussinesq is on*/
-#define		REYNOLDS_M		1000.0		/**< Magnetic Reynolds number (actully the inverse of the resistivity)  Used only when MHD is on*/
+#define		REYNOLDS		1600.0		/**< Reynolds number (actully the inverse of the viscosity) */
+#define		REYNOLDS_TH		1000000.0		/**< Thermal Reynolds number (actully the inverse of the thermal diffusivity)  Used only when Boussinesq is on*/
+#define		REYNOLDS_M		6400.0		/**< Magnetic Reynolds number (actully the inverse of the resistivity)  Used only when MHD is on*/
 
 //#define		BOUSSINESQ				/**< Uncomment to activate Boussinesq */
 #define		N2				(-1.0)		/**< Brunt Vaissala frequency squared */
@@ -26,23 +26,23 @@
 
 #define		OMEGA			(2.0/3.0)	/**< Vertical rotation rate (if Shear=1, Keplerian if found for (2.0/3.0) */
 
-//#define		WITH_SHEAR				/**< Uncomment to activate mean SHEAR */
+#define		WITH_SHEAR				/**< Uncomment to activate mean SHEAR */
 #define		SHEAR			1.0			/**< Shear rate */
 
-#define		BX0				1.0			/**< Mean magnetic field in the x direction */
+#define		BX0				0.0			/**< Mean magnetic field in the x direction */
 #define		BY0				0.0			/**< Mean magnetic field in the y direction */
 #define		BZ0				0.0			/**< Mean magnetic field in the z direction */
 
-#define		PER_AMPLITUDE	1000.0		/**< Initial perturbation amplitude(arbitrary units) */
+#define		PER_AMPLITUDE	10000.0		/**< Initial perturbation amplitude(arbitrary units) */
 
 //#define		FORCING						/**< Uncomment to use internal forcing of the velocity field (see forcing in timestep.c) */
 
 #define		T_INITIAL		0.0			/**< Initial time of the simulation */
-#define		T_FINAL			50.0		/**< Simulation will stop if it reaches this time */
+#define		T_FINAL			1.0		/**< Simulation will stop if it reaches this time */
 
-#define		TOUTPUT_TIME	0.1			/**< Time between two outputs in the timevar file */
-#define		TOUTPUT_FLOW	0.1			/**< Time between two snapshot outputs */
-#define		TOUTPUT_DUMP	1.0			/**< Time between two restart dump outputs (restart dump are erased) */
+#define		TOUTPUT_TIME	1.0			/**< Time between two outputs in the timevar file */
+#define		TOUTPUT_FLOW	2.0			/**< Time between two snapshot outputs */
+#define		TOUTPUT_DUMP	2.0			/**< Time between two restart dump outputs (restart dump are erased) */
 
 //#define		RESTART					/**< Uncomment to ask for a restart */
 

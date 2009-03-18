@@ -26,8 +26,7 @@ ifeq ($(MACHINE),Darwin)
 		CC=/usr/local/bin/gcc
 	endif
 	FFTPATH=-L/usr/local/lib
-	#FFTPATH=/Users/glesur/test/lib
-	CFLAGS=-O3 -Wall
+	CFLAGS=-O3 -Wall -ffast-math -fomit-frame-pointer
 	OPENMP_FLAG=-fopenmp
 ifeq ($(DEBUG),yes)
 	CFLAGS=-g -DDEBUG
