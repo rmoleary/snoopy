@@ -3,7 +3,6 @@
 #include "common.h"
 #include "timestep.h"
 #include "gfft.h"
-#include "vtk_writer.h"
 
 #define	OUTPUT_DUMP					"dump.dmp"			/**< Dump files filename. */
 #define	OUTPUT_DUMP_VERSION			04					/**< Version of the dump files read and written by this code. */
@@ -160,376 +159,180 @@ void write_snap(const PRECISION t, const char filename[], const PRECISION comple
 ** VTK For HD*************************************
 **************************************************/
 
+/* ****************************************************************************/
+/** Determines if the machine is little-endian.  If so, 
+    it will force the data to be big-endian. 
+	@param in_number floating point number to be converted in big endian */
+/* *************************************************************************** */
+
+float big_endian(float in_number)
+{
+    static int doneTest = 0;
+    static int shouldSwap = 0;
+	
+    if (!doneTest)
+    {
+        int tmp1 = 1;
+        unsigned char *tmp2 = (unsigned char *) &tmp1;
+        if (*tmp2 != 0)
+            shouldSwap = 1;
+        doneTest = 1;
+    }
+
+    if (shouldSwap)
+    {
+		unsigned char *bytes = (unsigned char*) &in_number;
+        unsigned char tmp = bytes[0];
+        bytes[0] = bytes[3];
+        bytes[3] = tmp;
+        tmp = bytes[1];
+        bytes[1] = bytes[2];
+        bytes[2] = tmp;
+    }
+	return(in_number);
+}
+
+/***********************************************************/
+/** 
+	Output a floating point big endian array from a complex array.
+	Use Forran output format (required by VTK). This routine is essentially
+	useful for VTK files (hence its name...).
+ 	
+	@param ht File handler in which the data has to be written
+	@param wi Complex array containing the field to be written. This array is transformed into real space
+	and remapped (if SHEAR is present) before being written.
+	@param t Current time of the simulation.
+	
+*/
+/***********************************************************/
+void write_vtk(FILE * ht, PRECISION complex wi[], const PRECISION t) {
+	// Write the data in the file handler *ht
+	int i,j,k;
+	float q0;
+
+#ifdef MPI_SUPPORT
+	PRECISION * chunk = NULL;
+	if(rank==0) {
+		chunk = (PRECISION *) malloc( NX * sizeof(PRECISION));
+		if (chunk == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for chunk allocation");
+	}
+#endif
+		
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		w1[i] = wi[i];
+	}
+	
+	gfft_c2r(w1);
+	
+	for( i = 0 ; i < 2 * NTOTAL_COMPLEX ; i++) {
+		wr1[i] = wr1[i] / ((double) NTOTAL );
+	}
+	
+#ifdef WITH_SHEAR
+	remap_output(wr1,t);
+#endif
+
+	for( k = 0 ; k < NZ; k++) {
+		for( j = 0; j < NY; j++) {
+#ifdef MPI_SUPPORT
+			// We have to transpose manually to be Fortran compliant
+			for(i = 0; i < NX/NPROC; i++) {
+				wr2[i] = wr1[k + j * (NZ + 2) + i * NY * (NZ + 2) ];   // Transfer the chunk of data to wr2
+			}
+			MPI_Gather(wr2, NX/NPROC, MPI_DOUBLE,
+					   chunk, NX/NPROC, MPI_DOUBLE, 0, MPI_COMM_WORLD); // Put the full chunk in chunk in the root process
+#endif			
+			for( i = 0; i < NX; i++) {
+#ifdef MPI_SUPPORT
+				if(rank==0) {
+					q0 = big_endian( (float) chunk[ i ] );
+					fwrite(&q0, sizeof(float), 1, ht);
+				}
+#else
+				q0 = big_endian( (float) wr1[k + j * (NZ + 2) + i * NY * (NZ + 2) ] );
+				fwrite(&q0, sizeof(float), 1, ht);
+#endif
+			}
+		}
+	}
+#ifdef MPI_SUPPORT	
+	if(rank==0) free(chunk);
+#endif
+	
+	return;
+}
+
+// Geo's personnal VTK writer, using structured data points	
 /***********************************************************/
 /** 
 	Output a legacy VTK file readable by Paraview. This routine
-	will output velocity fields and potential temperature (when
-	BOUSSINESQ is used) in files data/v****.vtk.
-    a separate routine do the same job for the magnetic field.
+	will output all the variables in files data/v****.vtk.
 	
 	@param n Number of the file in which the output will done.
 	@param t Current time of the simulation.
 */
 /***********************************************************/
-void output_vtk(const int n, const PRECISION t) {
-	int i,j,k, current_rank;
+
+void output_vtk(const int n, PRECISION t) {
+	FILE *ht = NULL;
 	char  filename[50];
-	char  varname1[10];
-	char  varname2[10];
-	char  varname3[10];
-	char  varname4[10];
+	int num_remain_field;
 	
-	char* varnames[4];
-	
-
-	float* vxf;
-	float* vyf;
-	float* vzf;
-	float* thf;
-	
-#ifdef MPI_SUPPORT
-    MPI_Status status;
-	
-	vxf = (float *) malloc( NTOTAL * sizeof(float));
-	vyf = (float *) malloc( NTOTAL * sizeof(float));
-	vzf = (float *) malloc( NTOTAL * sizeof(float));
-	
-	if (vxf == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for vxf allocation");
-	if (vyf == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for vyf allocation");
-	if (vzf == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for vzf allocation");
-	
-#ifdef BOUSSINESQ
-	thf = (float *) malloc( NTOTAL * sizeof(float));
-	if (thf == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for thf allocation");
-#else
-	thf = NULL;
-#endif
-	
-#else
-	vxf = (float *) wr1;
-	vyf = (float *) wr2;
-	vzf = (float *) wr3;
-	thf = (float *) wr4;
-#endif
-	
-	float xcoord[NX];
-	float ycoord[NY];
-	float zcoord[NZ];
-	
-	float* v[4];
-	int dims[3];
-	int vardims[4];
-	int centering[4];
-	
-	// Init arrays required by vtk writer
-	dims[0] = NX;
-	dims[1] = NY;
-	dims[2] = NZ;
-
-	// 
-	v[0] = vxf;
-	v[1] = vyf;
-	v[2] = vzf;
-	v[3] = thf;
-
-	vardims[0] = 1;
-	vardims[1] = 1;
-	vardims[2] = 1;
-	vardims[3] = 1;
-	
-	centering[0] = 1;
-	centering[1] = 1;
-	centering[2] = 1;
-	centering[3] = 1;
-
-	// Init varnames
-	sprintf(varname1,"vx");
-	sprintf(varname2,"vy");
-	sprintf(varname3,"vz");
-	sprintf(varname4,"theta");
-	
-	varnames[0] = varname1;
-	varnames[1] = varname2;
-	varnames[2] = varname3;
-	varnames[3] = varname4;
-	
-	// Init coordinate system
-	for( i = 0 ; i < NX ; i++) {
-		xcoord[i] = ((float) i) / ((float) NX) * LX - LX / 2.0;
-	}
-	for( i = 0 ; i < NY ; i++) {
-		ycoord[i] = ((float) i) / ((float) NY) * LY - LY / 2.0;
-	}
-	for( i = 0 ; i < NZ ; i++) {
-		zcoord[i] = ((float) i) / ((float) NZ) * LZ - LZ / 2.0;
-	}
-
-	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
-		w5[i] = fld.vx[i];
-		w6[i] = fld.vy[i];
-		w7[i] = fld.vz[i];
-#ifdef BOUSSINESQ
-		w8[i] = fld.th[i];
-#endif
-	}
-	gfft_c2r(w5);
-	gfft_c2r(w6);
-	gfft_c2r(w7);
-#ifdef BOUSSINESQ
-	gfft_c2r(w8);
-#endif
-
-	for( i = 0 ; i < 2*NTOTAL_COMPLEX ; i++) {
-		wr5[i] = wr5[i] / ((double) NTOTAL );
-		wr6[i] = wr6[i] / ((double) NTOTAL );
-		wr7[i] = wr7[i] / ((double) NTOTAL );
-#ifdef BOUSSINESQ
-		wr8[i] = wr8[i] / ((double) NTOTAL );
-#endif
-	}
-
-#ifdef WITH_SHEAR
-	remap_output(wr5,t);
-	remap_output(wr6,t);
-	remap_output(wr7,t);
-#ifdef BOUSSINESQ
-	remap_output(wr8,t);
-#endif
-#endif
-
-	// Put variables in the right format.
-	
+	sprintf(filename,"data/v%04i.vtk",n);
 	if(rank==0) {
-		for(current_rank=0 ; current_rank < NPROC ; current_rank++) {
-#ifdef MPI_SUPPORT
-			if(current_rank!=0) {
-				// Receive arrays...
-				MPI_Recv( wr5, NTOTAL_COMPLEX * 2, MPI_DOUBLE, current_rank, 1, MPI_COMM_WORLD, &status);
-				MPI_Recv( wr6, NTOTAL_COMPLEX * 2, MPI_DOUBLE, current_rank, 1, MPI_COMM_WORLD, &status);
-				MPI_Recv( wr7, NTOTAL_COMPLEX * 2, MPI_DOUBLE, current_rank, 1, MPI_COMM_WORLD, &status);
-#ifdef BOUSSINESQ
-				MPI_Recv( wr8, NTOTAL_COMPLEX * 2, MPI_DOUBLE, current_rank, 1, MPI_COMM_WORLD, &status);
-#endif
-			}
-#endif
-			for( i = 0; i < NX/NPROC; i++) {
-				for( j = 0; j < NY; j++) {
-					for( k = 0 ; k < NZ; k++) {
-						vxf[i + current_rank * NX / NPROC + j * NX + k * NX * NY] = (float) wr5[k + j * (NZ + 2) + i * (NZ + 2) * NY];
-						vyf[i + current_rank * NX / NPROC + j * NX + k * NX * NY] = (float) wr6[k + j * (NZ + 2) + i * (NZ + 2) * NY];
-						vzf[i + current_rank * NX / NPROC + j * NX + k * NX * NY] = (float) wr7[k + j * (NZ + 2) + i * (NZ + 2) * NY];
-#ifdef BOUSSINESQ
-						thf[i + current_rank * NX / NPROC + j * NX + k * NX * NY] = (float) wr8[k + j * (NZ + 2) + i * (NZ + 2) * NY];
-#endif
-					}
-				}
-			}
-			
-		} // End of loop on processes
-		
-		sprintf(filename,"data/v%04i.vtk",n);
+		ht=fopen(filename,"w");
+	
+		fprintf(ht, "# vtk DataFile Version 2.0\n");
+		fprintf(ht, "Created by the Snoopy Code\n");
+		fprintf(ht, "BINARY\n");
+		fprintf(ht, "DATASET STRUCTURED_POINTS\n");
+		fprintf(ht, "DIMENSIONS %d %d %d\n", NX, NY, NZ);
+		fprintf(ht, "ORIGIN %g %g %g\n", -LX/2.0, -LY/2.0, -LZ/2.0);
+		fprintf(ht, "SPACING %g %g %g\n", LX/NX, LY/NY, LZ/NZ);
+	
+		// Write the primary scalar (f***ing VTK legacy format...)
+		fprintf(ht, "POINT_DATA %d\n",NX*NY*NZ);
+		fprintf(ht, "SCALARS vx float\n");
+		fprintf(ht, "LOOKUP_TABLE default\n");
+	}
+	write_vtk(ht,fld.vx,t);
 
-		// Output everything
+	num_remain_field = 2;		// Number of remaining field to be written
+#ifdef MHD
+	num_remain_field += 3;
+#endif
 #ifdef BOUSSINESQ
-		write_rectilinear_mesh(filename, 1, dims, xcoord, ycoord, zcoord, 4, vardims, centering, (const char * const *) varnames, v);
-#else
-		write_rectilinear_mesh(filename, 1, dims, xcoord, ycoord, zcoord, 3, vardims, centering, (const char * const *) varnames, v);
-#endif
-#ifdef MPI_SUPPORT
-		MPI_Barrier(MPI_COMM_WORLD);
-#endif
-	}
-#ifdef MPI_SUPPORT
-	else {
-		MPI_Send( wr5, NTOTAL_COMPLEX * 2, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
-		MPI_Send( wr6, NTOTAL_COMPLEX * 2, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
-		MPI_Send( wr7, NTOTAL_COMPLEX * 2, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
-#ifdef BOUSSINESQ
-		MPI_Send( wr8, NTOTAL_COMPLEX * 2, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
-#endif
-		MPI_Barrier(MPI_COMM_WORLD);
-	}
+	num_remain_field += 1;
 #endif
 	
-#ifdef MPI_SUPPORT
-	free(vxf);
-	free(vyf);
-	free(vzf);
-#ifdef BOUSSINESQ
-	free(thf);
-#endif
-#endif
-		
-}
+	if(rank==0) fprintf(ht, "FIELD FieldData %d\n",num_remain_field);
+	
+	// Write all the remaining fields
+	
+	if(rank==0) fprintf(ht, "vy 1 %d float\n",NX*NY*NZ);
+	write_vtk(ht,fld.vy,t);
+	
+	if(rank==0) fprintf(ht, "vz 1 %d float\n",NX*NY*NZ);
+	write_vtk(ht,fld.vz,t);
 
 #ifdef MHD
-/*************************************************
-** VTK For MHD*************************************
-**************************************************/
+	if(rank==0) fprintf(ht, "bx 1 %d float\n",NX*NY*NZ);
+	write_vtk(ht,fld.bx,t);
 
-/***********************************************************/
-/** 
-	Output a legacy VTK file readable by Paraview. This routine
-	will output only the magnetic field in files data/b****.vtk
-    a separate routine is needed for b as a routine doing everything
-	would ask for too much memory at each call when using MPI.
-	
-	This is still not optimum though... (should be fixed in future versions)
-	
-	@param n Number of the file in which the output will done.
-	@param t Current time of the simulation
-*/
-/***********************************************************/
-void output_vtk_mhd(const int n, const PRECISION t) {
-	int i,j,k, current_rank;
-	char  filename[50];
-	char  varname1[10];
-	char  varname2[10];
-	char  varname3[10];
-	
-	char* varnames[3];
-	
+	if(rank==0) fprintf(ht, "by 1 %d float\n",NX*NY*NZ);
+	write_vtk(ht,fld.by,t);
 
-	float* bxf;
-	float* byf;
-	float* bzf;
-	
-#ifdef MPI_SUPPORT
-    MPI_Status status;
-	
-	bxf = (float *) malloc( NTOTAL * sizeof(float));
-	byf = (float *) malloc( NTOTAL * sizeof(float));
-	bzf = (float *) malloc( NTOTAL * sizeof(float));
-	
-	if (bxf == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for bxf allocation");
-	if (byf == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for byf allocation");
-	if (bzf == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for bzf allocation");
-		
-#else
-	bxf = (float *) wr1;
-	byf = (float *) wr2;
-	bzf = (float *) wr3;
+	if(rank==0) fprintf(ht, "bz 1 %d float\n",NX*NY*NZ);
+	write_vtk(ht,fld.bz,t);
 #endif
+#ifdef BOUSSINESQ
+	if(rank==0) fprintf(ht, "th 1 %d float\n",NX*NY*NZ);
+	write_vtk(ht,fld.th,t);
+#endif	  
+	if(rank==0) fclose(ht);
+	return;
 	
-	float xcoord[NX];
-	float ycoord[NY];
-	float zcoord[NZ];
-	
-	float* v[3];
-	int dims[3];
-	int vardims[3];
-	int centering[3];
-	
-	// Init arrays required by vtk writer
-	dims[0] = NX;
-	dims[1] = NY;
-	dims[2] = NZ;
-
-	// 
-	v[0] = bxf;
-	v[1] = byf;
-	v[2] = bzf;
-
-	vardims[0] = 1;
-	vardims[1] = 1;
-	vardims[2] = 1;
-	
-	centering[0] = 1;
-	centering[1] = 1;
-	centering[2] = 1;
-
-	// Init varnames
-	sprintf(varname1,"bx");
-	sprintf(varname2,"by");
-	sprintf(varname3,"bz");
-	
-	varnames[0] = varname1;
-	varnames[1] = varname2;
-	varnames[2] = varname3;
-	
-	// Init coordinate system
-	for( i = 0 ; i < NX ; i++) {
-		xcoord[i] = ((float) i) / ((float) NX) * LX - LX / 2.0;
-	}
-	for( i = 0 ; i < NY ; i++) {
-		ycoord[i] = ((float) i) / ((float) NY) * LY - LY / 2.0;
-	}
-	for( i = 0 ; i < NZ ; i++) {
-		zcoord[i] = ((float) i) / ((float) NZ) * LZ - LZ / 2.0;
-	}
-
-	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
-		w5[i] = fld.bx[i];
-		w6[i] = fld.by[i];
-		w7[i] = fld.bz[i];
-	}
-	gfft_c2r(w5);
-	gfft_c2r(w6);
-	gfft_c2r(w7);
-	
-	for( i = 0 ; i < 2*NTOTAL_COMPLEX ; i++) {
-		wr5[i] = wr5[i] / ((double) NTOTAL );
-		wr6[i] = wr6[i] / ((double) NTOTAL );
-		wr7[i] = wr7[i] / ((double) NTOTAL );
-	}
-
-#ifdef WITH_SHEAR
-	remap_output(wr5,t);
-	remap_output(wr6,t);
-	remap_output(wr7,t);
-#endif
-
-	// Put variables in the right format.
-	
-	if(rank==0) {
-		for(current_rank=0 ; current_rank < NPROC ; current_rank++) {
-#ifdef MPI_SUPPORT
-			if(current_rank!=0) {
-				// Receive arrays...
-				MPI_Recv( wr5, NTOTAL_COMPLEX * 2, MPI_DOUBLE, current_rank, 1, MPI_COMM_WORLD, &status);
-				MPI_Recv( wr6, NTOTAL_COMPLEX * 2, MPI_DOUBLE, current_rank, 1, MPI_COMM_WORLD, &status);
-				MPI_Recv( wr7, NTOTAL_COMPLEX * 2, MPI_DOUBLE, current_rank, 1, MPI_COMM_WORLD, &status);
-			}
-#endif
-			for( i = 0; i < NX/NPROC; i++) {
-				for( j = 0; j < NY; j++) {
-					for( k = 0 ; k < NZ; k++) {
-						bxf[i + current_rank * NX / NPROC + j * NX + k * NX * NY] = (float) wr5[k + j * (NZ + 2) + i * (NZ + 2) * NY];
-						byf[i + current_rank * NX / NPROC + j * NX + k * NX * NY] = (float) wr6[k + j * (NZ + 2) + i * (NZ + 2) * NY];
-						bzf[i + current_rank * NX / NPROC + j * NX + k * NX * NY] = (float) wr7[k + j * (NZ + 2) + i * (NZ + 2) * NY];
-					}
-				}
-			}
-			
-		} // End of loop on processes
-		
-		sprintf(filename,"data/b%04i.vtk",n);
-
-		// Output everything
-
-		write_rectilinear_mesh(filename, 1, dims, xcoord, ycoord, zcoord, 3, vardims, centering, (const char * const *) varnames, v);
-#ifdef MPI_SUPPORT
-		MPI_Barrier(MPI_COMM_WORLD);
-#endif
-	}
-#ifdef MPI_SUPPORT
-	else {
-		MPI_Send( wr5, NTOTAL_COMPLEX * 2, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
-		MPI_Send( wr6, NTOTAL_COMPLEX * 2, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
-		MPI_Send( wr7, NTOTAL_COMPLEX * 2, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
-		MPI_Barrier(MPI_COMM_WORLD);
-	}
-#endif
-	
-#ifdef MPI_SUPPORT
-	free(bxf);
-	free(byf);
-	free(bzf);
-#endif
-		
 }
-
-#endif
 #endif
 	
 /***********************************************************/
@@ -1045,9 +848,6 @@ void output(const PRECISION t) {
 	if( (t-lastoutput_flow)>=TOUTPUT_FLOW) {
 #ifdef VTK_OUTPUT
 		output_vtk(noutput_flow,t);
-#ifdef MHD
-		output_vtk_mhd(noutput_flow,t);
-#endif
 #else
 		output_flow(noutput_flow,t);
 #endif
@@ -1088,9 +888,6 @@ void output_immediate(const PRECISION t) {
 	output_timevar(fld,t);
 #ifdef VTK_OUTPUT
 	output_vtk(noutput_flow,t);
-#ifdef MHD
-	output_vtk_mhd(noutput_flow,t);
-#endif
 #else
 	output_flow(noutput_flow,t);
 #endif

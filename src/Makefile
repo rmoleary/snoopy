@@ -1,4 +1,4 @@
-OBJ= error.o snoopy.o mainloop.o initflow.o timestep.o common.o output.o interface.o vtk_writer.o gfft.o transpose.o debug.o
+OBJ= error.o snoopy.o mainloop.o initflow.o timestep.o common.o output.o interface.o gfft.o transpose.o debug.o
 
 
 all: snoopy

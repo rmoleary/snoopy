@@ -1,6 +1,6 @@
 OPENMP=no
 MPI=yes
-FFTW3_MPI=yes
+FFTW3_MPI=no
 DEBUG=no
 
 MACHINE= $(shell uname -s)

@@ -187,7 +187,7 @@ void init_flow() {
 	}
 		
 // Init the spatial structure
-	init_spatial_structure();	
+//	init_spatial_structure();	
 		
 	if(rank==0) k0=1;
 	else k0=0;
