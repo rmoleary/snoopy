@@ -24,8 +24,9 @@ void error_h (const int ErrorType,
 	
 	if(ErrorType == ERROR_CRITICAL) {
 		MPI_Printf("\n Terminating.\n");
+		MPI_Printf("*************************************************\n");
 #ifdef MPI_SUPPORT
-		MPI_Finalize();
+		MPI_Abort(MPI_COMM_WORLD,1);
 #endif
 		exit(1);
 	}

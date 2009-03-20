@@ -5,16 +5,27 @@
 #include "gfft.h"
 #include "vtk_writer.h"
 
-#define OUTPUT_SPECTRUM_N_BIN		64
-#define	OUTPUT_SPECTRUM_FILENAME	"spectrum.dat"
+#define	OUTPUT_DUMP					"dump.dmp"			/**< Dump files filename. */
+#define	OUTPUT_DUMP_VERSION			04					/**< Version of the dump files read and written by this code. */
 
-#define	OUTPUT_DUMP					"dump.dmp"
-#define	OUTPUT_DUMP_VERSION			03
+#define	DUMP_MARKER					1981				/**< Marker used to signify the end of a dump file (it is also an excellent year...).*/
 
-#define	DUMP_MARKER					1981
+int noutput_flow;										/**< Next snapshot output number */
+PRECISION lastoutput_time;								/**< Time when the last timevar output was done */
+PRECISION lastoutput_flow;								/**< Time when the las snapshot output was done */
+PRECISION lastoutput_dump;								/**< Time when the last dump output was done */
 
-int noutput_flow;
-PRECISION lastoutput_time, lastoutput_flow, lastoutput_spectrum, lastoutput_dump;
+/***********************************************************/
+/** 
+	Remap a real field from the current sheared frame to the classical 
+	cartesian frame. It could be more optimized, but since it is used
+	in an output routine, I don't think such an optimization is worth doing.
+	
+	@param wri Real array to be remapped. The remapped array will be stored here.
+	@param t Current time of the simulation (used to compute what the sheared frame is).
+	
+*/
+/***********************************************************/
 
 void remap_output(	PRECISION wri[], 
 					const PRECISION t) {
@@ -56,7 +67,25 @@ void remap_output(	PRECISION wri[],
 	}
 	return;
 }
-		
+
+/***********************************************************/
+/** 
+	Output a plain binary file (.raw file) from a complex array.
+	The option FORTRAN_OUTPUT_ORDER can be used to emulate the output
+	from a fortran code (row major order).
+	This routine (contrarily to vtk routines) don't need extra memory
+	for outputs. It should therefore been considered when memory is an issue
+	for large resolution runs.
+	
+	@param t Current time of the simulation
+	@param filename Filename of the output file
+	@param wi Complex array containing the field to be written. This array is transformed into real space
+	and remapped (if SHEAR is present) before being written
+	
+	\bug the FORTRAN_OUTPUT_ORDER option doesn't work when MPI is used
+	
+*/
+/***********************************************************/
 void write_snap(const PRECISION t, const char filename[], const PRECISION complex wi[]) {
 	// Write the complex field wi[] in file filename. We need t for the remap thing.
 	FILE *ht;
@@ -131,6 +160,17 @@ void write_snap(const PRECISION t, const char filename[], const PRECISION comple
 ** VTK For HD*************************************
 **************************************************/
 
+/***********************************************************/
+/** 
+	Output a legacy VTK file readable by Paraview. This routine
+	will output velocity fields and potential temperature (when
+	BOUSSINESQ is used) in files data/v****.vtk.
+    a separate routine do the same job for the magnetic field.
+	
+	@param n Number of the file in which the output will done.
+	@param t Current time of the simulation.
+*/
+/***********************************************************/
 void output_vtk(const int n, const PRECISION t) {
 	int i,j,k, current_rank;
 	char  filename[50];
@@ -161,6 +201,8 @@ void output_vtk(const int n, const PRECISION t) {
 #ifdef BOUSSINESQ
 	thf = (float *) malloc( NTOTAL * sizeof(float));
 	if (thf == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for thf allocation");
+#else
+	thf = NULL;
 #endif
 	
 #else
@@ -324,9 +366,20 @@ void output_vtk(const int n, const PRECISION t) {
 /*************************************************
 ** VTK For MHD*************************************
 **************************************************/
-/* We're using a separate routine as putting everything in one file would require
-to much temporary memory when using MPI. That should however be fixed in future versions.*/
 
+/***********************************************************/
+/** 
+	Output a legacy VTK file readable by Paraview. This routine
+	will output only the magnetic field in files data/b****.vtk
+    a separate routine is needed for b as a routine doing everything
+	would ask for too much memory at each call when using MPI.
+	
+	This is still not optimum though... (should be fixed in future versions)
+	
+	@param n Number of the file in which the output will done.
+	@param t Current time of the simulation
+*/
+/***********************************************************/
 void output_vtk_mhd(const int n, const PRECISION t) {
 	int i,j,k, current_rank;
 	char  filename[50];
@@ -479,7 +532,15 @@ void output_vtk_mhd(const int n, const PRECISION t) {
 #endif
 #endif
 	
-	
+/***********************************************************/
+/** 
+	Output plain binary snaphsost (raw files) readable by any
+	descent software. This routine calls the relevant
+	write subroutine for each field.
+	@param n Number of the file in which the output will done.
+	@param t Current time of the simulation
+*/
+/***********************************************************/
 	
 void output_flow(const int n, const PRECISION t) {
 	
@@ -511,6 +572,15 @@ void output_flow(const int n, const PRECISION t) {
 #endif
 	return;
 }
+
+/***********************************************************/
+/** 
+	Write statistical quantities using text format in the file
+	timevar. 
+	@param fldi Field structure from which the statistical quantities are derived.
+	@param t Current time of the simulation
+*/
+/***********************************************************/
 
 void output_timevar(const struct Field fldi,
 					const PRECISION t) {
@@ -671,6 +741,13 @@ void output_timevar(const struct Field fldi,
 ** Restart DUMP I/O routines ******************************
 ***********************************************************/
 
+/***********************************************************/
+/** 
+	write a field information to a restart dump file, taking care of the MPI reduction
+	@param handler handler to an already opened restart dump filed
+	@param fldwrite Field structure pointing to the field needed to be saved
+*/
+/***********************************************************/
 void write_field(FILE *handler, PRECISION complex *fldwrite) {
 #ifdef MPI_SUPPORT
 	MPI_Status status;
@@ -707,6 +784,13 @@ void write_field(FILE *handler, PRECISION complex *fldwrite) {
 	return;
 }
 
+/**************************************************************************************/
+/** 
+	read a field information from a restart dump file, taking care of the MPI broadcast
+	@param handler handler to an already opened restart dump filed
+	@param fldread Field structure in which the restart information will be stored
+*/
+/**************************************************************************************/
 	
 void read_field(FILE *handler, PRECISION complex *fldread) {
 #ifdef MPI_SUPPORT
@@ -745,7 +829,13 @@ void read_field(FILE *handler, PRECISION complex *fldread) {
 	return;
 }
 
-
+/**************************************************************************************/
+/** 
+	write a full restart dump
+	@param fldi Field structure pointing to the field needed to be savec
+	@param t current time of the simulation (will be stored in the dump file)
+*/
+/**************************************************************************************/
 void output_dump( const struct Field fldi,
 				  const PRECISION t) {	
 				  
@@ -808,7 +898,6 @@ void output_dump( const struct Field fldi,
 		fwrite(&noutput_flow		, sizeof(int)			   , 1             , ht);
 		fwrite(&lastoutput_time 	, sizeof(PRECISION)		   , 1			   , ht);
 		fwrite(&lastoutput_flow 	, sizeof(PRECISION)		   , 1			   , ht);
-		fwrite(&lastoutput_spectrum	, sizeof(PRECISION)		   , 1			   , ht);
 		fwrite(&lastoutput_dump 	, sizeof(PRECISION)		   , 1			   , ht);
 	
 // Any extra information should be put here.	
@@ -821,6 +910,13 @@ void output_dump( const struct Field fldi,
 	return;
 }
 
+/**************************************************************************************/
+/** 
+	read a full restart dump
+	@param fldo Field structure in which the restart dump will be stored.
+	@param t time of the simulation, overwritten by this with the dump information.
+*/
+/**************************************************************************************/
 void read_dump(   struct Field fldo,
 				  PRECISION *t) {	
 				  
@@ -847,12 +943,11 @@ void read_dump(   struct Field fldo,
 		if(size_z != NZ) ERROR_HANDLER( ERROR_CRITICAL, "Incorrect Y grid size in dump file.");
 		
 		fread(&included_field, sizeof(int), 1, ht);
-#ifdef MPI_SUPPORT
-		MPI_Bcast( &included_field,		1, MPI_INT,		0, MPI_COMM_WORLD);
-#endif
-	
 	}
-	
+#ifdef MPI_SUPPORT
+	MPI_Bcast( &included_field,		1, MPI_INT,		0, MPI_COMM_WORLD);
+#endif
+
 	MPI_Printf("Reading velocity field\n");
 	read_field(ht, fldo.vx);
 	read_field(ht, fldo.vy);
@@ -891,7 +986,6 @@ void read_dump(   struct Field fldo,
 		fread(&noutput_flow			, sizeof(int)			   , 1             , ht);
 		fread(&lastoutput_time		, sizeof(PRECISION)		   , 1			   , ht);
 		fread(&lastoutput_flow		, sizeof(PRECISION)		   , 1			   , ht);
-		fread(&lastoutput_spectrum	, sizeof(PRECISION)		   , 1			   , ht);
 		fread(&lastoutput_dump		, sizeof(PRECISION)		   , 1			   , ht);
 	
 		fread(&marker , sizeof(int)			   , 1, ht);
@@ -906,7 +1000,6 @@ void read_dump(   struct Field fldo,
 	MPI_Bcast( &noutput_flow,		1, MPI_INT,		0, MPI_COMM_WORLD);
 	MPI_Bcast( &lastoutput_time,	1, MPI_DOUBLE,	0, MPI_COMM_WORLD);
 	MPI_Bcast( &lastoutput_flow,	1, MPI_DOUBLE,	0, MPI_COMM_WORLD);
-	MPI_Bcast(&lastoutput_spectrum,	1, MPI_DOUBLE,	0, MPI_COMM_WORLD);
 	MPI_Bcast( &lastoutput_dump,	1, MPI_DOUBLE,	0, MPI_COMM_WORLD);
 #endif
 	
@@ -917,6 +1010,11 @@ void read_dump(   struct Field fldo,
 /*********************************************************
 *** General routine, callable from outside ***************
 **********************************************************/
+/**************************************************************************************/
+/** 
+	Initialize the output variables. Should be called only in the begining .
+*/
+/**************************************************************************************/
 
 void init_output() {
 #ifndef RESTART
@@ -928,6 +1026,14 @@ void init_output() {
 #endif
 	return;
 }
+
+/**************************************************************************************/
+/** 
+	Check if an output (timevar, snapshot or dump) is required at t. If yes, call the 
+	relevant routines.
+	@param t Current time in the simulation
+*/
+/**************************************************************************************/
 
 void output(const PRECISION t) {
 	// Very rough output function
@@ -956,11 +1062,25 @@ void output(const PRECISION t) {
 	return;
 }
 
+/**************************************************************************************/
+/** 
+	Show the current status of the output routine.
+	@param iostream Handler of the file in which the status is written.
+*/
+/**************************************************************************************/
 void output_status(FILE * iostream) {
 	if(rank==0)
 		fprintf(iostream,"Next output in file n %d, at t=%e\n",noutput_flow, lastoutput_flow+TOUTPUT_FLOW);
 	return;
 }
+
+/**************************************************************************************/
+/** 
+	Immediatly output a timevar, snapshot and dump, regardless of the output
+	parameters.
+	@param t Current time of the simulation.
+*/
+/**************************************************************************************/
 
 void output_immediate(const PRECISION t) {
 	// Very rough output function
@@ -979,11 +1099,23 @@ void output_immediate(const PRECISION t) {
 	return;
 }
 
+/**************************************************************************************/
+/** 
+	Immediatly output a dump file, regardless of the output
+	parameters.
+	@param t Current time of the simulation.
+*/
+/**************************************************************************************/
+
 void dump_immediate(const PRECISION t) {
 	output_dump(fld,t);
 	return;
 }
-
+/**************************************************************************************/
+/** 
+	Remove the timevar file (if exists) to start from a fresh one.
+*/
+/**************************************************************************************/
 void clear_timevar() {
 	FILE* ht;
 	if(rank==0) {
