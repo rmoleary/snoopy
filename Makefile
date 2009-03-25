@@ -1,11 +1,18 @@
+# This is the default configuration
+# Modifications should be made in config.mk file
+
 OPENMP=no
-MPI=yes
+MPI=no
 FFTW3_MPI=no
 DEBUG=no
 
+-include config.mk
+
 MACHINE= $(shell uname -s)
 HOSTNAME= $(shell hostname)
-DOMAINNAME= $(shell dnsdomainname)
+ifeq ($(MACHINE),Linux)
+	DOMAINNAME= $(shell dnsdomainname)
+endif
 
 #######################################################
 ## Machine dependant variables
@@ -26,7 +33,7 @@ ifeq ($(MACHINE),Darwin)
 		CC=/usr/local/bin/gcc
 	endif
 	FFTPATH=-L/usr/local/lib
-	CFLAGS=-O3 -Wall -ffast-math -fomit-frame-pointer
+	CFLAGS=-O3 -ffast-math -fomit-frame-pointer
 	OPENMP_FLAG=-fopenmp
 ifeq ($(DEBUG),yes)
 	CFLAGS=-g -DDEBUG
@@ -161,11 +168,17 @@ clean:
 	@(cd src && $(MAKE) $@)
 	rm snoopy
 
-def:
+fullclean:
+	@(cd src && $(MAKE) $@)
+	rm -rf snoopy config.mk timevar data dump.dmp
+
+config: config.mk
 	@(cd src && $(MAKE) $@)
 	@echo "***********************************************************"
-	@echo "Configuration files Initialized succesfully"
-	@echo "Please edit src/gvars.h"
+	@echo "Default Configuration files Initialized succesfully"
+	@echo "Please edit src/gvars.h and ./config.mk"
 	@echo "***********************************************************"
 
-
+config.mk:
+	cp src/def/config.mk .
+	

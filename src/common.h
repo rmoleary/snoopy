@@ -38,8 +38,6 @@ struct Field {
 extern PRECISION	*kx,	*ky,	*kz,	*kxt,	*k2t,	*ik2t;
 extern PRECISION	kxmax,	kymax,  kzmax,	kmax;
 
-extern fftw_plan	fft_1d_forward, fft_1d_backward;
-
 
 // Mask for dealiasing
 extern PRECISION   *mask;
@@ -54,9 +52,6 @@ extern struct Field				fld;
 extern PRECISION complex		*w1,	*w2,	*w3;
 extern PRECISION complex		*w4,	*w5,	*w6;
 extern PRECISION complex		*w7,	*w8,	*w9;
-extern PRECISION complex		*w10;
-
-extern PRECISION complex		*w1d, *w2d;
 
 // Physics variables 
 extern PRECISION	nu;

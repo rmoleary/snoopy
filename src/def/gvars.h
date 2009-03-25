@@ -29,10 +29,6 @@
 #define		WITH_SHEAR				/**< Uncomment to activate mean SHEAR */
 #define		SHEAR			1.0			/**< Shear rate */
 
-#define		BX0				0.0			/**< Mean magnetic field in the x direction */
-#define		BY0				0.0			/**< Mean magnetic field in the y direction */
-#define		BZ0				0.0			/**< Mean magnetic field in the z direction */
-
 #define		PER_AMPLITUDE	10000.0		/**< Initial perturbation amplitude(arbitrary units) */
 
 //#define		FORCING						/**< Uncomment to use internal forcing of the velocity field (see forcing in timestep.c) */
@@ -55,6 +51,27 @@
 #define ANTIALIASING					/**< 2/3 Antialisaing rule. Could be removed if you assume is unimportant (untested feature). */
 
 #define		FFT_PLANNING	FFTW_MEASURE  /**< can be either FFTW_ESTIMATE, FFTW_MEASURE, FFTW_PATIENT or FFTW_EXHAUSTIVE (see fftw3 doc). Measure leads to longer initialisation of fft routines */
+
+/**********************************************************************
+******* Initial Conditions ********************************************
+***********************************************************************/
+
+#define		INIT_VORTEX							/**< Add a 2D Kida vortex in the box. Assumes S=1. Requires b>a*/
+#define		VORTEX_A					0.1		/**< x dimension of the vortex */
+#define		VORTEX_B					0.3		/**< y dimension of the vortex */
+
+#define		INIT_SPATIAL_STRUCTURE				/**< Init a user-defined spatial structure */
+	
+#define		INIT_LARGE_SCALE_NOISE				/**< Init a large scale random noise (4 largest modes) */
+#define		PER_AMPLITUDE_LARGE			1000.0	/**< Amplitude of the large scale random noise */
+
+#define		INIT_WHITE_NOISE					/**< Init a random white noise on all the modes */
+#define		PER_AMPLITUDE_NOISE			1.0		/**< total amplitude of the perturbation */
+
+#define		INIT_MEAN_FIELD						/**< Force the mean magnetic field to a given value. */
+#define		BX0							0.0		/**< Mean magnetic field in the x direction */
+#define		BY0							0.0		/**< Mean magnetic field in the y direction */
+#define		BZ0							0.0		/**< Mean magnetic field in the z direction */
 
 /***********************************************************************
 *** Ordinary users should not modified anything below this point *******

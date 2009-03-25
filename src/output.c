@@ -14,6 +14,14 @@ PRECISION lastoutput_time;								/**< Time when the last timevar output was don
 PRECISION lastoutput_flow;								/**< Time when the las snapshot output was done */
 PRECISION lastoutput_dump;								/**< Time when the last dump output was done */
 
+#ifdef WITH_SHEAR
+PRECISION complex		*w1d, *w2d;						/** 1D arrays used by the remap methods */
+
+fftw_plan	fft_1d_forward;								/**< 1D FFT transforms. Used by remap routines.*/
+fftw_plan	fft_1d_backward;							/**< 1D FFT transforms. Used by remap routines.*/
+#endif
+
+#ifdef WITH_SHEAR
 /***********************************************************/
 /** 
 	Remap a real field from the current sheared frame to the classical 
@@ -66,6 +74,8 @@ void remap_output(	PRECISION wri[],
 	}
 	return;
 }
+#endif
+
 
 /***********************************************************/
 /** 
@@ -820,6 +830,30 @@ void read_dump(   struct Field fldo,
 /**************************************************************************************/
 
 void init_output() {
+
+#ifdef WITH_SHEAR
+// Initialize 1D arrays for remaps
+	w1d = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NY);
+	if (w1d == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w1d allocation");
+	
+	w2d = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NY);
+	if (w2d == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w2d allocation");
+
+// FFT plans (we use dummy arrays since we use the "guru" interface of fft3 in the code)
+// The in place/ out of place will be set automatically at this stage
+
+#ifdef OPENMP_SUPPORT	
+	fftw_plan_with_nthreads( 1 );
+#endif
+
+	fft_1d_forward = fftw_plan_dft_1d(NY, w1d, w2d, FFTW_FORWARD, FFT_PLANNING);
+	if (fft_1d_forward == NULL) ERROR_HANDLER( ERROR_CRITICAL, "FFTW 1D forward plan creation failed");
+	
+	fft_1d_backward = fftw_plan_dft_1d(NY, w2d, w1d, FFTW_BACKWARD, FFT_PLANNING);
+	if (fft_1d_backward == NULL) ERROR_HANDLER( ERROR_CRITICAL, "FFTW 1D backward plan creation failed");
+#endif	
+
+	
 #ifndef RESTART
 	noutput_flow=0;
 	lastoutput_time = T_INITIAL - TOUTPUT_TIME;

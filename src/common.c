@@ -54,24 +54,20 @@ PRECISION	*k2t;	/**<  k squared Wavevector, function of time when SHEAR is prese
 PRECISION	*ik2t;  /**< inverse of k2t Wavevector, function of time when SHEAR is present. set to 0 wheh k2t=0 to avoid singularity*/
 PRECISION	kxmax,	kymax,  kzmax,	kmax;	/**< Maximum wavevectors */
 
-fftw_plan	fft_1d_forward, fft_1d_backward;	/**< 1D FFT transforms. Used by remap routines.*/
 
 // Mask for dealiasing
 PRECISION   *mask;	/**< Deasliasing Mask*/
 
-PRECISION	*wr1,	*wr2,	*wr3;		/**< Temporary real array (alias of complex w**) */
-PRECISION	*wr4,	*wr5,	*wr6;		/**< Temporary real array (alias of complex w**) */
-PRECISION	*wr7,	*wr8,	*wr9;		/**< Temporary real array (alias of complex w**) */
-PRECISION   *wr10;						/**< Temporary real array (alias of complex w**) */
+PRECISION	*wr1,	*wr2,	*wr3;		/** Temporary real array (alias of complex w**) */
+PRECISION	*wr4,	*wr5,	*wr6;		/** Temporary real array (alias of complex w**) */
+PRECISION	*wr7,	*wr8,	*wr9;		/** Temporary real array (alias of complex w**) */
 
 struct Field			fld;
 
 PRECISION complex		*w1,	*w2,	*w3;	/**< Temporary complex array (alias of real wr**) */
 PRECISION complex		*w4,	*w5,	*w6;	/**< Temporary complex array (alias of real wr**) */
 PRECISION complex		*w7,	*w8,	*w9;	/**< Temporary complex array (alias of real wr**) */
-PRECISION complex		*w10;					/**< Temporary complex array (alias of real wr**) */
 
-PRECISION complex		*w1d, *w2d;
 
 // Physics variables 
 PRECISION	nu;
@@ -241,9 +237,6 @@ void init_common(void) {
 	w9 = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
 	if (w9 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w9 allocation");
 	
-	w10 = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
-	if (w10 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w10 allocation");
-	
 	/* Will use the same memory space for real and complex fields */
 	
 	wr1 = (PRECISION *) w1;
@@ -255,27 +248,7 @@ void init_common(void) {
 	wr7 = (PRECISION *) w7;
 	wr8 = (PRECISION *) w8;
 	wr9 = (PRECISION *) w9;
-	wr10 = (PRECISION *) w10;
 
-// 1D arrays
-	w1d = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NY);
-	if (w1d == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w1d allocation");
-	
-	w2d = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NY);
-	if (w2d == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w2d allocation");
-
-// FFT plans (we use dummy arrays since we use the "guru" interface of fft3 in the code)
-// The in place/ out of place will be set automatically at this stage
-
-#ifdef OPENMP_SUPPORT	
-	fftw_plan_with_nthreads( 1 );
-#endif
-
-	fft_1d_forward = fftw_plan_dft_1d(NY, w1d, w2d, FFTW_FORWARD, FFT_PLANNING);
-	if (fft_1d_forward == NULL) ERROR_HANDLER( ERROR_CRITICAL, "FFTW 1D forward plan creation failed");
-	
-	fft_1d_backward = fftw_plan_dft_1d(NY, w2d, w1d, FFTW_BACKWARD, FFT_PLANNING);
-	if (fft_1d_backward == NULL) ERROR_HANDLER( ERROR_CRITICAL, "FFTW 1D backward plan creation failed");
 	
 // Physic initialisation
 
@@ -314,22 +287,37 @@ void finish_common(void) {
 	free(w7);
 	free(w8);
 	free(w9);
-	free(w10);
 
 	return;
 }
-
+/*********************************************/
+/**
+Customized random number generator
+Allow one to have consistant random numbers
+generators on different architectures.
+**/
+/*********************************************/
 PRECISION randm(void) {
-	PRECISION result;
-	result = ( (PRECISION) rand() )/( (double) RAND_MAX );
-
-	return(result);
+	const int a	=	16807;
+	const int m =	2147483647;
+	static int in0 = 13762;
+	int q;
+	
+	// When using mpi, this allows us to have different number series in each process...
+	if(in0 == 13762) in0 += 2543 * rank;
+	
+	/* find random number  */
+	q= (int) fmod((double) a * in0, m);
+	in0=q;
+	
+	return((PRECISION)q/(PRECISION)m);
 }
-
+/*********************************************/
 /**
 	 * Normal distribution
 	 * Algorithm by D.E. Knut, 1997, The Art of Computer Programmin, Addison-Wesley. 
 	 */
+/*********************************************/
 	 
 PRECISION randm_normal(void) {
 	PRECISION v1, v2;
@@ -359,9 +347,12 @@ void projector( PRECISION complex qx[],
 	return;
 }
 
-
-// Compute the energy of a given field.
-// gives the energy in the current process...
+/*********************************************/
+/** Compute the energy of a given field.
+	@parameter q complex array containing the field for which
+				  we want the total energy
+*/
+/*********************************************/
 
 PRECISION energy(const PRECISION complex q[]) {
 	
@@ -385,7 +376,13 @@ PRECISION energy(const PRECISION complex q[]) {
 //	energ_tot = 0;
 	return(energ_tot);
 }
-	
+
+/********************************************/
+/**
+Return the localtime in seconds. Use different
+implementation depending on the avaiable
+libraries  **/
+/********************************************/
 double get_c_time(void) {
 #ifdef MPI_SUPPORT
 	// We have MPI

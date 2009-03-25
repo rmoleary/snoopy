@@ -9,12 +9,13 @@ snoopy: $(OBJ)
 %.o: %.c gvars.h
 	$(CC) -o $@ $< $(CFLAGS) -c
 	
-def: gvars.h
+config: gvars.h
 
 gvars.h:
 	cp def/gvars.h .
 
 clean:
-	rm -f *.o *.mod snoopy
+	rm -f *.o snoopy
 
-
+fullclean:
+	rm -f *.o snoopy gvars.h

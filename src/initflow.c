@@ -8,7 +8,7 @@
 
 /** Allow one to init a structure in real space using ordinary defined x,y,z coordinates */
 
-void init_spatial_structure() {
+void init_SpatialStructure() {
 	PRECISION *x,*y,*z;
 	int i,j,k;
 	
@@ -88,21 +88,16 @@ void init_spatial_structure() {
 	
 	// Transfer data in the relevant array (including dealiasing mask)
 	for(i = 0 ; i < NTOTAL_COMPLEX ; i++) {
-		fld.vx[i] = w1[i] * mask[i];
-		fld.vy[i] = w2[i] * mask[i];
-		fld.vz[i] = w3[i] * mask[i];
+		fld.vx[i] += w1[i] * mask[i];
+		fld.vy[i] += w2[i] * mask[i];
+		fld.vz[i] += w3[i] * mask[i];
 #ifdef MHD
-		fld.bx[i] = w4[i] * mask[i];
-		fld.by[i] = w5[i] * mask[i];
-		fld.bz[i] = w6[i] * mask[i];
+		fld.bx[i] += w4[i] * mask[i];
+		fld.by[i] += w5[i] * mask[i];
+		fld.bz[i] += w6[i] * mask[i];
 #endif
 	}
 	
-	// Remove divergence (if any)
-	projector(fld.vx,fld.vy,fld.vz);
-#ifdef MHD
-	projector(fld.bx,fld.by,fld.bz);
-#endif
 	// free memory
 	fftw_free(x);
 	fftw_free(y);
@@ -113,24 +108,20 @@ void init_spatial_structure() {
 }
 
 
-// Caution: Not coded for MPI!
-void init_vortex(PRECISION complex wzf[]) {
-	const PRECISION a = 0.04;
-	const PRECISION b = 0.16;
+void init_KidaVortex() {
+	const PRECISION a = VORTEX_A;
+	const PRECISION b = VORTEX_B;
 	
 	int i,j,k;
 	
-#ifdef SUPPORT_MPI
-	ERROR_HANDLER( ERROR_CRITICAL, "No MPI Support for init_vortex");
-#endif
 	PRECISION w0, x, y;
 	PRECISION chi;
 	
 	chi = b / a;
 	w0 = 1.0/chi*(chi + 1)/(chi-1.0);			// According to Kida!
 	
-	for(i = 0 ; i < NX ; i++) {
-		x = - LX / 2 + (LX * i) / NX;
+	for(i = 0 ; i < NX/NPROC ; i++) {
+		x = - LX / 2 + (LX * (i + rank * NX / NPROC)) / NX;
 		for(j = 0 ; j < NY ; j++) {
 			y = - LY / 2 + (LY * j) / NY;
 			for(k = 0 ; k < NZ ; k++) {
@@ -148,47 +139,19 @@ void init_vortex(PRECISION complex wzf[]) {
 	// transform
 	gfft_r2c(wr1);
 	
-	for(i = 0 ; i < NX_COMPLEX ; i++) {
-		for(j = 0 ; j < NY_COMPLEX ; j++) {
-			for(k = 0 ; k < NZ_COMPLEX ; k++) {
-				fld.vx[ IDX3D ] +=  I * ky[i] * w1[i] * ik2t[i];
-				fld.vy[ IDX3D ] += -I * kxt[i] * w1[i] * ik2t[i];
-			}
-		}
+	for(i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		fld.vx[ i ] +=  I * ky[i] * w1[i] * ik2t[i];
+		fld.vy[ i ] += -I * kxt[i] * w1[i] * ik2t[i];
 	}
 	
 	// done
 	return;
 }
 
-/** Init the flow arrays... */	
-void init_flow() {
-	int i,j,k,k0;
+void init_LargeScaleNoise() {
+	int i,j,k;
+	int k0;
 	
-	// Initialise vectors to 0
-	
-	for( i = 0; i < NX_COMPLEX/NPROC; i++) {
-		for( j = 0; j < NY_COMPLEX; j++) {
-			for( k = 0; k < NZ_COMPLEX; k++) {
-				fld.vx[ IDX3D ] = 0.0;
-				fld.vy[ IDX3D ] = 0.0;
-				fld.vz[ IDX3D ] = 0.0;
-				
-#ifdef BOUSSINESQ
-				fld.th[ IDX3D ] = 0.0;
-#endif
-#ifdef MHD
-				fld.bx[ IDX3D ] = 0.0;
-				fld.by[ IDX3D ] = 0.0;
-				fld.bz[ IDX3D ] = 0.0;
-#endif
-			}
-		}
-	}
-		
-// Init the spatial structure
-//	init_spatial_structure();	
-		
 	if(rank==0) k0=1;
 	else k0=0;
 // Add some noise	
@@ -196,9 +159,9 @@ void init_flow() {
 		for( i = 0; i < 4; i++) {
 			for( j = 0; j < 4; j++) {
 				for( k = k0; k < 4; k++) {
-					fld.vx[ IDX3D ] += PER_AMPLITUDE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() );
-					fld.vy[ IDX3D ] += PER_AMPLITUDE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() );
-					fld.vz[ IDX3D ] += PER_AMPLITUDE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() );
+					fld.vx[ IDX3D ] += PER_AMPLITUDE_LARGE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL / 64.0;
+					fld.vy[ IDX3D ] += PER_AMPLITUDE_LARGE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL / 64.0;
+					fld.vz[ IDX3D ] += PER_AMPLITUDE_LARGE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL / 64.0;
 				}
 			}
 	
@@ -208,36 +171,104 @@ void init_flow() {
 		for( i = 0; i < 4; i++) {
 			for( j = 0; j < 4; j++) {
 				for( k = k0; k < 4; k++) {
-					fld.bx[ IDX3D ] += PER_AMPLITUDE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() );
-					fld.by[ IDX3D ] += PER_AMPLITUDE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() );
-					fld.bz[ IDX3D ] += PER_AMPLITUDE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() );
+					fld.bx[ IDX3D ] += PER_AMPLITUDE_LARGE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL / 64.0;
+					fld.by[ IDX3D ] += PER_AMPLITUDE_LARGE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL / 64.0;
+					fld.bz[ IDX3D ] += PER_AMPLITUDE_LARGE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL / 64.0;
 				}
 			}
 		}
-		// Init the mean fields.
-		
-		/*
-		fld.bx[0] = BX0 * ((double) NTOTAL);
-		fld.by[0] = BY0 * ((double) NTOTAL);
-		fld.bz[0] = BZ0 * ((double) NTOTAL);
-		*/
 #endif
+
+	}
+}
+
+void init_WhiteNoise() {
+	int i,j,k,k0;
+	
+	if(rank==0) k0=1;
+	else k0=0;
+
+	for( i = 0; i < NX_COMPLEX/NPROC; i++) {
+		for( j = 0; j < NY_COMPLEX; j++) {
+			for( k = k0; k < NZ_COMPLEX; k++) {
+				fld.vx[ IDX3D ] += PER_AMPLITUDE_NOISE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) / NTOTAL;
+				fld.vy[ IDX3D ] += PER_AMPLITUDE_NOISE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) / NTOTAL;
+				fld.vz[ IDX3D ] += PER_AMPLITUDE_NOISE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) / NTOTAL;
+			}
+		}
+
+	}
+#ifdef MHD
+	
+	for( i = 0; i < NX_COMPLEX/NPROC; i++) {
+		for( j = 0; j < NY_COMPLEX; j++) {
+			for( k = k0; k < NZ_COMPLEX; k++) {
+				fld.bx[ IDX3D ] += PER_AMPLITUDE_NOISE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) / NTOTAL;
+				fld.by[ IDX3D ] += PER_AMPLITUDE_NOISE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) / NTOTAL;
+				fld.bz[ IDX3D ] += PER_AMPLITUDE_NOISE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) / NTOTAL;
+			}
+		}
 	}
 
+#endif
+}
 
 
-
+void init_MeanField() {
+#ifdef MHD
+	fld.bx[0] = BX0 * ((double) NTOTAL);
+	fld.by[0] = BY0 * ((double) NTOTAL);
+	fld.bz[0] = BZ0 * ((double) NTOTAL);
+#endif
+}
+/** Init the flow arrays... */	
+void init_flow() {
+	int i;
 	
+	// Initialise vectors to 0
+	
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		fld.vx[ i ] = 0.0;
+		fld.vy[ i ] = 0.0;
+		fld.vz[ i ] = 0.0;
+#ifdef BOUSSINESQ
+		fld.th[ i ] = 0.0;
+#endif
+#ifdef MHD
+		fld.bx[ i ] = 0.0;
+		fld.by[ i ] = 0.0;
+		fld.bz[ i ] = 0.0;
+#endif
+	}
+	
+#ifdef INIT_LARGE_SCALE_NOISE	
+	init_LargeScaleNoise();
+#endif
+#ifdef INIT_VORTEX
+	init_KidaVortex();
+#endif
+#ifdef INIT_SPATIAL_STRUCTURE
+	init_SpatialStructure();
+#endif
+#ifdef INIT_WHITE_NOISE
+	init_WhiteNoise();
+#endif
+#ifdef INIT_MEAN_FIELD
+	init_MeanField();
+#endif
+	
+	projector(fld.vx,fld.vy,fld.vz);
+#ifdef MHD
+	projector(fld.bx,fld.by,fld.bz);
+#endif	
+
 #ifdef DEBUG
 	MPI_Printf("Initflow:\n");
 	D_show_all(fld);
 	MPI_Printf("**************************************************************************************\n");
 #endif	
 	
-	projector(fld.vx,fld.vy,fld.vz);
-#ifdef MHD
-	projector(fld.bx,fld.by,fld.bz);
-#endif	
+
 	return;
 }
 	
