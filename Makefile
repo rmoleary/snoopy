@@ -66,11 +66,11 @@ endif
 endif
 
 #test-vostro and similar configurations
-ifeq ($(HOSTNAME),test-vostro.damtp.cam.ac.uk)
+ifeq ($(HOSTNAME),neptune.damtp.cam.ac.uk)
 	CLUSTER="SE Linux x86 (64 bits)"
-	CC=icc64						#No MPI yet...
-	FFTPATH=-L/home/raid/chaos/gl293/vostro/usr/lib
-	CFLAGS=-O3 -c99
+	CC=icc
+	FFTPATH=-L/home/raid/chaos/gl293/usr/lib
+	CFLAGS=-O3 -xhost
 	OPENMP_FLAG=-openmp
 ifeq ($(DEBUG),yes)
 	CFLAGS=-g -DDEBUG

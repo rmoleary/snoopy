@@ -29,8 +29,6 @@
 #define		WITH_SHEAR				/**< Uncomment to activate mean SHEAR */
 #define		SHEAR			1.0			/**< Shear rate */
 
-#define		PER_AMPLITUDE	10000.0		/**< Initial perturbation amplitude(arbitrary units) */
-
 //#define		FORCING						/**< Uncomment to use internal forcing of the velocity field (see forcing in timestep.c) */
 
 #define		T_INITIAL		0.0			/**< Initial time of the simulation */

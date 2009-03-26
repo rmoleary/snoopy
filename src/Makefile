@@ -4,7 +4,7 @@ OBJ= error.o snoopy.o mainloop.o initflow.o timestep.o common.o output.o interfa
 all: snoopy
 
 snoopy: $(OBJ)
-	$(CC) -o $@ $(CFLAGS) $(FFTPATH) $(LDFLAGS) $^
+	$(CC) -o $@ $^ $(CFLAGS) $(FFTPATH) $(LDFLAGS)
 
 %.o: %.c gvars.h
 	$(CC) -o $@ $< $(CFLAGS) -c
