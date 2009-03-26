@@ -1,12 +1,10 @@
 # This is the default configuration
 # Modifications should be made in config.mk file
 
-OPENMP=no
+OPENMP=yes
 MPI=no
 FFTW3_MPI=no
 DEBUG=no
-
--include config.mk
 
 MACHINE= $(shell uname -s)
 HOSTNAME= $(shell hostname)

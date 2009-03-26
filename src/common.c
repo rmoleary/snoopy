@@ -349,7 +349,7 @@ void projector( PRECISION complex qx[],
 
 /*********************************************/
 /** Compute the energy of a given field.
-	@parameter q complex array containing the field for which
+	@param q complex array containing the field for which
 				  we want the total energy
 */
 /*********************************************/
