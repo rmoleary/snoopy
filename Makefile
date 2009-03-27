@@ -1,7 +1,7 @@
 # This is the default configuration
 # Modifications should be made in config.mk file
 
-OPENMP=yes
+OPENMP=no
 MPI=no
 FFTW3_MPI=no
 DEBUG=no
