@@ -170,13 +170,10 @@ fullclean:
 	@(cd src && $(MAKE) $@)
 	rm -rf snoopy config.mk timevar data dump.dmp
 
-config: config.mk
+config:
 	@(cd src && $(MAKE) $@)
 	@echo "***********************************************************"
 	@echo "Default Configuration files Initialized succesfully"
-	@echo "Please edit src/gvars.h and ./config.mk"
+	@echo "Please edit src/gvars.h"
 	@echo "***********************************************************"
-
-config.mk:
-	cp src/def/config.mk .
 	
