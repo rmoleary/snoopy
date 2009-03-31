@@ -1,179 +1,66 @@
 # This is the default configuration
 # Modifications should be made in config.mk file
 
-OPENMP=no
-MPI=no
-FFTW3_MPI=no
-DEBUG=no
-
 MACHINE= $(shell uname -s)
 HOSTNAME= $(shell hostname)
 ifeq ($(MACHINE),Linux)
 	DOMAINNAME= $(shell dnsdomainname)
 endif
 
-#######################################################
-## Machine dependant variables
-#######################################################
-# Default variables:
-CLUSTER="Unknown Cluster, using default"
-CC=cc
-FFTPATH=-L/usr/local/lib
-LDFLAGS=
-CFLAGS=
+-include config.mk
+include rules.mk
+
+###############################################################
+## Machine dependant config file                  #############
+## This part is only used for the config rules    #############
+###############################################################
+
+# Default config file
+CONFIG_FILE=src/def/config_default.mk
 
 #Compilation variables for MACOS X (geo laptop)
 ifeq ($(MACHINE),Darwin)
-	CLUSTER="MacOS 10.5 (Leopard)"
-	ifeq ($(MPI),yes)
-		CC=/usr/local/bin/mpicc
-	else
-		CC=/usr/local/bin/gcc
-	endif
-	FFTPATH=-L/usr/local/lib
-	CFLAGS=-O3 -ffast-math -fomit-frame-pointer
-	OPENMP_FLAG=-fopenmp
-ifeq ($(DEBUG),yes)
-	CFLAGS=-g -DDEBUG
-	LDFLAGS+=-g
-endif
+	CONFIG_FILE=src/def/config_mac.mk
 endif
 
 #Astro2 (DAMTP) on 32 bits
 ifeq ($(HOSTNAME),astro2.damtp.cam.ac.uk)
-	CLUSTER="SE Linux x86 (32 bits)"
-	CC=icc						#No MPI yet...
-	FFTPATH=-L/home/raid/chaos/gl293/usr/lib
-	CFLAGS=-O3 -c99
-	OPENMP_FLAG=-openmp
-ifeq ($(DEBUG),yes)
-	CFLAGS=-g -DDEBUG
-	LDFLAGS+=-g
-endif
+	CONFIG_FILE=src/def/config_astro2.mk
 endif
 
 # Hyades
 ifeq ($(HOSTNAME),master.hyades.private.damtp.cam.ac.uk)
-	CLUSTER="Hyades Cluster"
-	CC=/opt/intel91039033/bin/icc		#No MPI yet...
-	FFTPATH=-L/home/raid/chaos/gl293/usr/lib
-	CFLAGS=-O3 -static
-	OPENMP_FLAG=-openmp
-ifeq ($(DEBUG),yes)
-	CFLAGS=-g -DDEBUG
-	LDFLAGS+=-g
-endif
+	CONFIG_FILE=src/def/config_hyades.mk
 endif
 
-#test-vostro and similar configurations
+#Neptune and astro group coreI7
 ifeq ($(HOSTNAME),neptune.damtp.cam.ac.uk)
-	CLUSTER="SE Linux x86 (64 bits)"
-	CC=icc
-	FFTPATH=-L/home/raid/chaos/gl293/usr/lib
-	CFLAGS=-O3 -xhost
-	OPENMP_FLAG=-openmp
-ifeq ($(DEBUG),yes)
-	CFLAGS=-g -DDEBUG
-	LDFLAGS+=-g
-endif
+	CONFIG_FILE=src/def/config_neptune.mk
 endif
 
+# Cambridge HPCF
 ifeq ($(DOMAINNAME),moab.cluster)
-	CLUSTER="HPCF Cambridge"
-	ifeq ($(MPI),yes)
-		CC=mpicc
-	else
-		CC=icc
-	endif
-	FFTPATH=-L/home/gl293/usr/lib
-	CFLAGS=-O3 -I/home/gl293/usr/include
-	OPENMP_FLAG=-openmp
-ifeq ($(DEBUG),yes)
-	CFLAGS=-g -DDEBUG
-	LDFLAGS+=-g
-endif
+	CONFIG_FILE=src/def/config_hpcf.mk
 endif
 
+#IDRIS Vargas
 ifeq ($(MACHINE),AIX)
-	CLUSTER="VARGAS (IBM AIX)"
-	ifeq ($(MPI),yes)
-		CC=mpcc_r
-	else
-		CC=xlc_r
-	endif
-	CFLAGS=-O3 -I/usr/local/pub/FFTW/3.2/include
-	LDFLAGS=-lm
-	FFTPATH=-L/usr/local/pub/FFTW/3.2/lib
-	OPENMP_FLAG= -qsmp=omp
-ifeq ($(DEBUG),yes)
-	CFLAGS=-g -I/usr/local/pub/FFTW/3.2/include -DDEBUG -qnooptimize -qcheck=all -qheapdebug
-	LDFLAGS=-g -qnooptimize -qcheck=all -qheapdebug -lm
-endif
+	CONFIG_FILE=src/def/config_idris.mk
 endif
 
 
-###############################################################
-## General compilation variables
-###############################################################
+#####################################################################
+## Cofiguration rules (the compilation rules are in rules.mk) #######
+#####################################################################
 
 
-
-
-ifeq ($(OPENMP),yes)
-	CFLAGS+=$(OPENMP_FLAG) -DOPENMP_SUPPORT
-	LDFLAGS+=-lfftw3_threads
-endif
-ifeq ($(FFTW3_MPI),yes)
-	CFLAGS+=-DFFTW3_MPI_SUPPORT
-	LDFLAGS+=-lfftw3_mpi
-endif
-ifeq ($(MPI),yes)
-	CFLAGS+=-DMPI_SUPPORT
-endif
-
-LDFLAGS+=-lfftw3
-export CC
-export FFTPATH
-export CFLAGS
-export LDFLAGS
-
-###############################################################
-## Compilation rules
-###############################################################
-
-
-all: data
-	@(cd src && $(MAKE))
-	cp src/snoopy .
-	@echo "***********************************************************"
-	@echo "Make has compiled for: " $(CLUSTER)
-ifeq ($(OPENMP),yes)
-	@echo "OpenMP support enabled"
-else
-	@echo "OpenMP support disabled"
-endif
-ifeq ($(MPI),yes)
-	@echo "MPI support enabled"
-else
-	@echo "MPI support disabled"
-endif
-	@echo "***********************************************************"
-
-data:
-	mkdir data
-
-clean:
-	@(cd src && $(MAKE) $@)
-	rm snoopy
-
-fullclean:
-	@(cd src && $(MAKE) $@)
-	rm -rf snoopy config.mk timevar data dump.dmp
-
-config:
+config: config.mk
 	@(cd src && $(MAKE) $@)
 	@echo "***********************************************************"
-	@echo "Default Configuration files Initialized succesfully"
-	@echo "Please edit src/gvars.h"
+	@echo "Default Configuration files Initialized succesfully for"
+	@echo $(CLUSTER)
+	@echo "Please edit src/gvars.h and config.mk"
 	@echo "***********************************************************"
 	
+config.mk:
+	cp $(CONFIG_FILE) config.mk
