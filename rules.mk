@@ -26,9 +26,7 @@ export LDFLAGS
 ###############################################################
 
 
-all: data snoopy
-
-snoopy: config.mk
+all: data snoopy config.mk
 	@(cd src && $(MAKE))
 	cp src/snoopy .
 	@echo "***********************************************************"
