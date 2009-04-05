@@ -29,15 +29,25 @@
 	
 /*!	\page using Using the code
 	\section first_start Let's go
-	Type make in the root directory. If you're lucky, everything will work fine. If you're not, then you'll have to create a configuration for your architecture
-	in Makefile. If the compilation went successfully, just type ./snoopy and that's it!
+	Type make in the root directory. If you're lucky, everything will work fine. If you're not, then you'll have to create a configuration for your architecture. If the compilation went successfully, just type ./snoopy and that's it!
 	\section makefile The Makefile
-	The big options can be switched on and off in the Makefile. Several self explanatory flags may be found in the begining of Makefile to activate OpenMP, MPI, Debug and
+	The makefile is devided in several files. Makefile contains the rules to create a configuration file for several architectures. The file
+	rules.mk contains the actual compilation rules for the code. This should not be modified by ordinary users. Finally, file config.mk
+	contains architecture-dependant flags, paths and compiler options. These files are meant to be modified by the user. Several default configuration
+	files are stored in src/def/*.mk. 
+	
+	When you first decompress or download the code, no config.mk is found in the root directory. To create one, type "make config". If you're lucky,
+	a configuration file relevant for your system will be found. if not, the default configuration file will be used and you'll have to modify the created
+	config.mk according to your system.
+	
+	The big options can be switched on and off in config.mk. Several self explanatory flags may be found to activate OpenMP, MPI, Debug and
 	MPI support from fftw3 Library (MPI support in fftw3 is still on developpement and untested. Unless you're sure of what you're doing, keeping this option off is safer).
 	
-	By default, if no configuration is found (src/gvars.h), the makefile will create a default configuration file using
-	the template located in src/def/gvars.h. One can then modify the configuration file (make won't recreate it). It is possible to create a default configuration file
-	without actually compiling the code with make def.
+	Make config also initializes a default configuration for the code, creating the file src/gvars.h. One can then modify the configuration file 
+	(make won't recreate it).
+	
+	Finally, note that if you're lucky enough, just typing make should initialize makefiles and configuration properly and should compile the code
+	without problem.
 	
 	\section interface Code interface
 	While the code is running, it's possible to know what's happening in real time using the so-called interface (located in interface.c). Typically, one creates a file with a filename

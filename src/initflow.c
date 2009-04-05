@@ -150,15 +150,12 @@ void init_KidaVortex() {
 
 void init_LargeScaleNoise() {
 	int i,j,k;
-	int k0;
 	
-	if(rank==0) k0=1;
-	else k0=0;
 // Add some noise	
 	if(rank==0) {
 		for( i = 0; i < 4; i++) {
 			for( j = 0; j < 4; j++) {
-				for( k = k0; k < 4; k++) {
+				for( k = 0; k < 4; k++) {
 					fld.vx[ IDX3D ] += PER_AMPLITUDE_LARGE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL / 64.0;
 					fld.vy[ IDX3D ] += PER_AMPLITUDE_LARGE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL / 64.0;
 					fld.vz[ IDX3D ] += PER_AMPLITUDE_LARGE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL / 64.0;
@@ -170,7 +167,7 @@ void init_LargeScaleNoise() {
 	
 		for( i = 0; i < 4; i++) {
 			for( j = 0; j < 4; j++) {
-				for( k = k0; k < 4; k++) {
+				for( k = 0; k < 4; k++) {
 					fld.bx[ IDX3D ] += PER_AMPLITUDE_LARGE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL / 64.0;
 					fld.by[ IDX3D ] += PER_AMPLITUDE_LARGE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL / 64.0;
 					fld.bz[ IDX3D ] += PER_AMPLITUDE_LARGE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL / 64.0;
@@ -178,8 +175,22 @@ void init_LargeScaleNoise() {
 			}
 		}
 #endif
-
 	}
+  symmetrize(fld.vx);
+  if(rank==0) fld.vx[0]=0.0;
+  symmetrize(fld.vy);
+  if(rank==0) fld.vy[0]=0.0;
+  symmetrize(fld.vz);
+  if(rank==0) fld.vz[0]=0.0;
+  
+#ifdef MHD
+  symmetrize(fld.bx);
+  symmetrize(fld.by);
+  symmetrize(fld.bz);
+#endif
+
+
+	
 }
 
 void init_WhiteNoise() {

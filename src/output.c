@@ -3,6 +3,7 @@
 #include "common.h"
 #include "timestep.h"
 #include "gfft.h"
+#include "shear.h"
 
 #define	OUTPUT_DUMP					"dump.dmp"			/**< Dump files filename. */
 #define	OUTPUT_DUMP_VERSION			04					/**< Version of the dump files read and written by this code. */
@@ -43,9 +44,14 @@ void remap_output(	PRECISION wri[],
 	complex PRECISION wexp;
 	complex PRECISION phase;
 	
-	
+#ifdef TIME_DEPENDANT_SHEAR
+	tremap = time_shift(t);
+	tvelocity = 0.0;
+#else	
+	tremap = time_shift(t);
 	tvelocity = fmod(t, 2.0 * LY / (SHEAR * LX));
-	tremap = fmod(t + LY / (2.0 * SHEAR * LX) , LY / (SHEAR * LX)) - LY / (2.0 * SHEAR * LX);
+#endif	
+	
 	
 	for( i = 0 ; i < NX / NPROC ; i++) {
 		for( k = 0 ; k < NZ ; k++) {
@@ -58,8 +64,14 @@ void remap_output(	PRECISION wri[],
 					
 			for( j = 0 ; j < NY ; j++) {
 			// advection phase = ky*
+#ifdef TIME_DEPENDANT_SHEAR
+				// There is no proper remap in this case
 				phase = (PRECISION complex) ((2.0 * M_PI) / LY * (fmod( j + (NY / 2) ,  NY ) - NY / 2 ) * 
-											( ((double) (i + rank * (NX/NPROC)) / (double) NX ) * tremap - tvelocity / 2.0 ) * LX );
+											( ((double) (i + rank * (NX/NPROC)) / (double) NX - 0.5 ) * tremap ) * LX * SHEAR );
+#else
+				phase = (PRECISION complex) ((2.0 * M_PI) / LY * (fmod( j + (NY / 2) ,  NY ) - NY / 2 ) * 
+											( ((double) (i + rank * (NX/NPROC)) / (double) NX ) * tremap - tvelocity / 2.0 ) * LX * SHEAR);
+#endif
 				wexp = cexp( I * phase);
 									
 				w2d[ j ] = w2d[ j ] * wexp;
@@ -538,8 +550,8 @@ void output_timevar(const struct Field fldi,
 		fprintf(ht,"%08e\t",reynolds_stress);
 		fprintf(ht,"%08e\t%08e\t%08e\t%08e\t%08e\t%08e\t",bxmax,bxmin,bymax,bymin,bzmax,bzmin);
 		fprintf(ht,"%08e\t",maxwell_stress);
-		fprintf(ht,"%08e\t%08e\n",thmax,thmin);
-
+		fprintf(ht,"%08e\t%08e",thmax,thmin);
+		fprintf(ht,"\n");
 		fclose(ht);
 #ifdef MPI_SUPPORT
 		MPI_Barrier(MPI_COMM_WORLD);

@@ -84,5 +84,7 @@ void projector( PRECISION complex qx[],
 			    PRECISION complex qz[]);
 				
 PRECISION energy(const PRECISION complex q[]);
+
+void symmetrize(PRECISION complex wi[]);
 				
 				

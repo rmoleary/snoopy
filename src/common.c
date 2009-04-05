@@ -25,6 +25,7 @@
 
 #include "gvars.h"
 #include "error.h"
+#include "gfft.h"
 
 // Structures
 
@@ -420,5 +421,25 @@ void reduce(double *var, const int op) {
 #endif	
 
 	// If no MPI, then this routine does nothing...
+	return;
+}
+/*****************************************/
+/** Symmetrize the complex space according
+**  to the symetries of the real tranform
+** @param wi  Field to be symmetrized
+*/
+/*******************************************/
+
+void symmetrize(PRECISION complex wi[]) {
+	int i;
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		w1[i] = wi[i];
+	}
+	gfft_c2r(w1);
+	gfft_r2c(wr1);
+	
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		wi[i] = w1[i] / ((double) NTOTAL);
+	}
 	return;
 }

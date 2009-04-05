@@ -53,7 +53,17 @@ void timestep( struct Field dfldo,
 			   
 	int i;
 	PRECISION complex q0;
+	PRECISION S;
 	// This is the timesteping algorithm, solving the physics.
+
+	// Find the shear at time t
+#ifdef WITH_SHEAR
+#ifdef TIME_DEPENDANT_SHEAR
+	S = SHEAR * OMEGA_SHEAR * cos(OMEGA_SHEAR * t);
+#else
+	S = SHEAR;
+#endif
+#endif
 
 /******************************************
 ** Velocity Self Advection ****************
@@ -256,9 +266,9 @@ void timestep( struct Field dfldo,
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
 		dfldo.vx[i] += 2.0 * OMEGA * fldi.vy[i];
 #ifdef WITH_SHEAR
-		dfldo.vy[i] += (SHEAR - 2.0 * OMEGA) * fldi.vx[i];
+		dfldo.vy[i] += (S - 2.0 * OMEGA) * fldi.vx[i];
 #ifdef MHD
-		dfldo.by[i] -= SHEAR * fldi.bx[i];
+		dfldo.by[i] -= S * fldi.bx[i];
 #endif
 #else
 		dfldo.vy[i] += (- 2.0 * OMEGA) * fldi.vx[i];
@@ -271,7 +281,7 @@ void timestep( struct Field dfldo,
 	#pragma omp for schedule(static ) nowait
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
 #ifdef WITH_SHEAR
-		q0= SHEAR * ky[i] * fldi.vx[i] + kxt[i] * dfldo.vx[i] + ky[i] * dfldo.vy[i] + kz[i] * dfldo.vz[i];
+		q0= S * ky[i] * fldi.vx[i] + kxt[i] * dfldo.vx[i] + ky[i] * dfldo.vy[i] + kz[i] * dfldo.vz[i];
 #else
 		q0= kxt[i] * dfldo.vx[i] + ky[i] * dfldo.vy[i] + kz[i] * dfldo.vz[i];
 #endif

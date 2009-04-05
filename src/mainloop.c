@@ -5,6 +5,7 @@
 #include "output.h"
 #include "interface.h"
 #include "gfft.h"
+#include "shear.h"
 
 #ifdef MPI_SUPPORT
 #include "transpose.h"
@@ -20,97 +21,6 @@ PRECISION complex		gammaRK[3];
 PRECISION complex		xiRK[2];
 
 PRECISION forcing_last_time;
-
-#ifdef WITH_SHEAR
-void remap(PRECISION complex qi[]) {
-	int i, j, k;
-	int nx, ny, nxtarget;
-	
-#ifdef DEBUG
-	MPI_Printf("Remap called\n");
-#endif
-	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
-		w1[i]=0.0;
-	}
-	
-#ifdef MPI_SUPPORT
-// We have to transpose the array to get the remap properly
-	transpose_complex_XY(qi,qi);
-	
-	for( i = 0; i < NX_COMPLEX; i++) {
-		nx = fmod( i + (NX_COMPLEX / 2) ,  NX_COMPLEX ) - NX_COMPLEX / 2 ;
-		for( j = 0; j < NY_COMPLEX/NPROC; j++) {
-			ny = fmod( j + rank * NY_COMPLEX / NPROC + (NY_COMPLEX / 2) ,  NY_COMPLEX ) - NY_COMPLEX / 2 ;
-			
-			nxtarget = nx + ny;		// We have a negative shear, hence nx plus ny
-			
-			if( (nxtarget > -NX_COMPLEX / 2) & (nxtarget < NX_COMPLEX/2)) {
-			
-				if ( nxtarget <0 ) nxtarget = nxtarget + NX_COMPLEX;
-			
-				for( k = 0; k < NZ_COMPLEX; k++) {
-					w1[k + NZ_COMPLEX * nxtarget + NZ_COMPLEX * NX_COMPLEX * j] = qi[ k + i * NZ_COMPLEX + j * NZ_COMPLEX * NX_COMPLEX];
-				}
-			}
-		}
-	}
-	
-	// transpose back
-	transpose_complex_YX(w1,w1);
-
-#else
-	for( i = 0; i < NX_COMPLEX; i++) {
-		nx = fmod( i + (NX_COMPLEX / 2) ,  NX_COMPLEX ) - NX_COMPLEX / 2 ;
-		for( j = 0; j < NY_COMPLEX; j++) {
-			ny = fmod( j + (NY_COMPLEX / 2) ,  NY_COMPLEX ) - NY_COMPLEX / 2 ;
-			
-			nxtarget = nx + ny;		// We have a negative shear, hence nx plus ny
-			
-			if( (nxtarget > -NX_COMPLEX / 2) & (nxtarget < NX_COMPLEX/2)) {
-			
-				if ( nxtarget <0 ) nxtarget = nxtarget + NX_COMPLEX;
-			
-				for( k = 0; k < NZ_COMPLEX; k++) {
-					w1[k + NZ_COMPLEX * j + NZ_COMPLEX * NY_COMPLEX * nxtarget] = qi[ IDX3D ];
-				
-				}
-			}
-		}
-	}
-#endif
-
-	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
-		qi[i] = w1[i] * mask[i];
-	}
-
-	
-	return;
-}
-
-void kvolve(const PRECISION tremap) {
-	int i, j, k;
-#pragma omp parallel private(i,j,k) num_threads ( NTHREADS )
-{
-		/* Compute the convolution */
-	#pragma omp for schedule(static) nowait	
-	for( i = 0; i < NX_COMPLEX/NPROC; i++) {
-		for( j = 0; j < NY_COMPLEX; j++) {
-			for( k = 0; k < NZ_COMPLEX; k++) {
-				kxt[ IDX3D ] = kx[ IDX3D ] + tremap * SHEAR * ky[ IDX3D ];
-			
-				k2t[ IDX3D ] = kxt[IDX3D] * kxt[IDX3D] +
-						       ky[IDX3D] * ky[IDX3D]+
-							   kz[IDX3D] * kz[IDX3D];
-							  
-				if ( k2t[IDX3D] == 0.0 ) ik2t[IDX3D] = 1.0;
-				else	ik2t[IDX3D] = 1.0 / k2t[IDX3D];
-			}
-		}
-	}
-}
-	return;
-}
-#endif
 
 PRECISION newdt(PRECISION tremap) {
 
@@ -164,14 +74,16 @@ PRECISION newdt(PRECISION tremap) {
 	reduce(&maxfz,2);
 #endif
 	
-	gamma_v = (kxmax + fabs(tremap)*kymax) * maxfx + kymax * maxfy + kzmax * maxfz + fabs(OMEGA);
+	gamma_v = (kxmax + fabs(tremap)*kymax) * maxfx + kymax * maxfy + kzmax * maxfz + fabs(OMEGA) / SAFETY_SOURCE;
 #ifdef WITH_SHEAR
-	gamma_v += fabs(SHEAR);
+	gamma_v += fabs(SHEAR) / SAFETY_SOURCE;
 #endif
 #ifdef BOUSSINESQ
-	gamma_v += pow(fabs(N2), 0.5);
+	gamma_v += pow(fabs(N2), 0.5) / SAFETY_SOURCE;
 #endif
-	
+#ifdef TIME_DEPENDANT_SHEAR
+	gamma_v += fabs(OMEGA_SHEAR) / SAFETY_SOURCE;
+#endif
 #ifdef MHD
 #pragma omp parallel private(i) num_threads ( NTHREADS )
 {
@@ -340,7 +252,7 @@ void mainloop() {
 #endif
 
 #ifdef WITH_SHEAR	
-	tremap = fmod(t + LY / (2.0 * SHEAR * LX) , LY / (SHEAR * LX)) - LY / (2.0 * SHEAR * LX);
+	tremap = time_shift(t);
 	kvolve(tremap);
 #else
 	tremap = 0.0;
@@ -391,9 +303,7 @@ void mainloop() {
 			fld1.bx[i] = fld.bx[i] + xiRK[0] * dfld.bx[i] * dt;
 			fld1.by[i] = fld.by[i] + xiRK[0] * dfld.by[i] * dt;
 			fld1.bz[i] = fld.bz[i] + xiRK[0] * dfld.bz[i] * dt;
-#endif
-
-			
+#endif			
 		}
 }		
 #ifdef DEBUG
@@ -409,10 +319,14 @@ void mainloop() {
 			
 		// 2nd RK3 step
 #ifdef WITH_SHEAR
+#ifdef TIME_DEPENDANT_SHEAR
+		kvolve(time_shift(t+gammaRK[0]*dt));
+#else
 		kvolve(tremap+gammaRK[0]*dt);
 #endif
+#endif
 		
-		timestep(dfld, fld, t, dt);
+		timestep(dfld, fld, t+gammaRK[0]*dt, dt);
 
 #pragma omp parallel private(i) num_threads ( NTHREADS )
 {
@@ -455,10 +369,14 @@ void mainloop() {
 				
 		// 3rd RK3 Step
 #ifdef WITH_SHEAR
+#ifdef TIME_DEPENDANT_SHEAR
+		kvolve(time_shift(t + (gammaRK[0] + xiRK[0] + gammaRK[1]) * dt));
+#else
 		kvolve(tremap + (gammaRK[0] + xiRK[0] + gammaRK[1]) * dt );
 #endif
+#endif
 		
-		timestep(dfld, fld, t, dt);
+		timestep(dfld, fld, t + (gammaRK[0] + xiRK[0] + gammaRK[1]) * dt, dt);
 
 #pragma omp parallel private(i) num_threads ( NTHREADS )
 {
@@ -496,11 +414,15 @@ void mainloop() {
 		// evolving the frame
 		t = t + dt;
 
-#ifdef WITH_SHEAR		
+#ifdef WITH_SHEAR	
+#ifdef TIME_DEPENDANT_SHEAR	
+		tremap = time_shift(t);
+#else
 		tremap = tremap + dt;
 		
+		// Check if a remap is needed
 		if(tremap > LY / (2.0 * SHEAR * LX)) {
-			tremap = fmod(t + LY / (2.0 * SHEAR * LX) , LY /  (LX * SHEAR)) - LY / (2.0 * SHEAR * LX);
+			tremap = time_shift(t);    // Recompute tremap from current time, assuming all the remaps have been done
 			remap(fld.vx);
 			remap(fld.vy);
 			remap(fld.vz);
@@ -513,7 +435,7 @@ void mainloop() {
 			remap(fld.bz);
 #endif
 		}
-		
+#endif
 		kvolve(tremap);
 #endif
 		
