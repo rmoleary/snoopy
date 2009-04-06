@@ -7,10 +7,6 @@
 #include "gfft.h"
 #include "shear.h"
 
-#ifdef MPI_SUPPORT
-#include "transpose.h"
-#endif
-
 #ifdef DEBUG
 #include "debug.h"
 #endif

@@ -1,4 +1,7 @@
 #include "common.h"
+#ifdef MPI_SUPPORT
+#include "transpose.h"
+#endif
 
 #ifdef WITH_SHEAR
 
