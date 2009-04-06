@@ -45,7 +45,7 @@ endif
 
 #IDRIS Vargas
 ifeq ($(MACHINE),AIX)
-	CONFIG_FILE=src/def/config_idris.mk
+	CONFIG_FILE=src/def/config_vargas.mk
 endif
 
 
