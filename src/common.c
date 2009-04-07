@@ -301,11 +301,11 @@ generators on different architectures.
 PRECISION randm(void) {
 	const int a	=	16807;
 	const int m =	2147483647;
-	static int in0 = 13762;
+	static int in0 = 13763;
 	int q;
 	
 	// When using mpi, this allows us to have different number series in each process...
-	if(in0 == 13762) in0 += 2543 * rank;
+	if(in0 == 13763) in0 += 2543 * rank;
 	
 	/* find random number  */
 	q= (int) fmod((double) a * in0, m);

@@ -150,32 +150,53 @@ void init_KidaVortex() {
 
 void init_LargeScaleNoise() {
 	int i,j,k;
+	int num_force=0;
+	int total_num_force;
+	PRECISION fact;
 	
-// Add some noise	
-	if(rank==0) {
-		for( i = 0; i < 4; i++) {
-			for( j = 0; j < 4; j++) {
-				for( k = 0; k < 4; k++) {
-					fld.vx[ IDX3D ] += PER_AMPLITUDE_LARGE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL / 64.0;
-					fld.vy[ IDX3D ] += PER_AMPLITUDE_LARGE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL / 64.0;
-					fld.vz[ IDX3D ] += PER_AMPLITUDE_LARGE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL / 64.0;
-				}
-			}
-	
-		}
+	for( i = 0; i < NX_COMPLEX/NPROC; i++) {
+		for( j = 0; j < NY_COMPLEX; j++) {
+			for( k = 0; k < NZ_COMPLEX; k++) {
+				if(pow(k2t[ IDX3D ], 0.5) / ( 2.0*M_PI ) < 1.0 / NOISE_CUT_LENGTH) {
+					fld.vx[ IDX3D ] += PER_AMPLITUDE_LARGE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
+					fld.vy[ IDX3D ] += PER_AMPLITUDE_LARGE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
+					fld.vz[ IDX3D ] += PER_AMPLITUDE_LARGE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
 #ifdef MHD
-	
-		for( i = 0; i < 4; i++) {
-			for( j = 0; j < 4; j++) {
-				for( k = 0; k < 4; k++) {
-					fld.bx[ IDX3D ] += PER_AMPLITUDE_LARGE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL / 64.0;
-					fld.by[ IDX3D ] += PER_AMPLITUDE_LARGE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL / 64.0;
-					fld.bz[ IDX3D ] += PER_AMPLITUDE_LARGE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL / 64.0;
+					fld.bx[ IDX3D ] += PER_AMPLITUDE_LARGE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
+					fld.by[ IDX3D ] += PER_AMPLITUDE_LARGE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
+					fld.bz[ IDX3D ] += PER_AMPLITUDE_LARGE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
+#endif
+					if(mask[IDX3D] > 0) num_force++;
 				}
 			}
 		}
-#endif
 	}
+	
+	// Get the total number of forced scales.
+#ifdef MPI_SUPPORT
+	MPI_Allreduce( &num_force, &total_num_force, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+#else
+	total_num_force=num_force;
+#endif
+	
+	fact=pow(total_num_force,0.5);
+	
+	// Divide by the total number of modes
+	for( i = 0; i < NX_COMPLEX/NPROC; i++) {
+		for( j = 0; j < NY_COMPLEX; j++) {
+			for( k = 0; k < NZ_COMPLEX; k++) {
+				fld.vx[ IDX3D ] = fld.vx[ IDX3D ] / fact;
+				fld.vy[ IDX3D ] = fld.vy[ IDX3D ] / fact;
+				fld.vz[ IDX3D ] = fld.vz[ IDX3D ] / fact;
+#ifdef MHD
+				fld.bx[ IDX3D ] = fld.bx[ IDX3D ] / fact;
+				fld.by[ IDX3D ] = fld.by[ IDX3D ] / fact;
+				fld.bz[ IDX3D ] = fld.bz[ IDX3D ] / fact;
+#endif
+			}
+		}
+	}
+	
   symmetrize(fld.vx);
   if(rank==0) fld.vx[0]=0.0;
   symmetrize(fld.vy);
@@ -188,48 +209,55 @@ void init_LargeScaleNoise() {
   symmetrize(fld.by);
   symmetrize(fld.bz);
 #endif
-
-
-	
+  
 }
 
 void init_WhiteNoise() {
-	int i,j,k,k0;
+	int i,j,k;
+	int num_force=0;
+	int total_num_force;
+	PRECISION fact;
 	
-	if(rank==0) k0=1;
-	else k0=0;
-
+	// Excite (2/3)^3*NTOTAL modes
+	fact = pow(27.0/8.0*NTOTAL, 0.5);
+	
 	for( i = 0; i < NX_COMPLEX/NPROC; i++) {
 		for( j = 0; j < NY_COMPLEX; j++) {
-			for( k = k0; k < NZ_COMPLEX; k++) {
-				fld.vx[ IDX3D ] += PER_AMPLITUDE_NOISE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) / NTOTAL;
-				fld.vy[ IDX3D ] += PER_AMPLITUDE_NOISE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) / NTOTAL;
-				fld.vz[ IDX3D ] += PER_AMPLITUDE_NOISE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) / NTOTAL;
-			}
-		}
-
-	}
+			for( k = 0; k < NZ_COMPLEX; k++) {
+				fld.vx[ IDX3D ] += PER_AMPLITUDE_NOISE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * fact;
+				fld.vy[ IDX3D ] += PER_AMPLITUDE_NOISE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * fact;
+				fld.vz[ IDX3D ] += PER_AMPLITUDE_NOISE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * fact;
 #ifdef MHD
-	
-	for( i = 0; i < NX_COMPLEX/NPROC; i++) {
-		for( j = 0; j < NY_COMPLEX; j++) {
-			for( k = k0; k < NZ_COMPLEX; k++) {
-				fld.bx[ IDX3D ] += PER_AMPLITUDE_NOISE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) / NTOTAL;
-				fld.by[ IDX3D ] += PER_AMPLITUDE_NOISE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) / NTOTAL;
-				fld.bz[ IDX3D ] += PER_AMPLITUDE_NOISE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) / NTOTAL;
+				fld.bx[ IDX3D ] += PER_AMPLITUDE_NOISE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * fact;
+				fld.by[ IDX3D ] += PER_AMPLITUDE_NOISE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * fact;
+				fld.bz[ IDX3D ] += PER_AMPLITUDE_NOISE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * fact;
+#endif
 			}
 		}
 	}
-
+	
+  symmetrize(fld.vx);
+  if(rank==0) fld.vx[0]=0.0;
+  symmetrize(fld.vy);
+  if(rank==0) fld.vy[0]=0.0;
+  symmetrize(fld.vz);
+  if(rank==0) fld.vz[0]=0.0;
+  
+#ifdef MHD
+  symmetrize(fld.bx);
+  symmetrize(fld.by);
+  symmetrize(fld.bz);
 #endif
+  
 }
-
 
 void init_MeanField() {
 #ifdef MHD
-	fld.bx[0] = BX0 * ((double) NTOTAL);
-	fld.by[0] = BY0 * ((double) NTOTAL);
-	fld.bz[0] = BZ0 * ((double) NTOTAL);
+	if(rank==0) {
+		fld.bx[0] = BX0 * ((double) NTOTAL);
+		fld.by[0] = BY0 * ((double) NTOTAL);
+		fld.bz[0] = BZ0 * ((double) NTOTAL);
+	}
 #endif
 }
 /** Init the flow arrays... */	
@@ -255,19 +283,23 @@ void init_flow() {
 #ifdef INIT_LARGE_SCALE_NOISE	
 	init_LargeScaleNoise();
 #endif
+
 #ifdef INIT_VORTEX
 	init_KidaVortex();
 #endif
+
 #ifdef INIT_SPATIAL_STRUCTURE
 	init_SpatialStructure();
 #endif
+
 #ifdef INIT_WHITE_NOISE
 	init_WhiteNoise();
 #endif
+
 #ifdef INIT_MEAN_FIELD
 	init_MeanField();
 #endif
-	
+
 	projector(fld.vx,fld.vy,fld.vz);
 #ifdef MHD
 	projector(fld.bx,fld.by,fld.bz);

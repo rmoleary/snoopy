@@ -36,7 +36,7 @@
 //#define		FORCING						/**< Uncomment to use internal forcing of the velocity field (see forcing in timestep.c) */
 
 #define		T_INITIAL		0.0			/**< Initial time of the simulation */
-#define		T_FINAL			5000.0		/**< Simulation will stop if it reaches this time */
+#define		T_FINAL			100.0		/**< Simulation will stop if it reaches this time */
 
 #define		TOUTPUT_TIME	0.1			/**< Time between two outputs in the timevar file */
 #define		TOUTPUT_FLOW	1.0			/**< Time between two snapshot outputs */
@@ -65,7 +65,8 @@
 //#define		INIT_SPATIAL_STRUCTURE				/**< Init a user-defined spatial structure */
 	
 #define		INIT_LARGE_SCALE_NOISE				/**< Init a large scale random noise (4 largest modes) */
-#define		PER_AMPLITUDE_LARGE			1.0		/**< Amplitude of the large scale random noise */
+#define		PER_AMPLITUDE_LARGE			0.1		/**< Amplitude of the large scale random noise */
+#define		NOISE_CUT_LENGTH			0.2		/**< Wavelength over which the noise is applied */
 
 //#define		INIT_WHITE_NOISE					/**< Init a random white noise on all the modes */
 #define		PER_AMPLITUDE_NOISE			1.0		/**< total amplitude of the perturbation */
