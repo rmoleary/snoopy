@@ -1,6 +1,6 @@
 OPENMP=no
-MPI=no
-FFTW3_MPI=no
+MPI=yes
+FFTW3_MPI=yes
 DEBUG=no
 
 CLUSTER="HPCF Cambridge"
