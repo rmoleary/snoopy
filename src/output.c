@@ -580,6 +580,9 @@ void output_timevar(const struct Field fldi,
 		fprintf(ht,"%08e\t%08e\t%08e\t%08e\t%08e\t%08e\t",bxmax,bxmin,bymax,bymin,bzmax,bzmin);
 		fprintf(ht,"%08e\t",maxwell_stress);
 		fprintf(ht,"%08e\t%08e",thmax,thmin);
+#ifdef TIME_DEPENDANT_SHEAR
+		fprintf(ht,"\t%08e",SHEAR * OMEGA_SHEAR * cos(OMEGA_SHEAR * t));
+#endif
 		fprintf(ht,"\n");
 		fclose(ht);
 #ifdef MPI_SUPPORT
