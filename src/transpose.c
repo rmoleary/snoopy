@@ -106,7 +106,6 @@ void transpose_complex_XY(PRECISION complex *qin, PRECISION complex *qout) {
 			}
 		}
 	}
-}
 
     return;
 }

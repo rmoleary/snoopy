@@ -252,21 +252,29 @@ void write_vtk(FILE * ht, PRECISION complex wi[], const PRECISION t) {
 		if (chunk == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for chunk allocation");
 	}
 #endif
-		
+	#ifdef DEBUG
+	MPI_Printf("write_vtk(...) stage 2\n");
+#endif
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
 		w1[i] = wi[i];
 	}
 	
 	gfft_c2r(w1);
-	
+
 	for( i = 0 ; i < 2 * NTOTAL_COMPLEX ; i++) {
 		wr1[i] = wr1[i] / ((double) NTOTAL );
 	}
 	
+	#ifdef DEBUG
+	MPI_Printf("write_vtk(...) stage 3\n");
+#endif
+
 #ifdef WITH_SHEAR
 	remap_output(wr1,t);
 #endif
-
+#ifdef DEBUG
+	MPI_Printf("write_vtk(...) stage 4\n");
+#endif
 	for( k = 0 ; k < NZ; k++) {
 		for( j = 0; j < NY; j++) {
 #ifdef MPI_SUPPORT
@@ -288,8 +296,14 @@ void write_vtk(FILE * ht, PRECISION complex wi[], const PRECISION t) {
 				fwrite(&q0, sizeof(float), 1, ht);
 #endif
 			}
+#ifdef MPI_SUPPORT
+			MPI_Barrier(MPI_COMM_WORLD);
+#endif
 		}
 	}
+#ifdef DEBUG
+	MPI_Printf("write_vtk(...) stage 5\n");
+#endif
 #ifdef MPI_SUPPORT	
 	if(rank==0) free(chunk);
 #endif
