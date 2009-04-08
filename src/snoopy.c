@@ -131,6 +131,7 @@ int main(int argc, char *argv[]) {
 	print_logo();
 	MPI_Printf("The Snoopy code v2.0\n");
 	MPI_Printf("(c) 2004-2009 G. Lesur (University of Cambridge, UK)\n");
+	MPI_Printf("Compiled on %s at %s\n",__DATE__ , __TIME__);
 	print_information();
 	MPI_Printf("Initializing...\n");
 	init_common();

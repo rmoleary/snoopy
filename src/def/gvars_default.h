@@ -47,10 +47,11 @@
 //#define		FORTRAN_OUTPUT_ORDER	/**< If VTK_OUTPUT is commented, the code will output binary in C-major order. Uncomment this to get output in FORTRAN-major order (doesn't work with MPI) */
 #define		VTK_OUTPUT					/**< Use VTK legacy files for output instead of raw binaries (useful with paraview) */
 
-#define		INTERFACE_CHECK	5			/**< Number of loops between two checks for a user input. On slow filesystems, increase this number */
+#define		INTERFACE_CHECK		5		/**< Number of loops between two checks for a user input. On slow filesystems, increase this number */
 //#define		INTERFACE_OUTPUT_FILE	/**< Uncomment this option to force code outputs to a file instead of the screen */
 
-#define ANTIALIASING					/**< 2/3 Antialisaing rule. Could be removed if you assume is unimportant (untested feature). */
+#define		FIELD_SYMMETRIZE	20		/**< Number of loop between which the Fourier field is symmetrized. Should be around ~20 for Boussinesq convection*/
+#define		ANTIALIASING				/**< 2/3 Antialisaing rule. Could be removed if you assume is unimportant (untested feature). */
 
 #define		FFT_PLANNING	FFTW_MEASURE  /**< can be either FFTW_ESTIMATE, FFTW_MEASURE, FFTW_PATIENT or FFTW_EXHAUSTIVE (see fftw3 doc). Measure leads to longer initialisation of fft routines */
 

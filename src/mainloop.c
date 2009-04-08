@@ -271,6 +271,20 @@ void mainloop() {
 
 		nloop++;
 		if(!(nloop % INTERFACE_CHECK)) check_interface(fld,t,dt,nloop,tstart);
+		if(!(nloop % FIELD_SYMMETRIZE)) {
+			// Symmetrize the fields
+			symmetrize(fld.vx);
+			symmetrize(fld.vy);
+			symmetrize(fld.vz);
+#ifdef BOUSSINESQ
+			symmetrize(fld.th);
+#endif
+#ifdef MHD
+			symmetrize(fld.bx);
+			symmetrize(fld.by);
+			symmetrize(fld.bz);
+#endif
+		}
 		
 		dt = newdt(tremap);
 		
