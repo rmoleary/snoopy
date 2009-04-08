@@ -83,10 +83,9 @@ void remap(PRECISION complex qi[]) {
 
 void kvolve(const PRECISION tremap) {
 	int i, j, k;
-#pragma omp parallel private(i,j,k) num_threads ( NTHREADS )
-{
-		/* Compute the convolution */
-	#pragma omp for schedule(static) nowait	
+#ifdef _OPENMP
+	#pragma omp parallel for private(i,j,k) schedule(static)	
+#endif	
 	for( i = 0; i < NX_COMPLEX/NPROC; i++) {
 		for( j = 0; j < NY_COMPLEX; j++) {
 			for( k = 0; k < NZ_COMPLEX; k++) {
@@ -101,7 +100,7 @@ void kvolve(const PRECISION tremap) {
 			}
 		}
 	}
-}
+
 	return;
 }
 #endif

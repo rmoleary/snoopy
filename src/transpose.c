@@ -24,8 +24,8 @@ void init_transpose() {
 	if (temp2 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for temp2 allocation");
 
 #ifdef FFTW3_MPI_SUPPORT
-#ifdef OPENMP_SUPPORT
-	fftw_plan_with_nthreads( NTHREADS );
+#ifdef _OPENMP
+	fftw_plan_with_nthreads( nthreads );
 #endif
 	plan_t_XY = fftw_mpi_plan_many_transpose(NX, NY, (NZ+2), NX/NPROC, NY/NPROC, wr1, wr1, MPI_COMM_WORLD, FFT_PLANNING);
 	if (plan_t_XY == NULL) ERROR_HANDLER( ERROR_CRITICAL, "FFTW plan_t_XY plan creation failed");
@@ -70,9 +70,9 @@ void transpose_complex_XY(PRECISION complex *qin, PRECISION complex *qout) {
 // First, transpose locally the array in qout (will be erased anyway...)
 
 	
-#pragma omp parallel private(i,j) num_threads ( NTHREADS )
-{
-	#pragma omp for schedule(static) nowait	
+#ifdef _OPENMP
+	#pragma omp parallel for private(i,j,k) schedule(static)	
+#endif	
 	for(i=0 ; i < local_nxin ; i++) {
 		for(j=0 ; j < nyin ; j++) {
 			for(k=0 ; k < nzin ; k++) {
@@ -80,7 +80,7 @@ void transpose_complex_XY(PRECISION complex *qin, PRECISION complex *qout) {
 			}
 		}
 	}
-}
+
 			
 // Next, MPI the whole thing... Have to be out of place
 // Here we could use qin as destination, if qin could be destroyed (might be an interesting optimisation...)
@@ -94,9 +94,9 @@ void transpose_complex_XY(PRECISION complex *qin, PRECISION complex *qout) {
 // One have to reorder the chunks to get the array right
 
 
-#pragma omp parallel private(i,j,n) num_threads ( NTHREADS )
-{
-	#pragma omp for schedule(static) nowait	
+#ifdef _OPENMP
+	#pragma omp parallel for private(i,j,k,n) schedule(static)	
+#endif	
 	for(i=0 ; i < local_nyin ; i++) {
 		for(n=0 ; n < nproc ; n++) {
 			for(j=0 ; j < local_nxin ; j++) {
@@ -130,9 +130,9 @@ void transpose_complex_YX(PRECISION complex *qin, PRECISION complex *qout) {
 	
 // First, transpose locally the array in qout (will be erased anyway...)
 	
-#pragma omp parallel private(i,j,k) num_threads ( NTHREADS )
-{
-	#pragma omp for schedule(static) nowait	
+#ifdef _OPENMP
+	#pragma omp parallel for private(i,j,k) schedule(static)	
+#endif	
 	for(i=0 ; i < local_nxin ; i++) {
 		for(j=0 ; j < nyin ; j++) {
 			for(k=0 ; k < nzin ; k++) {
@@ -140,7 +140,6 @@ void transpose_complex_YX(PRECISION complex *qin, PRECISION complex *qout) {
 			}
 		}
 	}
-}
 
 				
 // Next, MPI the whole thing... Have to be out of place
@@ -155,9 +154,9 @@ void transpose_complex_YX(PRECISION complex *qin, PRECISION complex *qout) {
 // One have to reorder the chunks to get the array right
 
 
-#pragma omp parallel private(i,j,k,n) num_threads ( NTHREADS )
-{
-	#pragma omp for schedule(static) nowait	
+#ifdef _OPENMP
+	#pragma omp parallel for private(i,j,k,n) schedule(static)	
+#endif	
 	for(i=0 ; i < local_nyin ; i++) {
 		for(n=0 ; n < nproc ; n++) {
 			for(j=0 ; j < local_nxin ; j++) {
@@ -167,7 +166,7 @@ void transpose_complex_YX(PRECISION complex *qin, PRECISION complex *qout) {
 			}
 		}
 	}
-}
+
 
     return;
 }

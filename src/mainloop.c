@@ -29,16 +29,15 @@ PRECISION newdt(PRECISION tremap) {
 #endif
 	PRECISION dt;
 	
-#pragma omp parallel private(i) num_threads ( NTHREADS )
-{
 		/* Compute the convolution */
-	#pragma omp for schedule(static) nowait	
+#ifdef _OPENMP
+	#pragma omp parallel for private(i) schedule(static)
+#endif
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
 		w1[i] =  fld.vx[i];
 		w2[i] =  fld.vy[i];
 		w3[i] =  fld.vz[i];
 	}
-}
 
 	gfft_c2r_t(w1);
 	gfft_c2r_t(w2);
@@ -48,17 +47,12 @@ PRECISION newdt(PRECISION tremap) {
 	maxfy=0.0;
 	maxfz=0.0;
 
-//#pragma omp parallel private(i) num_threads ( NTHREADS )
-//{
-		/* Compute the convolution */
-//	#pragma omp for schedule(static) nowait		
 	for( i = 0 ; i < NTOTAL_COMPLEX * 2 ; i++) {
 		if( fabs( wr1[i] ) > maxfx ) maxfx = fabs( wr1[i] );
 		if( fabs( wr2[i] ) > maxfy ) maxfy = fabs( wr2[i] );
 		if( fabs( wr3[i] ) > maxfz ) maxfz = fabs( wr3[i] );
 		
 	}
-//}
 
 	maxfx = maxfx / ((double) NTOTAL);
 	maxfy = maxfy / ((double) NTOTAL);
@@ -81,16 +75,16 @@ PRECISION newdt(PRECISION tremap) {
 	gamma_v += fabs(OMEGA_SHEAR) / SAFETY_SOURCE;
 #endif
 #ifdef MHD
-#pragma omp parallel private(i) num_threads ( NTHREADS )
-{
-		/* Compute the magnetic CFL condition */
-	#pragma omp for schedule(static) nowait	
+
+	/* Compute the magnetic CFL condition */
+#ifdef _OPENMP
+	#pragma omp parallel for private(i) schedule(static)	
+#endif
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
 		w1[i] =  fld.bx[i];
 		w2[i] =  fld.by[i];
 		w3[i] =  fld.bz[i];
 	}
-}
 
 	gfft_c2r_t(w1);
 	gfft_c2r_t(w2);
@@ -293,9 +287,9 @@ void mainloop() {
 		// 1st RK3 step
 		
 		timestep(dfld, fld, t, dt);
-#pragma omp parallel private(i) num_threads ( NTHREADS )
-{
-	#pragma omp for schedule(static) nowait	
+#ifdef _OPENMP
+		#pragma omp parallel for private(i) schedule(static)	
+#endif
 		for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
 			fld.vx[i]  = fld.vx[i] + gammaRK[0] * dfld.vx[i] * dt;
 			fld.vy[i]  = fld.vy[i] + gammaRK[0] * dfld.vy[i] * dt;
@@ -320,7 +314,7 @@ void mainloop() {
 			fld1.bz[i] = fld.bz[i] + xiRK[0] * dfld.bz[i] * dt;
 #endif			
 		}
-}		
+		
 #ifdef DEBUG
 		MPI_Printf("RK, 1st Step:\n");
 		MPI_Printf("fld:\n");
@@ -343,9 +337,9 @@ void mainloop() {
 		
 		timestep(dfld, fld, t+gammaRK[0]*dt, dt);
 
-#pragma omp parallel private(i) num_threads ( NTHREADS )
-{
-	#pragma omp for schedule(static) nowait		
+#ifdef _OPENMP
+		#pragma omp parallel for private(i) schedule(static)	
+#endif
 		for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
 			fld.vx[i]  = fld1.vx[i] + gammaRK[1] * dfld.vx[i] * dt;
 			fld.vy[i]  = fld1.vy[i] + gammaRK[1] * dfld.vy[i] * dt;
@@ -369,7 +363,7 @@ void mainloop() {
 			fld1.bz[i] = fld.bz[i] + xiRK[1] * dfld.bz[i] * dt;
 #endif
 		}
-}
+
 #ifdef DEBUG
 		MPI_Printf("RK, 2nd Step:\n");
 		MPI_Printf("fld:\n");
@@ -393,9 +387,9 @@ void mainloop() {
 		
 		timestep(dfld, fld, t + (gammaRK[0] + xiRK[0] + gammaRK[1]) * dt, dt);
 
-#pragma omp parallel private(i) num_threads ( NTHREADS )
-{
-	#pragma omp for schedule(static) nowait			
+#ifdef _OPENMP
+		#pragma omp parallel for private(i) schedule(static)	
+#endif			
 		for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
 			fld.vx[i]  = fld1.vx[i] + gammaRK[2] * dfld.vx[i] * dt;
 			fld.vy[i]  = fld1.vy[i] + gammaRK[2] * dfld.vy[i] * dt;
@@ -409,7 +403,7 @@ void mainloop() {
 			fld.bz[i]  = fld1.bz[i] + gammaRK[2] * dfld.bz[i] * dt;
 #endif
 		}
-}
+
 #ifdef DEBUG
 		MPI_Printf("RK, 3rd Step:\n");
 		MPI_Printf("fld:\n");

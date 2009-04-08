@@ -36,12 +36,12 @@ void gfft_r2c_t(PRECISION *wrin) {
 	transpose_complex_YX(win, win);
 	
 	// We now have an array with logical dimensions[NX_COMPLEX/NPROC, NY_COMPLEX, NZ_COMPLEX]
-#pragma omp parallel private(i) num_threads ( NTHREADS )
-{
-	#pragma omp for schedule(static) nowait	
+#ifdef _OPENMP
+	#pragma omp parallel for private(i) schedule(static)	
+#endif
 	for(i=0 ; i < NX_COMPLEX/NPROC ; i++) 
 		fftw_execute_dft(r2c_1d, &win[i*NY_COMPLEX*NZ_COMPLEX],&win[i*NY_COMPLEX*NZ_COMPLEX]);
-}
+
 	// done...
 	return;
 }
@@ -51,12 +51,12 @@ void gfft_c2r_t(PRECISION complex *win) {
 	int i;
 	PRECISION *wrin = (PRECISION *) win;
 	// We now have an array with logical dimensions[NX_COMPLEX/NPROC, NY_COMPLEX, NZ_COMPLEX]
-#pragma omp parallel private(i) num_threads ( NTHREADS )
-{
-	#pragma omp for schedule(static) nowait	
+#ifdef _OPENMP
+	#pragma omp parallel for private(i) schedule(static)	
+#endif	
 	for(i=0 ; i < NX_COMPLEX/NPROC ; i++) 
 		fftw_execute_dft(c2r_1d, &win[i*NY_COMPLEX*NZ_COMPLEX],&win[i*NY_COMPLEX*NZ_COMPLEX]);
-}		
+		
 	// The logical dimensions of win are [NX_COMPLEX/NPROC, NY_COMPLEX, NZ_COMPLEX]
 	// transpose it
 	transpose_complex_XY(win, win);
@@ -100,8 +100,8 @@ void init_gfft() {
 		wi1[i]=1.0;
 	}
 	
-#ifdef OPENMP_SUPPORT
-	fftw_plan_with_nthreads( NTHREADS );
+#ifdef _OPENMP
+	fftw_plan_with_nthreads( nthreads );
 #endif
 	r2c_2d = fftw_plan_many_dft_r2c(2, n_size2D, NY / NPROC, wir1, NULL, 1, (NZ+2)*NX,
 															 wi1,  NULL, 1, (NZ+2)*NX/2, FFT_PLANNING);
@@ -117,7 +117,7 @@ void init_gfft() {
 	// We will do NZ_COMPLEX transforms along Y. Will need a loop on NX/NPROC
 	// We use &w1[NZ_COMPLEX] so that alignement check is done properly (see SIMD in fftw Documentation)
 	
-#ifdef OPENMP_SUPPORT	
+#ifdef _OPENMP	
 	fftw_plan_with_nthreads( 1 );
 #endif	
 	r2c_1d = fftw_plan_many_dft(1, n_size1D, NZ_COMPLEX, &wi1[NZ_COMPLEX], NULL, NZ_COMPLEX, 1,
@@ -184,8 +184,8 @@ void init_gfft() {
 	
 	wir1 = (PRECISION *) wi1;
 	
-#ifdef OPENMP_SUPPORT
-	fftw_plan_with_nthreads( NTHREADS );
+#ifdef _OPENMP
+	fftw_plan_with_nthreads( nthreads );
 #endif
 	
 	r2cfft = fftw_plan_dft_r2c_3d( NX, NY, NZ, wr1, w1,  FFT_PLANNING);

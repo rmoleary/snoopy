@@ -4,7 +4,7 @@
 
 
 ifeq ($(OPENMP),yes)
-	CFLAGS+=$(OPENMP_FLAG) -DOPENMP_SUPPORT
+	CFLAGS+=$(OPENMP_FLAG)
 	LDFLAGS+=-lfftw3_threads
 endif
 ifeq ($(FFTW3_MPI),yes)

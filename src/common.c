@@ -2,7 +2,7 @@
 
 // Timing support
 #ifndef MPI_SUPPORT
-#ifndef OPENMP_SUPPORT
+#ifndef _OPENMP
 #include <stdio.h>
 #include <time.h>
 #endif
@@ -19,7 +19,7 @@
 #endif
 #endif
 
-#ifdef OPENMP_SUPPORT
+#ifdef _OPENMP
 #include <omp.h>
 #endif
 
@@ -80,6 +80,7 @@ PRECISION	eta;
 #endif
 
 int		rank;
+int		nthreads;								/**< Number of OpenMP threads */
 
 /** Init all global variables, aligning them in memory */
 void init_common(void) {
@@ -90,7 +91,7 @@ void init_common(void) {
 	fftw_mpi_init();
 #endif
 #endif
-#ifdef OPEN_SUPPORT	
+#ifdef _OPENMP
 	if( !(fftw_init_threads()) ) ERROR_HANDLER( ERROR_CRITICAL, "Threads initialisation failed");
 #endif
 	
@@ -389,7 +390,7 @@ double get_c_time(void) {
 	// We have MPI
 	return(MPI_Wtime());
 #else
-#ifdef OPENMP_SUPPORT
+#ifdef _OPENMP
 	// We don't have MPI, but we have OpenMP
 	return(omp_get_wtime());
 #else

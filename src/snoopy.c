@@ -63,9 +63,15 @@ void print_information(void) {
 #else
 	MPI_Printf("MPI disabled\n");
 #endif
-#ifdef OPENMP_SUPPORT
-	MPI_Printf("Using OpenMP with %d threads.\n", NTHREADS);
+#ifdef _OPENMP
+	#pragma omp parallel 
+	{
+	nthreads = omp_get_num_threads();
+	}
+	
+	MPI_Printf("Using OpenMP with %d threads.\n", nthreads);
 #else
+	nthreads = 1;	// Safety value
 	MPI_Printf("OpenMP disabled\n");
 #endif
 	MPI_Printf("(NX,NY,NZ)=\t(%d,%d,%d)\n",NX,NY,NZ);

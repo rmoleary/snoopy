@@ -903,7 +903,7 @@ void init_output() {
 // FFT plans (we use dummy arrays since we use the "guru" interface of fft3 in the code)
 // The in place/ out of place will be set automatically at this stage
 
-#ifdef OPENMP_SUPPORT	
+#ifdef _OPENMP
 	fftw_plan_with_nthreads( 1 );
 #endif
 

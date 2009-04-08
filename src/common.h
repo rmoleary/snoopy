@@ -6,6 +6,10 @@
 #include <mpi.h>
 #endif
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "gvars.h"
 #include "error.h"
 
@@ -66,6 +70,9 @@ extern PRECISION	eta;
 
 // MPI
 extern int rank;
+
+// OpenMP
+extern int	nthreads;
 
 // Functions provided by the common routine
 
