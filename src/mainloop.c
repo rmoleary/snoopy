@@ -133,6 +133,9 @@ PRECISION newdt(PRECISION tremap) {
 }			   			   
 		
 void init_mainloop() {
+#ifdef DEBUG
+	MPI_Printf("init_mainloop()\n");
+#endif
 	dfld.vx = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
 	if (dfld.vx == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for dfld.vx allocation");
 	
@@ -195,7 +198,9 @@ void init_mainloop() {
 	xiRK[0] = 0.0;
 	xiRK[1] = 0.0;
 */
-	
+#ifdef DEBUG
+	MPI_Printf("End init_mainloop()\n");
+#endif
 	return;
 }
 

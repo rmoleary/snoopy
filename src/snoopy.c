@@ -129,7 +129,7 @@ int main(int argc, char *argv[]) {
 	rank=0;
 #endif
 	print_logo();
-	MPI_Printf("The Snoopy code v1.0\n");
+	MPI_Printf("The Snoopy code v2.0\n");
 	MPI_Printf("(c) 2004-2009 G. Lesur (University of Cambridge, UK)\n");
 	print_information();
 	MPI_Printf("Initializing...\n");
@@ -138,7 +138,7 @@ int main(int argc, char *argv[]) {
 	init_flow();
 	init_output();
 	
-	MPI_Printf("Calling mainloop... touch status, output or stop to print more information.\n");
+	MPI_Printf("Calling mainloop... touch status, output, dump or stop to print more information.\n");
 	please_wait();
 	mainloop();
 	
