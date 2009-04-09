@@ -38,6 +38,11 @@ ifeq ($(HOSTNAME),neptune.damtp.cam.ac.uk)
 	CONFIG_FILE=src/def/config_neptune.mk
 endif
 
+#Neptune and astro group coreI7
+ifeq ($(HOSTNAME),earth.damtp.cam.ac.uk)
+	CONFIG_FILE=src/def/config_earth.mk
+endif
+
 # Cambridge HPCF
 ifeq ($(DOMAINNAME),moab.cluster)
 	CONFIG_FILE=src/def/config_hpcf.mk

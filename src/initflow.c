@@ -70,8 +70,15 @@ void init_SpatialStructure() {
 	
 	for(i = 0 ; i < 2*NTOTAL_COMPLEX ; i++) {
 		// Example: init a flux tube in the x direction+a vertical displacement
-		wr4[i] = exp(-(y[i]*y[i]+z[i]*z[i])*20.0);
+	  //	wr4[i] = exp(-(y[i]*y[i]+z[i]*z[i])*20.0);
+	  //	wr3[i] = 0.5*cos(x[i] * 2.0 * M_PI);
+
+		// Example: twisted flux tube + vertical displacement
+		wr4[i] = exp(-(y[i]*y[i]+z[i]*z[i])/(0.2*0.2));
+		wr5[i] = fabs(z[i])*1.0*wr4[i];
+		wr6[i] = -fabs(y[i])*1.0*wr4[i];
 		wr3[i] = 0.5*cos(x[i] * 2.0 * M_PI);
+		if (i==3*NY*(NZ+2)) fprintf(stderr," %d %e",i,x[i]);
 	}
 	
 	/*******************************************************************
