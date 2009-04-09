@@ -4,10 +4,7 @@
 #include "gvars.h"
 #include "common.h"
 #include "gfft.h"
-
-#ifdef DEBUG
 #include "debug.h"
-#endif
 
 #ifdef FORCING
 /*************************************************

@@ -44,6 +44,7 @@ struct Field {
 #endif
 };
 
+#include "debug.h"	// Has to be declared after the structure since this structure is used in debug.h
 
 // This are global variables used throughout the code
 // Wave number pointers
@@ -86,6 +87,9 @@ int		nthreads;								/**< Number of OpenMP threads */
 void init_common(void) {
 	/* This routine will initialize everything */
 	int i,j,k;
+	
+	DEBUG_START_FUNC;
+	
 #ifdef MPI_SUPPORT
 #ifdef FFTW3_MPI_SUPPORT	
 	fftw_mpi_init();
@@ -261,6 +265,7 @@ void init_common(void) {
 #ifdef MHD
 	eta = 1.0 / REYNOLDS_M;
 #endif
+	DEBUG_END_FUNC;
 	return;
 }
 

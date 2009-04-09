@@ -1,9 +1,8 @@
 #include "common.h"
 #include "gfft.h"
 
-#ifdef DEBUG
 #include "debug.h"
-#endif
+
 
 
 /** Allow one to init a structure in real space using ordinary defined x,y,z coordinates */
@@ -264,6 +263,7 @@ void init_MeanField() {
 void init_flow() {
 	int i;
 	
+	DEBUG_START_FUNC;
 	// Initialise vectors to 0
 	
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
@@ -311,7 +311,8 @@ void init_flow() {
 	MPI_Printf("**************************************************************************************\n");
 #endif	
 	
-
+	DEBUG_END_FUNC;
+	
 	return;
 }
 	

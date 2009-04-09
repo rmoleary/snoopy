@@ -6,10 +6,7 @@
 #include "interface.h"
 #include "gfft.h"
 #include "shear.h"
-
-#ifdef DEBUG
 #include "debug.h"
-#endif
 
 struct Field			dfld, fld1;
 
@@ -29,7 +26,8 @@ PRECISION newdt(PRECISION tremap) {
 #endif
 	PRECISION dt;
 	
-		/* Compute the convolution */
+	DEBUG_START_FUNC;
+	
 #ifdef _OPENMP
 	#pragma omp parallel for private(i) schedule(static)
 #endif
@@ -123,13 +121,14 @@ PRECISION newdt(PRECISION tremap) {
 #endif
 	MPI_Printf("newdt: maxfx=%e, maxfy=%e, maxfz=%e, dt=%e\n",maxfx,maxfy, maxfz, dt);
 #endif
+	DEBUG_END_FUNC;
 	return(dt);
 }			   			   
 		
 void init_mainloop() {
-#ifdef DEBUG
-	MPI_Printf("init_mainloop()\n");
-#endif
+
+	DEBUG_START_FUNC;
+	
 	dfld.vx = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
 	if (dfld.vx == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for dfld.vx allocation");
 	
@@ -192,9 +191,9 @@ void init_mainloop() {
 	xiRK[0] = 0.0;
 	xiRK[1] = 0.0;
 */
-#ifdef DEBUG
-	MPI_Printf("End init_mainloop()\n");
-#endif
+
+	DEBUG_END_FUNC;
+	
 	return;
 }
 
@@ -231,6 +230,8 @@ void mainloop() {
 	
 	double tstart, tend;
 	int i,nloop;
+	
+	DEBUG_START_FUNC;
 	
 	init_mainloop();
 	nloop=0;

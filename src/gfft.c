@@ -1,5 +1,6 @@
 #include "gvars.h"
 #include "common.h"
+#include "debug.h"
 
 #ifdef MPI_SUPPORT
 // That's a long MPI if def...
@@ -91,6 +92,8 @@ void init_gfft() {
 	// We use in-place transforms
 	int i;
 	
+	DEBUG_START_FUNC;
+	
 	wi1 = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
 	if (wi1 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for wi1 allocation");
 
@@ -134,6 +137,8 @@ void init_gfft() {
 		
 	fftw_free(wi1);
 
+	DEBUG_END_FUNC;
+	
 	return;
 }
 
@@ -179,6 +184,8 @@ void gfft_c2r(PRECISION complex *win){
 
 void init_gfft() {
 	
+	DEBUG_START_FUNC;
+	
 	wi1 = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
 	if (wi1 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for wi1 allocation");
 	
@@ -197,6 +204,7 @@ void init_gfft() {
 	
 	fftw_free(wi1);
 	
+	DEBUG_END_FUNC;
 	
 	return;
 }

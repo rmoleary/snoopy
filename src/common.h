@@ -13,6 +13,7 @@
 #include "gvars.h"
 #include "error.h"
 
+
 #ifdef MPI_SUPPORT
 #define		MPI_Printf			if (rank==0) printf
 #else
@@ -34,8 +35,6 @@ struct Field {
 	PRECISION complex *bz;
 #endif
 };
-
-
 
 // All these variables may be used in the code as they are initialized by common.c
 // Wave number pointers

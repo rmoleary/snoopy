@@ -2,7 +2,7 @@
 #ifdef MPI_SUPPORT
 #include "transpose.h"
 #endif
-
+#include "debug.h"
 #ifdef WITH_SHEAR
 
 
@@ -20,9 +20,8 @@ void remap(PRECISION complex qi[]) {
 	int i, j, k;
 	int nx, ny, nxtarget;
 	
-#ifdef DEBUG
-	MPI_Printf("Remap called\n");
-#endif
+	DEBUG_START_FUNC;
+	
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
 		w1[i]=0.0;
 	}
@@ -77,6 +76,7 @@ void remap(PRECISION complex qi[]) {
 		qi[i] = w1[i] * mask[i];
 	}
 
+	DEBUG_END_FUNC;
 	
 	return;
 }

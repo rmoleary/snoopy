@@ -72,6 +72,16 @@ void D_show_all(struct Field fldi) {
 	return;
 }
 
+void debug_start_f(const char ErrorRoutine[], const int line, const char ErrorFile[]) {
+	MPI_Printf("Start of %s (Line %d of file %s)\n", ErrorRoutine, line, ErrorFile);
+	return;
+}
+
+void debug_end_f(const char ErrorRoutine[], const int line, const char ErrorFile[]) {
+	MPI_Printf("End of %s (Line %d of file %s)\n", ErrorRoutine, line, ErrorFile);
+	return;
+}
+
 #endif
 	
 	

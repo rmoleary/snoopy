@@ -4,6 +4,7 @@
 #include "timestep.h"
 #include "gfft.h"
 #include "shear.h"
+#include "debug.h"
 
 #define	OUTPUT_DUMP					"dump.dmp"			/**< Dump files filename. */
 #define	OUTPUT_DUMP_VERSION			04					/**< Version of the dump files read and written by this code. */
@@ -43,6 +44,8 @@ void remap_output(	PRECISION wri[],
 	PRECISION tremap;
 	complex PRECISION wexp;
 	complex PRECISION phase;
+	
+	DEBUG_START_FUNC;
 	
 #ifdef TIME_DEPENDANT_SHEAR
 	tremap = time_shift(t);
@@ -84,6 +87,9 @@ void remap_output(	PRECISION wri[],
 			}
 		}
 	}
+	
+	DEBUG_END_FUNC;
+	
 	return;
 }
 #endif
@@ -116,9 +122,8 @@ void write_snap(const PRECISION t, const char filename[], const PRECISION comple
 	MPI_Status status;
 #endif
 
-#ifdef DEBUG
-	MPI_Printf("write_snap(...)\n");
-#endif
+	DEBUG_START_FUNC;
+	
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
 		w1[i] = wi[i];
 	}
@@ -176,9 +181,7 @@ void write_snap(const PRECISION t, const char filename[], const PRECISION comple
 	}
 #endif
 
-#ifdef DEBUG
-	MPI_Printf("End write_snap(...)\n");
-#endif
+	DEBUG_END_FUNC;
 	
 	return;
 
@@ -241,9 +244,7 @@ void write_vtk(FILE * ht, PRECISION complex wi[], const PRECISION t) {
 	int i,j,k;
 	float q0;
 
-#ifdef DEBUG
-	MPI_Printf("write_vtk(...)\n");
-#endif
+	DEBUG_START_FUNC;
 
 #ifdef MPI_SUPPORT
 	PRECISION * chunk = NULL;
@@ -252,9 +253,7 @@ void write_vtk(FILE * ht, PRECISION complex wi[], const PRECISION t) {
 		if (chunk == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for chunk allocation");
 	}
 #endif
-	#ifdef DEBUG
-	MPI_Printf("write_vtk(...) stage 2\n");
-#endif
+
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
 		w1[i] = wi[i];
 	}
@@ -265,16 +264,11 @@ void write_vtk(FILE * ht, PRECISION complex wi[], const PRECISION t) {
 		wr1[i] = wr1[i] / ((double) NTOTAL );
 	}
 	
-	#ifdef DEBUG
-	MPI_Printf("write_vtk(...) stage 3\n");
-#endif
 
 #ifdef WITH_SHEAR
 	remap_output(wr1,t);
 #endif
-#ifdef DEBUG
-	MPI_Printf("write_vtk(...) stage 4\n");
-#endif
+
 	for( k = 0 ; k < NZ; k++) {
 		for( j = 0; j < NY; j++) {
 #ifdef MPI_SUPPORT
@@ -301,15 +295,13 @@ void write_vtk(FILE * ht, PRECISION complex wi[], const PRECISION t) {
 #endif
 		}
 	}
-#ifdef DEBUG
-	MPI_Printf("write_vtk(...) stage 5\n");
-#endif
+
 #ifdef MPI_SUPPORT	
 	if(rank==0) free(chunk);
 #endif
-#ifdef DEBUG
-	MPI_Printf("End write_vtk(...)\n");
-#endif
+
+	DEBUG_END_FUNC;
+	
 	return;
 }
 
@@ -329,9 +321,7 @@ void output_vtk(const int n, PRECISION t) {
 	char  filename[50];
 	int num_remain_field;
 	
-#ifdef DEBUG
-	MPI_Printf("output_vtk(...)\n");
-#endif
+	DEBUG_START_FUNC;
 
 	sprintf(filename,"data/v%04i.vtk",n);
 	if(rank==0) {
@@ -385,9 +375,9 @@ void output_vtk(const int n, PRECISION t) {
 	write_vtk(ht,fld.th,t);
 #endif	  
 	if(rank==0) fclose(ht);
-#ifdef DEBUG
-	MPI_Printf("End output_vtk(...)\n");
-#endif
+	
+	DEBUG_END_FUNC;
+	
 	return;
 	
 }
@@ -404,10 +394,9 @@ void output_vtk(const int n, PRECISION t) {
 /***********************************************************/
 	
 void output_flow(const int n, const PRECISION t) {
-#ifdef DEBUG
-	MPI_Printf("output_flow(...)\n");
-#endif
 	char filename[50];
+	
+	DEBUG_START_FUNC;
 	
 	sprintf(filename,"data/vx%04i.raw",n);
 	write_snap(t, filename, fld.vx);
@@ -433,9 +422,9 @@ void output_flow(const int n, const PRECISION t) {
 	sprintf(filename,"data/bz%04i.raw",n);
 	write_snap(t, filename, fld.bz);
 #endif
-#ifdef DEBUG
-	MPI_Printf("End output_flow(...)\n");
-#endif
+
+	DEBUG_END_FUNC;
+	
 	return;
 }
 
@@ -461,9 +450,8 @@ void output_timevar(const struct Field fldi,
 
 	int i;
 	
-#ifdef DEBUG
-	MPI_Printf("output_timevar(...)\n");
-#endif
+	DEBUG_START_FUNC;
+	
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
 		w1[i] = fldi.vx[i];
 		w2[i] = fldi.vy[i];
@@ -606,9 +594,9 @@ void output_timevar(const struct Field fldi,
 #else
 	}
 #endif
-#ifdef DEBUG
-	MPI_Printf("End output_timevar(...)\n");
-#endif
+
+	DEBUG_END_FUNC;
+	
 	return;
 }
 /**********************************************************
@@ -720,9 +708,8 @@ void output_dump( const struct Field fldi,
 	
 	ht=NULL;
 	
-#ifdef DEBUG
-	MPI_Printf("output_dump(...)\n");
-#endif
+	DEBUG_START_FUNC;
+	
 	size_x = NX;
 	size_y = NY;
 	size_z = NZ;
@@ -783,9 +770,9 @@ void output_dump( const struct Field fldi,
 	
 		fclose(ht);
 	}
-#ifdef DEBUG
-	MPI_Printf("End output_dump(...)\n");
-#endif
+	
+	DEBUG_END_FUNC;
+	
 	return;
 }
 
@@ -804,9 +791,7 @@ void read_dump(   struct Field fldo,
 	int size_x,	size_y, size_z, included_field;
 	int marker;
 
-#ifdef DEBUG
-	MPI_Printf("read_dump(...)\n");
-#endif
+	DEBUG_START_FUNC;
 
 	ht=NULL;
 	
@@ -887,9 +872,9 @@ void read_dump(   struct Field fldo,
 #endif
 	
 	MPI_Printf("Restarting at t=%e...\n",*t);
-#ifdef DEBUG
-	MPI_Printf("End read_dump(...)\n");
-#endif
+
+	DEBUG_END_FUNC;
+	
 	return;
 }
 	
@@ -903,9 +888,9 @@ void read_dump(   struct Field fldo,
 /**************************************************************************************/
 
 void init_output() {
-#ifdef DEBUG
-	MPI_Printf("init_output()\n");
-#endif
+
+	DEBUG_START_FUNC;
+	
 #ifdef WITH_SHEAR
 // Initialize 1D arrays for remaps
 	w1d = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NY);
@@ -936,9 +921,8 @@ void init_output() {
 	lastoutput_dump = T_INITIAL - TOUTPUT_DUMP;
 	
 #endif
-#ifdef DEBUG
-	MPI_Printf("End init_output()\n");
-#endif
+	DEBUG_END_FUNC;
+	
 	return;
 }
 
@@ -951,9 +935,9 @@ void init_output() {
 /**************************************************************************************/
 
 void output(const PRECISION t) {
-#ifdef DEBUG
-	MPI_Printf("output(t)\n");
-#endif
+	
+	DEBUG_START_FUNC;
+	
 	// Very rough output function
 	if( (t-lastoutput_time)>=TOUTPUT_TIME) {
 		output_timevar(fld,t);
@@ -974,9 +958,9 @@ void output(const PRECISION t) {
 		lastoutput_dump=lastoutput_dump+TOUTPUT_DUMP;
 		output_dump(fld,t);
 	}
-#ifdef DEBUG
-	MPI_Printf("End output(t)\n");
-#endif
+
+	DEBUG_END_FUNC;
+	
 	return;
 }
 
@@ -1033,16 +1017,16 @@ void dump_immediate(const PRECISION t) {
 /**************************************************************************************/
 void clear_timevar() {
 	FILE* ht;
-#ifdef DEBUG
-	MPI_Printf("clear_timevar()\n");
-#endif	
+
+	DEBUG_START_FUNC;
+	
 	if(rank==0) {
 	ht=fopen("timevar","w");
 	fclose(ht);
 	}
-#ifdef DEBUG
-	MPI_Printf("End clear_timevar()\n");
-#endif
+
+	DEBUG_END_FUNC;
+	return;
 }
 	
 	

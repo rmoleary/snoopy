@@ -3,8 +3,6 @@
 #define		NY				96			/**< Y Dimension in real space. Must be multiples of NPROC when using MPI.*/
 #define		NZ				96			/**< Z Dimension in real space. */
 
-#define		NTHREADS		2			/**< Number of OpenMP Thread. Useful only if OpenMP is activated in the Makefile */
-
 #ifndef NPROC
 #define		NPROC			1			/**< Number of MPI Process. Useful only if MPI is activated in the Makefile */
 #endif
