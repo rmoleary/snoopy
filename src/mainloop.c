@@ -436,7 +436,7 @@ void mainloop() {
 #endif
 		// Symmetries cleaning
 #ifdef FORCE_SYMMETRIES
-		if(!(nloop % FIELD_SYMMETRIZE)) enforce_symm(fld);
+		if(!(nloop % SYMMETRIES_STEP)) enforce_symm(fld);
 #endif
 		// Divergence cleaning
 		projector(fld.vx,fld.vy,fld.vz);

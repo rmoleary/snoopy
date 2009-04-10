@@ -98,7 +98,7 @@ void print_information(void) {
 	MPI_Printf("\nNo MHD\n");
 #endif
 	MPI_Printf("\nOmega=\t\t%f\n",OMEGA);
-#ifdef SHEAR
+#ifdef WITH_SHEAR
 	MPI_Printf("Shear=\t\t%f\n",SHEAR);
 #else
 	MPI_Printf("No Shear\n");
