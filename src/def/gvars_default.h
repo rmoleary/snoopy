@@ -48,7 +48,9 @@
 #define		INTERFACE_CHECK		5		/**< Number of loops between two checks for a user input. On slow filesystems, increase this number */
 //#define		INTERFACE_OUTPUT_FILE	/**< Uncomment this option to force code outputs to a file instead of the screen */
 
-#define		FIELD_SYMMETRIZE	20		/**< Number of loop between which the Fourier field is symmetrized. Should be around ~20 for Boussinesq convection*/
+//#define		FORCE_SYMMETRIES			/**< Uncomment to enforce spectral symmetries and mean flow to zero. Useful when N^2 or kappa^2 < 0. (see enforce_symm() )*/
+#define		FIELD_SYMMETRIZE	20		/**< Number of loops between which the symmetries are enforced. Should be around ~20 for Boussinesq convection*/
+
 #define		ANTIALIASING				/**< 2/3 Antialisaing rule. Could be removed if you assume is unimportant (untested feature). */
 
 #define		FFT_PLANNING	FFTW_MEASURE  /**< can be either FFTW_ESTIMATE, FFTW_MEASURE, FFTW_PATIENT or FFTW_EXHAUSTIVE (see fftw3 doc). Measure leads to longer initialisation of fft routines */

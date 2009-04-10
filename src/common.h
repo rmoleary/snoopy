@@ -91,6 +91,7 @@ void projector( PRECISION complex qx[],
 				
 PRECISION energy(const PRECISION complex q[]);
 
+void enforce_symm(struct Field fldi);
 void symmetrize(PRECISION complex wi[]);
 				
 				

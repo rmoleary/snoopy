@@ -266,20 +266,6 @@ void mainloop() {
 
 		nloop++;
 		if(!(nloop % INTERFACE_CHECK)) check_interface(fld,t,dt,nloop,tstart);
-		if(!(nloop % FIELD_SYMMETRIZE)) {
-			// Symmetrize the fields
-			symmetrize(fld.vx);
-			symmetrize(fld.vy);
-			symmetrize(fld.vz);
-#ifdef BOUSSINESQ
-			symmetrize(fld.th);
-#endif
-#ifdef MHD
-			symmetrize(fld.bx);
-			symmetrize(fld.by);
-			symmetrize(fld.bz);
-#endif
-		}
 		
 		dt = newdt(tremap);
 		
@@ -448,7 +434,10 @@ void mainloop() {
 #endif
 		kvolve(tremap);
 #endif
-		
+		// Symmetries cleaning
+#ifdef FORCE_SYMMETRIES
+		if(!(nloop % FIELD_SYMMETRIZE)) enforce_symm(fld);
+#endif
 		// Divergence cleaning
 		projector(fld.vx,fld.vy,fld.vz);
 #ifdef MHD
