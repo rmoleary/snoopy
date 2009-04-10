@@ -49,7 +49,7 @@
 //#define		INTERFACE_OUTPUT_FILE	/**< Uncomment this option to force code outputs to a file instead of the screen */
 
 //#define		FORCE_SYMMETRIES			/**< Uncomment to enforce spectral symmetries and mean flow to zero. Useful when N^2 or kappa^2 < 0. (see enforce_symm() )*/
-#define		FIELD_SYMMETRIZE	20		/**< Number of loops between which the symmetries are enforced. Should be around ~20 for Boussinesq convection*/
+#define		SYMMETRIES_STEP		20		/**< Number of loops between which the symmetries are enforced. Should be around ~20 for Boussinesq convection*/
 
 #define		ANTIALIASING				/**< 2/3 Antialisaing rule. Could be removed if you assume is unimportant (untested feature). */
 
