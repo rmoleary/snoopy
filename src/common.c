@@ -446,7 +446,7 @@ void symmetrize(PRECISION complex wi[]) {
 	gfft_r2c(wr1);
 	
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
-		wi[i] = w1[i] / ((double) NTOTAL);
+		wi[i] = w1[i] * mask[ i ] / ((double) NTOTAL);
 	}
 	return;
 }
