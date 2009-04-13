@@ -18,3 +18,6 @@ clean:
 
 fullclean:
 	rm -f *.o snoopy gvars.h
+
+bench:
+	cp def/gvars_bench.h ./gvars.h

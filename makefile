@@ -57,6 +57,27 @@ endif
 #####################################################################
 ## Cofiguration rules (the compilation rules are in rules.mk) #######
 #####################################################################
+test: bench all
+	@echo "******************************************"
+	@echo "** Executing Benchmark *******************"
+	@echo "******************************************"
+	./snoopy
+	@echo "******************************************"
+	@echo "*** Checking results                  ****"
+	@echo "******************************************"
+	diff timevar src/def/timevar_bench
+	@echo "******************************************"
+	@echo "*** All Done  !                       ****"
+	@echo "******************************************"
+
+bench: config.mk
+	@(cd src && $(MAKE) $@)
+	@echo "***********************************************************"
+	@echo "Initialized BENCHMARK configuration"
+	@echo $(CLUSTER)
+	@echo "Please type make"
+	@echo "***********************************************************"
+
 
 
 config: config.mk

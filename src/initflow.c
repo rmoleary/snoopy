@@ -154,6 +154,58 @@ void init_KidaVortex() {
 	return;
 }
 
+/************************************/
+/** Init some crazy structure involving
+/** A kida vortex and a vertical structure
+/** for the field */
+/***********************************/
+void init_Bench() {
+	const PRECISION a = 0.3;
+	const PRECISION b = 0.4;
+	
+	int i,j,k;
+	
+	PRECISION w0, x, y;
+	PRECISION chi;
+	
+	chi = b / a;
+	w0 = 1.0/chi*(chi + 1)/(chi-1.0);			// According to Kida!
+	
+	for(i = 0 ; i < NX/NPROC ; i++) {
+		x = - LX / 2 + (LX * (i + rank * NX / NPROC)) / NX;
+		for(j = 0 ; j < NY ; j++) {
+			y = - LY / 2 + (LY * j) / NY;
+			for(k = 0 ; k < NZ ; k++) {
+				if(x * x / (a * a) + y * y / (b * b) < 1) {
+					// we are in the vortex
+					wr1[k + j*(NZ+2) + (NZ+2) * NY * i] = -w0;
+				}
+				else {
+					wr1[k + j*(NZ+2) + (NZ+2) * NY * i] = 0.0;
+				}
+			}
+		}
+	}
+	
+	// transform
+	gfft_r2c(wr1);
+	
+	for(i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		fld.vx[ i ] +=  I * ky[i] * w1[i] * ik2t[i];
+		fld.vy[ i ] += -I * kxt[i] * w1[i] * ik2t[i];
+	}
+	
+	// Brake vertical symmetry
+	if(rank==0) {
+		fld.vx[1] = 1000.0 / NTOTAL;
+		fld.vy[1] = 1000.0 / NTOTAL;
+		fld.bx[1] = 1000.0 / NTOTAL;
+		fld.by[1] = 1000.0 / NTOTAL;
+	}
+	// done
+	return;
+}
+
 void init_LargeScaleNoise() {
 	int i,j,k;
 	int num_force=0;
@@ -301,6 +353,10 @@ void init_flow() {
 
 #ifdef INIT_WHITE_NOISE
 	init_WhiteNoise();
+#endif
+
+#ifdef BENCH
+	init_Bench();
 #endif
 
 #ifdef INIT_MEAN_FIELD

@@ -1,0 +1,52 @@
+./snoopy
+
+          .o.				        
+          |  |    _   ,		        
+        .',  L.-'` `\ ||	        
+      __\___,|__--,__`_|__         
+     |    %     `=`       |        
+     | ___%_______________|        
+     |    `               |         
+     | -------------------|         
+     |____________________|         
+       |~~~~~~~~~~~~~~~~|           
+       | ---------------|  ,        
+   \|  | _______________| / /      
+\. \,\\|, .   .   /,  / |///, / 
+
+The Snoopy code v2.0
+(c) 2004-2009 G. Lesur (University of Cambridge, UK)
+Compiled on Apr 13 2009 at 20:22:40
+***********************************************************
+Code parameters:
+MPI disabled
+Using OpenMP with 2 threads.
+(NX,NY,NZ)=	(64,64,64)
+(LX,LY,LZ)=	(1.000000,1.000000,1.000000)
+Reynolds=	1000.000000
+
+Horizontal (x) Boussinesq
+Reynolds_th=	1000.000000
+N2=		-1.000000
+
+MHD enabled
+BX0=		0.000000
+BY0=		0.000000
+BZ0=		0.010000
+Reynolds_m=	1000.000000
+
+Omega=		0.666667
+Shear=		1.000000
+
+T_initial=	0.000000
+T_final=	1.000000
+Toutput_time=	1.000000
+Toutput_flow=	1.000000
+Toutput_dump=	100.000000
+Using Antialiasing 2/3 Rule
+***********************************************************
+Initializing...
+Calling mainloop... touch status, output, dump or stop to print more information.
+Please wait (while a large software vendor in Seattle takes over the world)...
+mainloop finished in 341 loops and 185.627238 seconds (0.544361 sec/loop)
+Terminated.
