@@ -154,6 +154,7 @@ void init_KidaVortex() {
 	return;
 }
 
+#ifdef BENCH
 /************************************/
 /** Init some crazy structure involving
 /** A kida vortex and a vertical structure
@@ -205,6 +206,8 @@ void init_Bench() {
 	// done
 	return;
 }
+
+#endif
 
 void init_LargeScaleNoise() {
 	int i,j,k;
