@@ -1,13 +1,9 @@
+#ifndef _GVARS_
+#define _GVARS_
 
 #define		NX				96			/**< X Dimension in real space. Must be multiples of NPROC when using MPI.*/
 #define		NY				96			/**< Y Dimension in real space. Must be multiples of NPROC when using MPI.*/
 #define		NZ				96			/**< Z Dimension in real space. */
-
-#ifndef NPROC
-#define		NPROC			1			/**< Number of MPI Process. Useful only if MPI is activated in the Makefile */
-#endif
-
-#define MHD								/**< Uncomment to activate MHD*/
 
 #define		LX				1.0			/**< Box length in X*/
 #define		LY				1.0			/**< Box length in Y*/
@@ -19,6 +15,8 @@
 #define		REYNOLDS		1000.0		/**< Reynolds number (actully the inverse of the viscosity) */
 #define		REYNOLDS_TH		1000.0		/**< Thermal Reynolds number (actully the inverse of the thermal diffusivity)  Used only when Boussinesq is on*/
 #define		REYNOLDS_M		1000.0		/**< Magnetic Reynolds number (actully the inverse of the resistivity)  Used only when MHD is on*/
+
+#define MHD								/**< Uncomment to activate MHD*/
 
 //#define		BOUSSINESQ				/**< Uncomment to activate Boussinesq */
 #define		N2				(-1.0)		/**< Brunt Vaissala frequency squared */
@@ -81,9 +79,8 @@
 *** Ordinary users should not modified anything below this point *******
 ************************************************************************/
 
-// Ignore NPROC if MPI_SUPPORT is disabled
+// fix NPROC if MPI_SUPPORT is disabled
 #ifndef	MPI_SUPPORT
-#undef		NPROC
 #define		NPROC			1
 #endif
 
@@ -98,3 +95,5 @@
 #define		PRECISION		double											/**< Precision of the code (Float has not been tested, and won't work with MPI) */
 
 #define		IDX3D			(k + j * NZ_COMPLEX + NZ_COMPLEX * NY_COMPLEX * i)  /**< General wrapper for 3D Arrays */
+
+#endif

@@ -68,6 +68,9 @@ extern PRECISION	eta;
 #endif
 
 // MPI
+#ifdef MPI_SUPPORT
+extern int		NPROC;									/**< NPROC is a variable when MPI is on. Otherwise, it is preprocessor macro in gvars.h */
+#endif
 extern int rank;
 
 // OpenMP

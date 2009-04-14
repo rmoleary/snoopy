@@ -62,10 +62,10 @@ void transpose_complex_XY(PRECISION complex *qin, PRECISION complex *qout) {
 	const int nxin = NX_COMPLEX;
 	const int nyin = NY_COMPLEX;
 	const int nzin = NZ_COMPLEX;
-	const int nproc = NPROC;
+	int nproc = NPROC;
 	
-	const int local_nxin = nxin / nproc;
-	const int local_nyin = nyin / nproc;
+	int local_nxin = nxin / nproc;
+	int local_nyin = nyin / nproc;
 	
 // First, transpose locally the array in qout (will be erased anyway...)
 
@@ -122,10 +122,10 @@ void transpose_complex_YX(PRECISION complex *qin, PRECISION complex *qout) {
 	const int nxin = NY_COMPLEX;
 	const int nyin = NX_COMPLEX;
 	const int nzin = NZ_COMPLEX;
-	const int nproc = NPROC;
+	int nproc = NPROC;
 	
-	const int local_nxin = nxin / nproc;
-	const int local_nyin = nyin / nproc;
+	int local_nxin = nxin / nproc;
+	int local_nyin = nyin / nproc;
 	
 // First, transpose locally the array in qout (will be erased anyway...)
 	
@@ -177,9 +177,9 @@ void transpose_complex_YZ(PRECISION complex *qin, PRECISION complex *qout) {
 	const int nxin = NX_COMPLEX;
 	const int nyin = NY_COMPLEX;
 	const int nzin = NZ_COMPLEX;
-	const int nproc = NPROC;
+	int nproc = NPROC;
 	
-	const int local_nxin = nxin / nproc;
+	int local_nxin = nxin / nproc;
 
 	for(i=0 ; i < local_nxin ; i++) {
 		for(j=0 ; j < nyin ; j++) {
@@ -197,9 +197,9 @@ void transpose_complex_ZY(PRECISION complex *qin, PRECISION complex *qout) {
 	const int nxin = NX_COMPLEX;
 	const int nyin = NZ_COMPLEX;
 	const int nzin = NY_COMPLEX;
-	const int nproc = NPROC;
+	int nproc = NPROC;
 	
-	const int local_nxin = nxin / nproc;
+	int local_nxin = nxin / nproc;
 	
 // First, transpose locally the array in qout (will be erased anyway...)
 

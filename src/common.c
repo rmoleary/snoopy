@@ -80,8 +80,13 @@ PRECISION	nu_th;
 PRECISION	eta;
 #endif
 
+#ifdef MPI_SUPPORT
+int		NPROC;									/**< NPROC is a variable when MPI is on. Otherwise, it is preprocessor macro in gvars.h */
+#endif
+
 int		rank;
 int		nthreads;								/**< Number of OpenMP threads */
+
 
 /** Init all global variables, aligning them in memory */
 void init_common(void) {
