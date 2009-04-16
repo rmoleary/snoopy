@@ -848,6 +848,7 @@ void read_dump(   struct Field fldo,
 	}
 #endif
 	
+#ifndef INIT_DUMP	// If the dump is used as an initial condition, we don't need to init these parameters
 	if(rank==0) {
 		fread(t			, sizeof(PRECISION)		   , 1			   , ht);
 	
@@ -872,6 +873,7 @@ void read_dump(   struct Field fldo,
 #endif
 	
 	MPI_Printf("Restarting at t=%e...\n",*t);
+#endif
 
 	DEBUG_END_FUNC;
 	

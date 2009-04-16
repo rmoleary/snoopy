@@ -1,5 +1,6 @@
 #include "common.h"
 #include "gfft.h"
+#include "output.h"
 
 #include "debug.h"
 
@@ -341,7 +342,7 @@ void init_flow() {
 		fld.bz[ i ] = 0.0;
 #endif
 	}
-	
+
 #ifdef INIT_LARGE_SCALE_NOISE	
 	init_LargeScaleNoise();
 #endif
@@ -364,6 +365,10 @@ void init_flow() {
 
 #ifdef INIT_MEAN_FIELD
 	init_MeanField();
+#endif
+
+#ifdef INIT_DUMP
+	read_dump(fld,NULL);
 #endif
 
 	projector(fld.vx,fld.vy,fld.vz);

@@ -75,6 +75,8 @@
 #define		BY0							0.0		/**< Mean magnetic field in the y direction */
 #define		BZ0							0.01		/**< Mean magnetic field in the z direction */
 
+//#define		INIT_DUMP							/**< Use a dump file as an initial condition (everything else, including t, noutput (...) is reinitialised) */
+
 /***********************************************************************
 *** Ordinary users should not modified anything below this point *******
 ************************************************************************/
