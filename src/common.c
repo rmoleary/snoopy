@@ -155,7 +155,7 @@ void init_common(void) {
 	else if( (kymax>kxmax) && (kymax > kzmax)) kmax = kymax;
 	else kmax=kzmax;
 	
-	/* Initialize the dealiazing mask Or the niquist frequency mask (in case dealiasing is not required) */
+	/* Initialize the dealiazing mask Or the nyquist frequency mask (in case dealiasing is not required) */
 	
 	mask = (PRECISION *) fftw_malloc( sizeof(PRECISION) * NTOTAL_COMPLEX );
 	if (mask == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for mask allocation");
@@ -190,6 +190,7 @@ void init_common(void) {
 	kxmax = kxmax * 2.0 / 3.0;
 	kymax = kymax * 2.0 / 3.0;
 	kzmax = kzmax * 2.0 / 3.0;
+	kmax = kmax * 2.0 / 3.0;
 #endif
 
 	
@@ -344,6 +345,18 @@ PRECISION randm_normal(void) {
 	return( v1*sqrt(-2.0 * log(rsq) / rsq));
 }
 
+/****************************************************/
+/**
+	Remove the divergence from a 3D field using
+	the projector operator:
+	q=q-k.q/k^2
+	
+	@param qx: x component of the field
+	@param qy: y component of the field
+	@param qz: z component of the field
+*/
+/****************************************************/
+	
 void projector( PRECISION complex qx[],
 			    PRECISION complex qy[],
 			    PRECISION complex qz[]) {
@@ -413,7 +426,23 @@ double get_c_time(void) {
 #endif
 #endif
 }
+
+/******************************************/
+/**
+	Reduce a variable over all the avaiable processes
+	Can add a value on all the process, find a maximum
+	or a minimum.
 	
+	NOTE: This routine makes sense only when MPI_SUPPORT
+	is set. If not, this routine does nothing.
+	
+	@param *var: variable to be reduced
+	@param op: operation needed to be done. Can be set to:
+		1= Sum over all the processes
+		2= Find the maximum over all the processes
+		3= Find the minimum over all the processes
+*/
+/*******************************************/
 	
 void reduce(double *var, const int op) {
 	// op=1 ADD

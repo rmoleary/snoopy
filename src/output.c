@@ -6,6 +6,9 @@
 #include "shear.h"
 #include "debug.h"
 
+#define OUTPUT_SPECTRUM_N_BIN		(NX/3)
+#define	OUTPUT_SPECTRUM_FILENAME	"spectrum.dat"
+
 #define	OUTPUT_DUMP					"dump.dmp"			/**< Dump files filename. */
 #define	OUTPUT_DUMP_VERSION			04					/**< Version of the dump files read and written by this code. */
 
@@ -92,6 +95,124 @@ void remap_output(	PRECISION wri[],
 	
 	return;
 }
+
+/**********************************************************/
+/**
+	Initialise the 1D spectrum output routine, used
+	to output the transport spectrum (only when shear is on)
+	This routine print the mode ks in the first line
+	It also counts the number of mode in each shell and 
+	output it in the second line of OUTPUT_SPECTRUM_FILENAME
+*/
+/*********************************************************/
+void init1Dspectrum() {
+	int i,j,k,m;
+	FILE * ht;
+	PRECISION spectrum[ OUTPUT_SPECTRUM_N_BIN ];
+	
+	DEBUG_START_FUNC;
+	
+	if(rank==0) {
+		ht = fopen(OUTPUT_SPECTRUM_FILENAME,"w");
+		
+		for( m=0; m < OUTPUT_SPECTRUM_N_BIN; m++) 
+			fprintf(ht,"%08e\t",kmax*m/(2.0*M_PI*OUTPUT_SPECTRUM_N_BIN));
+	
+		fprintf(ht,"\n");
+	}
+	
+	for( i = 0; i < OUTPUT_SPECTRUM_N_BIN; i++ )
+		spectrum[ i ] = 0.0;
+		
+	for( i = 0; i < NX_COMPLEX/NPROC ; i++) {
+		for( j = 0; j < NY_COMPLEX; j++) {
+			for( k = 0; k < NZ_COMPLEX; k++) {
+				m = (int) floor( ( pow( k2t[ IDX3D ], 0.5 ) * OUTPUT_SPECTRUM_N_BIN ) / kmax );
+				if ( m < OUTPUT_SPECTRUM_N_BIN)
+					spectrum[ m ] = spectrum[ m ] + 1.0;
+			}
+		}
+	}
+	
+#ifdef MPI_SUPPORT
+	// Reduce each component
+	for( m=0; m < OUTPUT_SPECTRUM_N_BIN; m++)
+		reduce(&spectrum[m], 1);
+#endif
+
+	if(rank==0) {
+		for( i = 0; i < OUTPUT_SPECTRUM_N_BIN; i++) 
+			fprintf(ht,"%08e\t", spectrum[i]);
+	
+		fprintf(ht,"\n");
+	
+		fclose(ht);
+	}
+	
+	DEBUG_END_FUNC;
+	
+	return;
+}
+
+/**********************************************************/
+/**
+	Output the transport spectrum in a file (OUTPUT_SPECTRUM_FILENAME)
+	This routine is called only when shear is present.
+	
+	@param fldi: field from which the transport is computed
+*/
+/*********************************************************/
+
+void output1Dspectrum(const struct Field fldi) {
+					  
+	int i,j,k,m;
+	PRECISION spectrum[ OUTPUT_SPECTRUM_N_BIN ];
+	FILE *ht;
+	
+	DEBUG_START_FUNC;
+	
+	for( i = 0; i < OUTPUT_SPECTRUM_N_BIN; i++ )
+		spectrum[ i ] = 0.0;
+		
+	for( i = 0; i < NX_COMPLEX/NPROC; i++) {
+		for( j = 0; j < NY_COMPLEX; j++) {
+			for( k = 0; k < NZ_COMPLEX; k++) {
+				m = (int) floor( ( pow( k2t[ IDX3D ], 0.5 ) * OUTPUT_SPECTRUM_N_BIN ) / kmax );
+				if ( m < OUTPUT_SPECTRUM_N_BIN) {
+					if( k == 0) 
+						// k=0, we have all the modes.
+						spectrum[ m ] = spectrum[ m ] + creal( 0.5 * fldi.vx[ IDX3D ] * conj( fldi.vy[ IDX3D ] ) ) / ((PRECISION) NTOTAL*NTOTAL);
+					else
+						// k>0, only half of the complex plane is represented.
+						spectrum[ m ] = spectrum[ m ] + creal( fldi.vx[ IDX3D ] * conj( fldi.vy[ IDX3D ] ) ) / ((PRECISION) NTOTAL*NTOTAL);
+				}
+			}
+		}
+	}
+	
+#ifdef MPI_SUPPORT
+	// Reduce each component
+	for( m=0; m < OUTPUT_SPECTRUM_N_BIN; m++)
+		reduce(&spectrum[m], 1);
+#endif
+
+	if(rank==0) {
+		ht = fopen(OUTPUT_SPECTRUM_FILENAME,"a");
+
+		for( i = 0; i < OUTPUT_SPECTRUM_N_BIN; i++) 
+			fprintf(ht,"%08e\t", spectrum[i]);
+	
+	
+		fprintf(ht,"\n");
+	
+		fclose(ht);
+	}
+	
+	DEBUG_END_FUNC;
+	
+	return;
+}
+
 #endif
 
 
@@ -913,6 +1034,7 @@ void init_output() {
 	
 	fft_1d_backward = fftw_plan_dft_1d(NY, w2d, w1d, FFTW_BACKWARD, FFT_PLANNING);
 	if (fft_1d_backward == NULL) ERROR_HANDLER( ERROR_CRITICAL, "FFTW 1D backward plan creation failed");
+	
 #endif	
 
 	
@@ -922,6 +1044,9 @@ void init_output() {
 	lastoutput_flow = T_INITIAL - TOUTPUT_FLOW;
 	lastoutput_dump = T_INITIAL - TOUTPUT_DUMP;
 	
+#ifdef WITH_SHEAR
+	init1Dspectrum();
+#endif
 #endif
 	DEBUG_END_FUNC;
 	
@@ -943,6 +1068,9 @@ void output(const PRECISION t) {
 	// Very rough output function
 	if( (t-lastoutput_time)>=TOUTPUT_TIME) {
 		output_timevar(fld,t);
+#ifdef WITH_SHEAR
+		output1Dspectrum(fld);
+#endif
 		lastoutput_time = lastoutput_time + TOUTPUT_TIME;
 	}
 	
