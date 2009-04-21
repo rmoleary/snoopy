@@ -15,12 +15,12 @@
 #define	DUMP_MARKER					1981				/**< Marker used to signify the end of a dump file (it is also an excellent year...).*/
 
 int noutput_flow;										/**< Next snapshot output number */
-PRECISION lastoutput_time;								/**< Time when the last timevar output was done */
-PRECISION lastoutput_flow;								/**< Time when the las snapshot output was done */
-PRECISION lastoutput_dump;								/**< Time when the last dump output was done */
+double lastoutput_time;								/**< Time when the last timevar output was done */
+double lastoutput_flow;								/**< Time when the las snapshot output was done */
+double lastoutput_dump;								/**< Time when the last dump output was done */
 
 #ifdef WITH_SHEAR
-PRECISION complex		*w1d, *w2d;						/** 1D arrays used by the remap methods */
+double complex		*w1d, *w2d;						/** 1D arrays used by the remap methods */
 
 fftw_plan	fft_1d_forward;								/**< 1D FFT transforms. Used by remap routines.*/
 fftw_plan	fft_1d_backward;							/**< 1D FFT transforms. Used by remap routines.*/
@@ -39,14 +39,14 @@ fftw_plan	fft_1d_backward;							/**< 1D FFT transforms. Used by remap routines.
 */
 /***********************************************************/
 
-void remap_output(	PRECISION wri[], 
-					const PRECISION t) {
+void remap_output(	double wri[], 
+					const double t) {
 					
 	int i,j,k;
-	PRECISION tvelocity;
-	PRECISION tremap;
-	complex PRECISION wexp;
-	complex PRECISION phase;
+	double tvelocity;
+	double tremap;
+	complex double wexp;
+	complex double phase;
 	
 	DEBUG_START_FUNC;
 	
@@ -72,10 +72,10 @@ void remap_output(	PRECISION wri[],
 			// advection phase = ky*
 #ifdef TIME_DEPENDANT_SHEAR
 				// There is no proper remap in this case
-				phase = (PRECISION complex) ((2.0 * M_PI) / LY * (fmod( j + (NY / 2) ,  NY ) - NY / 2 ) * 
+				phase = (double complex) ((2.0 * M_PI) / LY * (fmod( j + (NY / 2) ,  NY ) - NY / 2 ) * 
 											( ((double) (i + rank * (NX/NPROC)) / (double) NX - 0.5 ) * tremap ) * LX * SHEAR );
 #else
-				phase = (PRECISION complex) ((2.0 * M_PI) / LY * (fmod( j + (NY / 2) ,  NY ) - NY / 2 ) * 
+				phase = (double complex) ((2.0 * M_PI) / LY * (fmod( j + (NY / 2) ,  NY ) - NY / 2 ) * 
 											( ((double) (i + rank * (NX/NPROC)) / (double) NX ) * tremap - tvelocity / 2.0 ) * LX * SHEAR);
 #endif
 				wexp = cexp( I * phase);
@@ -108,7 +108,7 @@ void remap_output(	PRECISION wri[],
 void init1Dspectrum() {
 	int i,j,k,m;
 	FILE * ht;
-	PRECISION spectrum[ OUTPUT_SPECTRUM_N_BIN ];
+	double spectrum[ OUTPUT_SPECTRUM_N_BIN ];
 	
 	DEBUG_START_FUNC;
 	
@@ -166,7 +166,7 @@ void init1Dspectrum() {
 void output1Dspectrum(const struct Field fldi) {
 					  
 	int i,j,k,m;
-	PRECISION spectrum[ OUTPUT_SPECTRUM_N_BIN ];
+	double spectrum[ OUTPUT_SPECTRUM_N_BIN ];
 	FILE *ht;
 	
 	DEBUG_START_FUNC;
@@ -181,10 +181,10 @@ void output1Dspectrum(const struct Field fldi) {
 				if ( m < OUTPUT_SPECTRUM_N_BIN) {
 					if( k == 0) 
 						// k=0, we have all the modes.
-						spectrum[ m ] = spectrum[ m ] + creal( 0.5 * fldi.vx[ IDX3D ] * conj( fldi.vy[ IDX3D ] ) ) / ((PRECISION) NTOTAL*NTOTAL);
+						spectrum[ m ] = spectrum[ m ] + creal( 0.5 * fldi.vx[ IDX3D ] * conj( fldi.vy[ IDX3D ] ) ) / ((double) NTOTAL*NTOTAL);
 					else
 						// k>0, only half of the complex plane is represented.
-						spectrum[ m ] = spectrum[ m ] + creal( fldi.vx[ IDX3D ] * conj( fldi.vy[ IDX3D ] ) ) / ((PRECISION) NTOTAL*NTOTAL);
+						spectrum[ m ] = spectrum[ m ] + creal( fldi.vx[ IDX3D ] * conj( fldi.vy[ IDX3D ] ) ) / ((double) NTOTAL*NTOTAL);
 				}
 			}
 		}
@@ -234,7 +234,7 @@ void output1Dspectrum(const struct Field fldi) {
 	
 */
 /***********************************************************/
-void write_snap(const PRECISION t, const char filename[], const PRECISION complex wi[]) {
+void write_snap(const double t, const char filename[], const double complex wi[]) {
 	// Write the complex field wi[] in file filename. We need t for the remap thing.
 	FILE *ht;
 	int i,j,k;
@@ -282,7 +282,7 @@ void write_snap(const PRECISION t, const char filename[], const PRECISION comple
 		for( j = 0; j < NY; j++) {
 			for( k = 0 ; k < NZ; k++) {
 #endif
-				fwrite(&wr1[k + j * (NZ + 2) + i * NY * (NZ + 2) ], sizeof(PRECISION), 1, ht);
+				fwrite(&wr1[k + j * (NZ + 2) + i * NY * (NZ + 2) ], sizeof(double), 1, ht);
 			}
 		}
 	}
@@ -360,7 +360,7 @@ float big_endian(float in_number)
 	
 */
 /***********************************************************/
-void write_vtk(FILE * ht, PRECISION complex wi[], const PRECISION t) {
+void write_vtk(FILE * ht, double complex wi[], const double t) {
 	// Write the data in the file handler *ht
 	int i,j,k;
 	float q0;
@@ -368,9 +368,9 @@ void write_vtk(FILE * ht, PRECISION complex wi[], const PRECISION t) {
 	DEBUG_START_FUNC;
 
 #ifdef MPI_SUPPORT
-	PRECISION * chunk = NULL;
+	double * chunk = NULL;
 	if(rank==0) {
-		chunk = (PRECISION *) malloc( NX * sizeof(PRECISION));
+		chunk = (double *) malloc( NX * sizeof(double));
 		if (chunk == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for chunk allocation");
 	}
 #endif
@@ -437,7 +437,7 @@ void write_vtk(FILE * ht, PRECISION complex wi[], const PRECISION t) {
 */
 /***********************************************************/
 
-void output_vtk(const int n, PRECISION t) {
+void output_vtk(const int n, double t) {
 	FILE *ht = NULL;
 	char  filename[50];
 	int num_remain_field;
@@ -514,7 +514,7 @@ void output_vtk(const int n, PRECISION t) {
 */
 /***********************************************************/
 	
-void output_flow(const int n, const PRECISION t) {
+void output_flow(const int n, const double t) {
 	char filename[50];
 	
 	DEBUG_START_FUNC;
@@ -559,15 +559,15 @@ void output_flow(const int n, const PRECISION t) {
 /***********************************************************/
 
 void output_timevar(const struct Field fldi,
-					const PRECISION t) {
+					const double t) {
 					
 	FILE *ht;
-	PRECISION vxmax, vxmin, vymax, vymin, vzmax, vzmin, thmin, thmax;
-	PRECISION bxmax, bxmin, bymax, bymin, bzmax, bzmin;
-	PRECISION energy_total;	
-	PRECISION energy_mag;
-	PRECISION reynolds_stress;
-	PRECISION maxwell_stress;
+	double vxmax, vxmin, vymax, vymin, vzmax, vzmin, thmin, thmax;
+	double bxmax, bxmin, bymax, bymin, bzmax, bzmin;
+	double energy_total;	
+	double energy_mag;
+	double reynolds_stress;
+	double maxwell_stress;
 
 	int i;
 	
@@ -731,7 +731,7 @@ void output_timevar(const struct Field fldi,
 	@param fldwrite Field structure pointing to the field needed to be saved
 */
 /***********************************************************/
-void write_field(FILE *handler, PRECISION complex *fldwrite) {
+void write_field(FILE *handler, double complex *fldwrite) {
 #ifdef MPI_SUPPORT
 	MPI_Status status;
 	// Write in rank order using the file opened if handler
@@ -754,7 +754,7 @@ void write_field(FILE *handler, PRECISION complex *fldwrite) {
 				MPI_Recv( w1, NTOTAL_COMPLEX * 2, MPI_DOUBLE, current_rank, 2, MPI_COMM_WORLD, &status);
 			}
 #endif
-			fwrite(w1, sizeof(PRECISION complex), NTOTAL_COMPLEX, handler);
+			fwrite(w1, sizeof(double complex), NTOTAL_COMPLEX, handler);
 #ifdef MPI_SUPPORT
 		}
 		MPI_Barrier(MPI_COMM_WORLD);
@@ -775,7 +775,7 @@ void write_field(FILE *handler, PRECISION complex *fldwrite) {
 */
 /**************************************************************************************/
 	
-void read_field(FILE *handler, PRECISION complex *fldread) {
+void read_field(FILE *handler, double complex *fldread) {
 #ifdef MPI_SUPPORT
 	MPI_Status status;
 	// Write in rank order using the file opened if handler
@@ -787,7 +787,7 @@ void read_field(FILE *handler, PRECISION complex *fldread) {
 	if(rank==0) {
 		for(current_rank=0; current_rank < NPROC; current_rank++) {
 #endif
-			fread(w1, sizeof(PRECISION complex), NTOTAL_COMPLEX, handler);
+			fread(w1, sizeof(double complex), NTOTAL_COMPLEX, handler);
 
 #ifdef MPI_SUPPORT
 			if(current_rank==0) {
@@ -820,7 +820,7 @@ void read_field(FILE *handler, PRECISION complex *fldread) {
 */
 /**************************************************************************************/
 void output_dump( const struct Field fldi,
-				  const PRECISION t) {	
+				  const double t) {	
 				  
 	FILE *ht;
 	int dump_version;
@@ -878,12 +878,12 @@ void output_dump( const struct Field fldi,
 #endif
 
 	if(rank==0) {
-		fwrite(&t			, sizeof(PRECISION)		   , 1			   , ht);
+		fwrite(&t			, sizeof(double)		   , 1			   , ht);
 	
 		fwrite(&noutput_flow		, sizeof(int)			   , 1             , ht);
-		fwrite(&lastoutput_time 	, sizeof(PRECISION)		   , 1			   , ht);
-		fwrite(&lastoutput_flow 	, sizeof(PRECISION)		   , 1			   , ht);
-		fwrite(&lastoutput_dump 	, sizeof(PRECISION)		   , 1			   , ht);
+		fwrite(&lastoutput_time 	, sizeof(double)		   , 1			   , ht);
+		fwrite(&lastoutput_flow 	, sizeof(double)		   , 1			   , ht);
+		fwrite(&lastoutput_dump 	, sizeof(double)		   , 1			   , ht);
 	
 // Any extra information should be put here.	
 	
@@ -905,7 +905,7 @@ void output_dump( const struct Field fldi,
 */
 /**************************************************************************************/
 void read_dump(   struct Field fldo,
-				  PRECISION *t) {	
+				  double *t) {	
 				  
 	FILE *ht;
 	int dump_version;
@@ -971,12 +971,12 @@ void read_dump(   struct Field fldo,
 	
 #ifndef INIT_DUMP	// If the dump is used as an initial condition, we don't need to init these parameters
 	if(rank==0) {
-		fread(t			, sizeof(PRECISION)		   , 1			   , ht);
+		fread(t			, sizeof(double)		   , 1			   , ht);
 	
 		fread(&noutput_flow			, sizeof(int)			   , 1             , ht);
-		fread(&lastoutput_time		, sizeof(PRECISION)		   , 1			   , ht);
-		fread(&lastoutput_flow		, sizeof(PRECISION)		   , 1			   , ht);
-		fread(&lastoutput_dump		, sizeof(PRECISION)		   , 1			   , ht);
+		fread(&lastoutput_time		, sizeof(double)		   , 1			   , ht);
+		fread(&lastoutput_flow		, sizeof(double)		   , 1			   , ht);
+		fread(&lastoutput_dump		, sizeof(double)		   , 1			   , ht);
 	
 		fread(&marker , sizeof(int)			   , 1, ht);
 	
@@ -1016,10 +1016,10 @@ void init_output() {
 	
 #ifdef WITH_SHEAR
 // Initialize 1D arrays for remaps
-	w1d = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NY);
+	w1d = (double complex *) fftw_malloc( sizeof(double complex) * NY);
 	if (w1d == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w1d allocation");
 	
-	w2d = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NY);
+	w2d = (double complex *) fftw_malloc( sizeof(double complex) * NY);
 	if (w2d == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w2d allocation");
 
 // FFT plans (we use dummy arrays since we use the "guru" interface of fft3 in the code)
@@ -1053,6 +1053,27 @@ void init_output() {
 	return;
 }
 
+/****************************************************************************/
+/**
+	Free the variables used by the output routines
+*/
+/****************************************************************************/
+void finish_output() {
+	DEBUG_START_FUNC;
+	
+#ifdef WITH_SHEAR
+	fftw_free(w1d);
+	fftw_free(w2d);
+	
+	fftw_destroy_plan(fft_1d_forward);
+	fftw_destroy_plan(fft_1d_backward);	
+#endif
+	
+	DEBUG_END_FUNC;
+		
+	return;
+}
+	
 /**************************************************************************************/
 /** 
 	Check if an output (timevar, snapshot or dump) is required at t. If yes, call the 
@@ -1061,7 +1082,7 @@ void init_output() {
 */
 /**************************************************************************************/
 
-void output(const PRECISION t) {
+void output(const double t) {
 	
 	DEBUG_START_FUNC;
 	
@@ -1114,7 +1135,7 @@ void output_status(FILE * iostream) {
 */
 /**************************************************************************************/
 
-void output_immediate(const PRECISION t) {
+void output_immediate(const double t) {
 	// Very rough output function
 	// Immediate output
 	output_timevar(fld,t);
@@ -1136,7 +1157,7 @@ void output_immediate(const PRECISION t) {
 */
 /**************************************************************************************/
 
-void dump_immediate(const PRECISION t) {
+void dump_immediate(const double t) {
 	output_dump(fld,t);
 	return;
 }

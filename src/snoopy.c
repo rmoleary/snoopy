@@ -141,13 +141,16 @@ int main(int argc, char *argv[]) {
 	MPI_Printf("Initializing...\n");
 	init_common();
 	init_gfft();
-	init_flow();
 	init_output();
-	
+		
+	init_flow();
+
 	MPI_Printf("Calling mainloop... touch status, output, dump or stop to print more information.\n");
 	please_wait();
-	mainloop();
+	mainloop(T_INITIAL, T_FINAL);
 	
+	finish_output();
+	finish_gfft();
 	finish_common();
 	
 	MPI_Printf("Terminated.\n");

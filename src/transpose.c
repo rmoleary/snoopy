@@ -11,16 +11,18 @@
 #include <fftw3-mpi.h>
 #endif
 
-PRECISION complex * temp1;
-PRECISION complex * temp2;
+double complex * temp1;
+double complex * temp2;
 #ifdef FFTW3_MPI_SUPPORT
 fftw_plan	plan_t_XY, plan_t_YX;
 #endif
 
+double	transpose_timer;
+
 void init_transpose() {
-	temp1 = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	temp1 = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (temp1 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for temp1 allocation");
-	temp2 = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	temp2 = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (temp2 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for temp2 allocation");
 
 #ifdef FFTW3_MPI_SUPPORT
@@ -33,24 +35,46 @@ void init_transpose() {
 	plan_t_YX = fftw_mpi_plan_many_transpose(NY, NX, (NZ+2), NY/NPROC, NX/NPROC, wr1, wr1, MPI_COMM_WORLD, FFT_PLANNING);
 	if (plan_t_YX == NULL) ERROR_HANDLER( ERROR_CRITICAL, "FFTW plan_t_YX plan creation failed");
 #endif	
+
+	transpose_timer = 0.0;
 	return;
+}
+
+void finish_transpose() {
+	fftw_free(temp1);
+	fftw_free(temp2);
+	
+#ifdef FFTW3_MPI_SUPPORT
+	fftw_destroy_plan(plan_t_XY);
+	fftw_destroy_plan(plan_t_YX);
+#endif
+
+	return;
+}
+
+double read_transpose_timer() {
+	return(transpose_timer);
 }
 
 #ifdef FFTW3_MPI_SUPPORT
-void transpose_complex_XY(PRECISION complex *qin, PRECISION complex *qout) {
-	fftw_execute_r2r( plan_t_XY, (PRECISION *) qin, (PRECISION *) qout);
+void transpose_complex_XY(double complex *qin, double complex *qout) {
+	transpose_timer = transpose_timer - get_c_time();
+	fftw_execute_r2r( plan_t_XY, (double *) qin, (double *) qout);
+	transpose_timer = transpose_timer + get_c_time();
 	return;
 }
 
-void transpose_complex_YX(PRECISION complex *qin, PRECISION complex *qout) {
-	fftw_execute_r2r( plan_t_YX, (PRECISION *) qin, (PRECISION *) qout);
+void transpose_complex_YX(double complex *qin, double complex *qout) {
+	transpose_timer = transpose_timer - get_c_time();
+	fftw_execute_r2r( plan_t_YX, (double *) qin, (double *) qout);
+	transpose_timer = transpose_timer + get_c_time();
 	return;
 }
 
 #else	
 // transpose complex routines are optimized since they are going to be called by ffts routine
 // the real transpose is not, since it's more a "convenient" routine. It can however be optimized easely...
-void transpose_complex_XY(PRECISION complex *qin, PRECISION complex *qout) {
+void transpose_complex_XY(double complex *qin, double complex *qout) {
 
 // Will transpose qin into qout, 
 // qin have dimensions nxin/nproc, nyin, nzin
@@ -69,7 +93,7 @@ void transpose_complex_XY(PRECISION complex *qin, PRECISION complex *qout) {
 	
 // First, transpose locally the array in qout (will be erased anyway...)
 
-	
+	transpose_timer = transpose_timer - get_c_time();
 #ifdef _OPENMP
 	#pragma omp parallel for private(i,j,k) schedule(static)	
 #endif	
@@ -86,8 +110,8 @@ void transpose_complex_XY(PRECISION complex *qin, PRECISION complex *qout) {
 // Here we could use qin as destination, if qin could be destroyed (might be an interesting optimisation...)
 // This step corresponds to an exchange of chuncks of size (local_nyin,local_nxin,nzin)
 	
-	MPI_Alltoall(temp1, local_nxin*local_nyin*nzin*sizeof(PRECISION complex), MPI_BYTE,
-				 temp2,   local_nxin*local_nyin*nzin*sizeof(PRECISION complex), MPI_BYTE, MPI_COMM_WORLD);
+	MPI_Alltoall(temp1, local_nxin*local_nyin*nzin*sizeof(double complex), MPI_BYTE,
+				 temp2,   local_nxin*local_nyin*nzin*sizeof(double complex), MPI_BYTE, MPI_COMM_WORLD);
 				 
 // From here, temp is made of a contiguous array of chunks of size (local_nyin,local_nxin,nzin)
 // Which can be seen as a 4D Array of size (nproc,local_nyin,local_nxin,nzin);
@@ -106,11 +130,11 @@ void transpose_complex_XY(PRECISION complex *qin, PRECISION complex *qout) {
 			}
 		}
 	}
-
+	transpose_timer = transpose_timer + get_c_time();
     return;
 }
 
-void transpose_complex_YX(PRECISION complex *qin, PRECISION complex *qout) {
+void transpose_complex_YX(double complex *qin, double complex *qout) {
 
 // Will transpose qin into qout, 
 // qin have dimensions nxin/nproc, nyin, nzin
@@ -129,6 +153,8 @@ void transpose_complex_YX(PRECISION complex *qin, PRECISION complex *qout) {
 	
 // First, transpose locally the array in qout (will be erased anyway...)
 	
+	transpose_timer = transpose_timer - get_c_time();
+	
 #ifdef _OPENMP
 	#pragma omp parallel for private(i,j,k) schedule(static)	
 #endif	
@@ -145,8 +171,8 @@ void transpose_complex_YX(PRECISION complex *qin, PRECISION complex *qout) {
 // Here we could use qin as destination, if qin could be destroyed (might be an interesting optimisation...)
 // This step corresponds to an exchange of chuncks of size (local_nyin,local_nxin,nzin)
 	
-	MPI_Alltoall(temp1, local_nxin*local_nyin*nzin*sizeof(PRECISION complex), MPI_BYTE,
-				 temp2,   local_nxin*local_nyin*nzin*sizeof(PRECISION complex), MPI_BYTE, MPI_COMM_WORLD);
+	MPI_Alltoall(temp1, local_nxin*local_nyin*nzin*sizeof(double complex), MPI_BYTE,
+				 temp2,   local_nxin*local_nyin*nzin*sizeof(double complex), MPI_BYTE, MPI_COMM_WORLD);
 	
 // From here, temp is made of a contiguous array of chunks of size (local_nyin,local_nxin,nzin)
 // Which can be seen as a 4D Array of size (nproc,local_nyin,local_nxin,nzin);
@@ -166,12 +192,13 @@ void transpose_complex_YX(PRECISION complex *qin, PRECISION complex *qout) {
 		}
 	}
 
-
+	transpose_timer = transpose_timer + get_c_time();
+	
     return;
 }
 
 #endif
-void transpose_complex_YZ(PRECISION complex *qin, PRECISION complex *qout) {
+void transpose_complex_YZ(double complex *qin, double complex *qout) {
 	// this transposition is **out of place**
 	int i,j,k;
 	const int nxin = NX_COMPLEX;
@@ -191,7 +218,7 @@ void transpose_complex_YZ(PRECISION complex *qin, PRECISION complex *qout) {
 	return;
 }
 
-void transpose_complex_ZY(PRECISION complex *qin, PRECISION complex *qout) {
+void transpose_complex_ZY(double complex *qin, double complex *qout) {
 	// this transposition is **out of place**
 	int i,j,k;
 	const int nxin = NX_COMPLEX;
@@ -213,7 +240,7 @@ void transpose_complex_ZY(PRECISION complex *qin, PRECISION complex *qout) {
 	return;
 }	
 
-void transpose_real(const int nxin, const int nyin, const int nzin, const int nproc, PRECISION *qin, PRECISION *qout) {
+void transpose_real(const int nxin, const int nyin, const int nzin, const int nproc, double *qin, double *qout) {
 
 // Will transpose qin into qout, 
 // qin have dimensions nxin/nproc, nyin, nzin
@@ -226,8 +253,8 @@ void transpose_real(const int nxin, const int nyin, const int nzin, const int np
 	const int local_nyin = nyin / nproc;
 	
 // Typecast for compatibility
-	PRECISION *tempc1 = (PRECISION *) temp1;
-	PRECISION *tempc2 = (PRECISION *) temp2;
+	double *tempc1 = (double *) temp1;
+	double *tempc2 = (double *) temp2;
 	
 // First, transpose locally the array in qout (will be erased anyway...)
 
@@ -243,8 +270,8 @@ void transpose_real(const int nxin, const int nyin, const int nzin, const int np
 // Next, MPI the whole thing... Have to be out of place
 // Here we could use qin as destination, if qin could be destroyed (might be an interesting optimisation...)
 // This step corresponds to an exchange of chuncks of size (local_nyin,local_nxin,nzin)
-	MPI_Alltoall(tempc1, local_nxin*local_nyin*nzin*sizeof(PRECISION), MPI_BYTE,
-				 tempc2,local_nxin*local_nyin*nzin*sizeof(PRECISION), MPI_BYTE, MPI_COMM_WORLD);
+	MPI_Alltoall(tempc1, local_nxin*local_nyin*nzin*sizeof(double), MPI_BYTE,
+				 tempc2,local_nxin*local_nyin*nzin*sizeof(double), MPI_BYTE, MPI_COMM_WORLD);
 				 
 // From here, temp is made of a contiguous array of chunks of size (local_nyin,local_nxin,nzin)
 // Which can be seen as a 4D Array of size (nproc,local_nyin,local_nxin,nzin);

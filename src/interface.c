@@ -4,11 +4,12 @@
 #include "common.h"
 #include "mainloop.h"
 #include "output.h"
+#include "transpose.h"
 
-// This is the user interface used in C flow
+// This is the user interface used in Snoopy
 // We assume check_interface is called periodically to check whether the user called for something
 
-// currently, we reconize commands status, output and stop, as new files in the root directory of the code
+// currently, we reconize commands status, output, dump and stop, as new files in the root directory of the code
 
 #define			STATUS_COMMAND		"status"
 #define			OUTPUT_COMMAND		"output"
@@ -55,8 +56,8 @@ int check_file(char filename[]) {
 }
 	
 void check_interface(const struct Field fldi,
-					 const PRECISION t,
-					 const PRECISION dt,
+					 const double t,
+					 const double dt,
 					 const int		 nloop,
 					 const double	tstart) {
 	// This routine check the interface file and print the relevant informations
@@ -71,6 +72,9 @@ void check_interface(const struct Field fldi,
 		
 			fprintf(iostream,"STATUS command called.\n");
 			fprintf(iostream,"t=%e, dt=%e, nloop=%d, sec/loop=%f\n",t,dt,nloop, (get_c_time()-tstart)/nloop);
+#ifdef MPI_SUPPORT
+			fprintf(iostream,"transpose time %f seconds, or %f pc of computation time\n",read_transpose_timer(), read_transpose_timer()/(get_c_time()-tstart)*100.0);
+#endif
 		}
 		output_status( iostream );
 		if(rank==0) {
@@ -115,10 +119,12 @@ void check_interface(const struct Field fldi,
 			fprintf(iostream,"STOP command called. Calling immediate dump and terminating\n");
 		}
 		dump_immediate(t);
+		
 		finish_mainloop();
+		finish_output();
+		finish_gfft();
 		finish_common();
-		// Not yet coded 
-		// finish_output();
+		
 		if(rank==0) {
 			fprintf(iostream,"Goodbye\n");
 			close_interface_io( &iostream );

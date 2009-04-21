@@ -1,3 +1,3 @@
-PRECISION time_shift(PRECISION t);
-void remap(PRECISION complex qi[]);
-void kvolve(const PRECISION tremap);
+double time_shift(double t);
+void remap(double complex qi[]);
+void kvolve(const double tremap);

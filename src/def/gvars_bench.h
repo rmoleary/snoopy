@@ -95,8 +95,6 @@
 
 #define		NTOTAL_COMPLEX	(NX_COMPLEX * NY_COMPLEX * NZ_COMPLEX / NPROC)	/**< Number of complex points in one MPI process */
 
-#define		PRECISION		double											/**< Precision of the code (Float has not been tested, and won't work with MPI) */
-
 #define		IDX3D			(k + j * NZ_COMPLEX + NZ_COMPLEX * NY_COMPLEX * i)  /**< General wrapper for 3D Arrays */
 
 #endif

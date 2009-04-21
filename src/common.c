@@ -31,16 +31,16 @@
 
 /**\brief General structure for fields in snoopy. Holds all the information for the field at a given time*/
 struct Field {						
-	PRECISION complex *vx;			/**< X velocity */
-	PRECISION complex *vy;			/**< Y velocity */
-	PRECISION complex *vz;			/**< Z velocity */
+	double complex *vx;			/**< X velocity */
+	double complex *vy;			/**< Y velocity */
+	double complex *vz;			/**< Z velocity */
 #ifdef BOUSSINESQ
-	PRECISION complex *th;			/**< Entropy perturbations (when using boussinesq) */
+	double complex *th;			/**< Entropy perturbations (when using boussinesq) */
 #endif
 #ifdef MHD
-	PRECISION complex *bx;			/**< X magnetic field */
-	PRECISION complex *by;			/**< Y magnetic field */
-	PRECISION complex *bz;			/**< Z magnetic field */
+	double complex *bx;			/**< X magnetic field */
+	double complex *by;			/**< Y magnetic field */
+	double complex *bz;			/**< Z magnetic field */
 #endif
 };
 
@@ -48,36 +48,36 @@ struct Field {
 
 // This are global variables used throughout the code
 // Wave number pointers
-PRECISION	*kx;	/**< x Wavevector */
-PRECISION	*ky;	/**< y Wavevector */
-PRECISION	*kz;	/**< z Wavevector */
-PRECISION	*kxt;	/**< Time dependant x Wavevector. Different from kx only when SHEAR is present.*/
-PRECISION	*k2t;	/**<  k squared Wavevector, function of time when SHEAR is present.*/
-PRECISION	*ik2t;  /**< inverse of k2t Wavevector, function of time when SHEAR is present. set to 0 wheh k2t=0 to avoid singularity*/
-PRECISION	kxmax,	kymax,  kzmax,	kmax;	/**< Maximum wavevectors */
+double	*kx;	/**< x Wavevector */
+double	*ky;	/**< y Wavevector */
+double	*kz;	/**< z Wavevector */
+double	*kxt;	/**< Time dependant x Wavevector. Different from kx only when SHEAR is present.*/
+double	*k2t;	/**<  k squared Wavevector, function of time when SHEAR is present.*/
+double	*ik2t;  /**< inverse of k2t Wavevector, function of time when SHEAR is present. set to 0 wheh k2t=0 to avoid singularity*/
+double	kxmax,	kymax,  kzmax,	kmax;	/**< Maximum wavevectors */
 
 
 // Mask for dealiasing
-PRECISION   *mask;	/**< Deasliasing Mask*/
+double   *mask;	/**< Deasliasing Mask*/
 
-PRECISION	*wr1,	*wr2,	*wr3;		/** Temporary real array (alias of complex w**) */
-PRECISION	*wr4,	*wr5,	*wr6;		/** Temporary real array (alias of complex w**) */
-PRECISION	*wr7,	*wr8,	*wr9;		/** Temporary real array (alias of complex w**) */
+double	*wr1,	*wr2,	*wr3;		/** Temporary real array (alias of complex w**) */
+double	*wr4,	*wr5,	*wr6;		/** Temporary real array (alias of complex w**) */
+double	*wr7,	*wr8,	*wr9;		/** Temporary real array (alias of complex w**) */
 
 struct Field			fld;
 
-PRECISION complex		*w1,	*w2,	*w3;	/**< Temporary complex array (alias of real wr**) */
-PRECISION complex		*w4,	*w5,	*w6;	/**< Temporary complex array (alias of real wr**) */
-PRECISION complex		*w7,	*w8,	*w9;	/**< Temporary complex array (alias of real wr**) */
+double complex		*w1,	*w2,	*w3;	/**< Temporary complex array (alias of real wr**) */
+double complex		*w4,	*w5,	*w6;	/**< Temporary complex array (alias of real wr**) */
+double complex		*w7,	*w8,	*w9;	/**< Temporary complex array (alias of real wr**) */
 
 
 // Physics variables 
-PRECISION	nu;
+double	nu;
 #ifdef BOUSSINESQ
-PRECISION	nu_th;
+double	nu_th;
 #endif
 #ifdef MHD
-PRECISION	eta;
+double	eta;
 #endif
 
 #ifdef MPI_SUPPORT
@@ -105,22 +105,22 @@ void init_common(void) {
 #endif
 	
 	/* We start with the coordinate system */
-	kx = (PRECISION *) fftw_malloc( sizeof(PRECISION) * NTOTAL_COMPLEX );
+	kx = (double *) fftw_malloc( sizeof(double) * NTOTAL_COMPLEX );
 	if (kx == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for kx allocation");
 	
-	ky = (PRECISION *) fftw_malloc( sizeof(PRECISION) * NTOTAL_COMPLEX );
+	ky = (double *) fftw_malloc( sizeof(double) * NTOTAL_COMPLEX );
 	if (ky == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for ky allocation");
 	
-	kz = (PRECISION *) fftw_malloc( sizeof(PRECISION) * NTOTAL_COMPLEX );
+	kz = (double *) fftw_malloc( sizeof(double) * NTOTAL_COMPLEX );
 	if (kz == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for kz allocation");
 	
-	kxt = (PRECISION *) fftw_malloc( sizeof(PRECISION) * NTOTAL_COMPLEX );
+	kxt = (double *) fftw_malloc( sizeof(double) * NTOTAL_COMPLEX );
 	if (kxt == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for kxt allocation");
 	
-	k2t = (PRECISION *) fftw_malloc( sizeof(PRECISION) * NTOTAL_COMPLEX );
+	k2t = (double *) fftw_malloc( sizeof(double) * NTOTAL_COMPLEX );
 	if (k2t == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for k2t allocation");
 	
-	ik2t = (PRECISION *) fftw_malloc( sizeof(PRECISION) * NTOTAL_COMPLEX );
+	ik2t = (double *) fftw_malloc( sizeof(double) * NTOTAL_COMPLEX );
 	if (ik2t == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for ik2t allocation");
 
 
@@ -157,7 +157,7 @@ void init_common(void) {
 	
 	/* Initialize the dealiazing mask Or the nyquist frequency mask (in case dealiasing is not required) */
 	
-	mask = (PRECISION *) fftw_malloc( sizeof(PRECISION) * NTOTAL_COMPLEX );
+	mask = (double *) fftw_malloc( sizeof(double) * NTOTAL_COMPLEX );
 	if (mask == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for mask allocation");
 	
 	for( i = 0; i < NX_COMPLEX/NPROC; i++) {
@@ -195,71 +195,71 @@ void init_common(void) {
 
 	
 
-// Allocating the fields
+// Allocate fields
 // Complex fields
 	
-	fld.vx = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	fld.vx = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (fld.vx == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld.vx allocation");
 	
-	fld.vy = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	fld.vy = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (fld.vy == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld.vy allocation");
 	
-	fld.vz = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	fld.vz = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (fld.vz == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld.vz allocation");
 	
 #ifdef BOUSSINESQ
-	fld.th = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	fld.th = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (fld.th == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld.th allocation");
 #endif
 #ifdef MHD
-	fld.bx = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	fld.bx = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (fld.bx == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld.vx allocation");
 	
-	fld.by = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	fld.by = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (fld.by == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld.vy allocation");
 	
-	fld.bz = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	fld.bz = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (fld.bz == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld.vz allocation");
 #endif
 
-	w1 = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	w1 = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (w1 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w1 allocation");
 	
-	w2 = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	w2 = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (w2 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w2 allocation");
 	
-	w3 = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	w3 = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (w3 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w3 allocation");
 	
-	w4 = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	w4 = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (w4 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w4 allocation");
 	
-	w5 = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	w5 = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (w5 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w5 allocation");
 	
-	w6 = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	w6 = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (w6 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w6 allocation");
 	
-	w7 = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	w7 = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (w7 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w7 allocation");
 	
-	w8 = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	w8 = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (w8 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w8 allocation");
 	
-	w9 = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	w9 = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (w9 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w9 allocation");
 	
 	/* Will use the same memory space for real and complex fields */
 	
-	wr1 = (PRECISION *) w1;
-	wr2 = (PRECISION *) w2;
-	wr3 = (PRECISION *) w3;
-	wr4 = (PRECISION *) w4;
-	wr5 = (PRECISION *) w5;
-	wr6 = (PRECISION *) w6;
-	wr7 = (PRECISION *) w7;
-	wr8 = (PRECISION *) w8;
-	wr9 = (PRECISION *) w9;
+	wr1 = (double *) w1;
+	wr2 = (double *) w2;
+	wr3 = (double *) w3;
+	wr4 = (double *) w4;
+	wr5 = (double *) w5;
+	wr6 = (double *) w6;
+	wr7 = (double *) w7;
+	wr8 = (double *) w8;
+	wr9 = (double *) w9;
 
 	
 // Physic initialisation
@@ -279,6 +279,9 @@ void finish_common(void) {
 	free(kx);
 	free(ky);
 	free(kz);
+	free(kxt);
+	free(k2t);
+	free(ik2t);
 	free(mask);
 	free(fld.vx);
 	free(fld.vy);
@@ -310,7 +313,7 @@ Allow one to have consistant random numbers
 generators on different architectures.
 **/
 /*********************************************/
-PRECISION randm(void) {
+double randm(void) {
 	const int a	=	16807;
 	const int m =	2147483647;
 	static int in0 = 13763;
@@ -323,7 +326,7 @@ PRECISION randm(void) {
 	q= (int) fmod((double) a * in0, m);
 	in0=q;
 	
-	return((PRECISION)q/(PRECISION)m);
+	return((double)q/(double)m);
 }
 /*********************************************/
 /**
@@ -332,9 +335,9 @@ PRECISION randm(void) {
 	 */
 /*********************************************/
 	 
-PRECISION randm_normal(void) {
-	PRECISION v1, v2;
-	PRECISION rsq=1.0;
+double randm_normal(void) {
+	double v1, v2;
+	double rsq=1.0;
 	
 	while(rsq>=1. || rsq==0.0) {
 		v1=2.*randm()-1.0;
@@ -357,12 +360,12 @@ PRECISION randm_normal(void) {
 */
 /****************************************************/
 	
-void projector( PRECISION complex qx[],
-			    PRECISION complex qy[],
-			    PRECISION complex qz[]) {
+void projector( double complex qx[],
+			    double complex qy[],
+			    double complex qz[]) {
 				
 	int i;
-	PRECISION complex q0;
+	double complex q0;
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
 		q0 = kxt[i] * qx[i] + ky[i] * qy[i] + kz[i] * qz[i];
 		qx[i] = qx[i] - kxt[i] * q0 * ik2t[i];
@@ -379,10 +382,10 @@ void projector( PRECISION complex qx[],
 */
 /*********************************************/
 
-PRECISION energy(const PRECISION complex q[]) {
+double energy(const double complex q[]) {
 	
 	int i,j,k;
-	PRECISION energ_tot;
+	double energ_tot;
 	
 	energ_tot=0.0;
 	
@@ -391,10 +394,10 @@ PRECISION energy(const PRECISION complex q[]) {
 			for( k=0; k < NZ_COMPLEX; k++) {
 				if( k == 0) 
 					// k=0, we have all the modes.
-					energ_tot = energ_tot + creal( 0.5 * q[ IDX3D ] * conj( q[ IDX3D ] ) ) / ((PRECISION) NTOTAL*NTOTAL);
+					energ_tot = energ_tot + creal( 0.5 * q[ IDX3D ] * conj( q[ IDX3D ] ) ) / ((double) NTOTAL*NTOTAL);
 				else
 					// k>0, only half of the complex plane is represented.
-					energ_tot = energ_tot + creal( q[ IDX3D ] * conj( q[ IDX3D ] ) ) / ((PRECISION) NTOTAL*NTOTAL);
+					energ_tot = energ_tot + creal( q[ IDX3D ] * conj( q[ IDX3D ] ) ) / ((double) NTOTAL*NTOTAL);
 			}
 		}
 	}
@@ -471,7 +474,7 @@ void reduce(double *var, const int op) {
 */
 /*******************************************/
 
-void symmetrize(PRECISION complex wi[]) {
+void symmetrize(double complex wi[]) {
 	int i;
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
 		w1[i] = wi[i];

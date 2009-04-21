@@ -9,20 +9,20 @@
 /** Allow one to init a structure in real space using ordinary defined x,y,z coordinates */
 
 void init_SpatialStructure() {
-	PRECISION *x,*y,*z;
+	double *x,*y,*z;
 	int i,j,k;
 	
 	/*******************************************************************
 	** This part does not need to be modified **************************
 	********************************************************************/
 	// Allocate coordinate arrays
-	x = (PRECISION *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	x = (double *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (x == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for x allocation");
 	
-	y = (PRECISION *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	y = (double *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (y == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for y allocation");
 	
-	z = (PRECISION *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	z = (double *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (z == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for z allocation");
 
 	// Initialize the arrays
@@ -116,13 +116,13 @@ void init_SpatialStructure() {
 
 
 void init_KidaVortex() {
-	const PRECISION a = VORTEX_A;
-	const PRECISION b = VORTEX_B;
+	const double a = VORTEX_A;
+	const double b = VORTEX_B;
 	
 	int i,j,k;
 	
-	PRECISION w0, x, y;
-	PRECISION chi;
+	double w0, x, y;
+	double chi;
 	
 	chi = b / a;
 	w0 = 1.0/chi*(chi + 1)/(chi-1.0);			// According to Kida!
@@ -162,13 +162,13 @@ void init_KidaVortex() {
 /** for the field */
 /***********************************/
 void init_Bench() {
-	const PRECISION a = 0.3;
-	const PRECISION b = 0.4;
+	const double a = 0.3;
+	const double b = 0.4;
 	
 	int i,j,k;
 	
-	PRECISION w0, x, y;
-	PRECISION chi;
+	double w0, x, y;
+	double chi;
 	
 	chi = b / a;
 	w0 = 1.0/chi*(chi + 1)/(chi-1.0);			// According to Kida!
@@ -214,7 +214,7 @@ void init_LargeScaleNoise() {
 	int i,j,k;
 	int num_force=0;
 	int total_num_force;
-	PRECISION fact;
+	double fact;
 	
 	for( i = 0; i < NX_COMPLEX/NPROC; i++) {
 		for( j = 0; j < NY_COMPLEX; j++) {
@@ -278,7 +278,7 @@ void init_WhiteNoise() {
 	int i,j,k;
 	int num_force=0;
 	int total_num_force;
-	PRECISION fact;
+	double fact;
 	
 	// Excite (2/3)^3*NTOTAL modes
 	fact = pow(27.0/8.0*NTOTAL, 0.5);

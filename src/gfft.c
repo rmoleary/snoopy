@@ -12,8 +12,8 @@ const int n_size1D[1] = {NY_COMPLEX};
 
 fftw_plan	r2c_2d, c2r_2d, r2c_1d, c2r_1d;
 
-PRECISION complex *wi1;
-PRECISION *wir1;
+double complex *wi1;
+double *wir1;
 
 /* GFFT (Like Geo's FFT as you might have guessed...) is an FFT wrapper for FFTW>=3.2
 It takes care of the MPI part of the FFT while FFTW deals with the FFT themselves
@@ -25,9 +25,9 @@ One concludes It's FAAAARRRR better than FFTW 2.1.5
 // This is an inplace real 2 complex transform
 // Assumes wrin has the logical dimensions [NY/PROC, NX, NZ] of real positions
 // physical dimensions [NY/NPROC, NX, NZ+2];
-void gfft_r2c_t(PRECISION *wrin) {
+void gfft_r2c_t(double *wrin) {
 	int i;
-	PRECISION complex *win = (PRECISION complex *) wrin;
+	double complex *win = (double complex *) wrin;
 	
 	//start transforming in 2D wrin
 	fftw_execute_dft_r2c(r2c_2d, wrin, win);
@@ -48,9 +48,9 @@ void gfft_r2c_t(PRECISION *wrin) {
 }
 
 
-void gfft_c2r_t(PRECISION complex *win) {
+void gfft_c2r_t(double complex *win) {
 	int i;
-	PRECISION *wrin = (PRECISION *) win;
+	double *wrin = (double *) win;
 	// We now have an array with logical dimensions[NX_COMPLEX/NPROC, NY_COMPLEX, NZ_COMPLEX]
 #ifdef _OPENMP
 	#pragma omp parallel for private(i) schedule(static)	
@@ -72,14 +72,14 @@ void gfft_c2r_t(PRECISION complex *win) {
 // In place double transpose transforms
 // Not Fast, but convenient...!
 
-void gfft_r2c(PRECISION *wrin) {
+void gfft_r2c(double *wrin) {
 	transpose_real(NX, NY, NZ+2, NPROC, wrin, wrin);
 	gfft_r2c_t(wrin);
 	return;
 }
 
-void gfft_c2r(PRECISION complex *win) {
-	PRECISION *wrin = (PRECISION *) win;
+void gfft_c2r(double complex *win) {
+	double *wrin = (double *) win;
 	gfft_c2r_t(win);
 	transpose_real(NY,NX,NZ+2,NPROC,wrin,wrin);
 	return;
@@ -94,10 +94,10 @@ void init_gfft() {
 	
 	DEBUG_START_FUNC;
 	
-	wi1 = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	wi1 = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (wi1 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for wi1 allocation");
 
-	wir1 = (PRECISION *) wi1;
+	wir1 = (double *) wi1;
 	
 	for(i = 0 ; i < NTOTAL_COMPLEX; i++) {
 		wi1[i]=1.0;
@@ -142,6 +142,21 @@ void init_gfft() {
 	return;
 }
 
+void finish_gfft() {
+	DEBUG_START_FUNC;
+	
+	fftw_destroy_plan(r2c_2d);
+	fftw_destroy_plan(c2r_2d);
+	fftw_destroy_plan(c2r_1d);
+	fftw_destroy_plan(r2c_1d);
+	
+	finish_transpose();
+	
+	DEBUG_END_FUNC;
+	
+	return;
+}
+
 /**********************************************************************
 ***********************************************************************
 *********     N O    M P I    R O U T I N E S        ******************
@@ -155,29 +170,29 @@ void init_gfft() {
 
 fftw_plan	r2cfft, c2rfft;
 
-PRECISION complex *wi1;
-PRECISION *wir1;
+double complex *wi1;
+double *wir1;
 
-void gfft_r2c_t(PRECISION *wrin) {
-	PRECISION complex *win = (PRECISION complex *) wrin;
+void gfft_r2c_t(double *wrin) {
+	double complex *win = (double complex *) wrin;
 	fftw_execute_dft_r2c(r2cfft, wrin, win);
 	return;
 }
 
-void gfft_c2r_t(PRECISION complex *win){
-	PRECISION *wrin = (PRECISION *) win;
+void gfft_c2r_t(double complex *win){
+	double *wrin = (double *) win;
 	fftw_execute_dft_c2r(c2rfft, win, wrin);
 	return;
 }
 
-void gfft_r2c(PRECISION *wrin) {
-	PRECISION complex *win = (PRECISION complex *) wrin;
+void gfft_r2c(double *wrin) {
+	double complex *win = (double complex *) wrin;
 	fftw_execute_dft_r2c(r2cfft, wrin, win);
 	return;
 }
 
-void gfft_c2r(PRECISION complex *win){
-	PRECISION *wrin = (PRECISION *) win;
+void gfft_c2r(double complex *win){
+	double *wrin = (double *) win;
 	fftw_execute_dft_c2r(c2rfft, win, wrin);
 	return;
 }
@@ -186,10 +201,10 @@ void init_gfft() {
 	
 	DEBUG_START_FUNC;
 	
-	wi1 = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	wi1 = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (wi1 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for wi1 allocation");
 	
-	wir1 = (PRECISION *) wi1;
+	wir1 = (double *) wi1;
 	
 #ifdef _OPENMP
 	fftw_plan_with_nthreads( nthreads );
@@ -203,6 +218,17 @@ void init_gfft() {
 
 	
 	fftw_free(wi1);
+	
+	DEBUG_END_FUNC;
+	
+	return;
+}
+
+void finish_gfft() {
+	DEBUG_START_FUNC;
+	
+	fftw_destroy_plan(r2cfft);
+	fftw_destroy_plan(c2rfft);
 	
 	DEBUG_END_FUNC;
 	

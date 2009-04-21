@@ -11,12 +11,12 @@
 ** Forcing (if required) *************************
 **************************************************/
 void forcing(struct Field fldi,
-			 PRECISION dt) {
+			 double dt) {
 			 
 // Force random velocity field
-	const PRECISION kf = 2.0 * M_PI * 5.0;
-	const PRECISION deltakf = kf * 0.2;
-	const PRECISION amplitude_forcing = 5.0;
+	const double kf = 2.0 * M_PI * 5.0;
+	const double deltakf = kf * 0.2;
+	const double amplitude_forcing = 5.0;
 	int found_k = 0;
 	int i;
 // Find a valid k vector
@@ -49,8 +49,8 @@ void timestep( struct Field dfldo,
 			   const double dt ) {
 			   
 	int i;
-	PRECISION complex q0;
-	PRECISION S;
+	double complex q0;
+	double S;
 	// This is the timesteping algorithm, solving the physics.
 
 	// Find the shear at time t
@@ -291,7 +291,7 @@ void implicitstep(
 			   const double t,
 			   const double dt ) {
 			   
-	PRECISION q0;
+	double q0;
 	int i;
 #ifdef _OPENMP
 	#pragma omp parallel for private(i,q0) schedule(static)

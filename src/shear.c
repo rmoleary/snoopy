@@ -6,8 +6,8 @@
 #ifdef WITH_SHEAR
 
 
-PRECISION time_shift(PRECISION t) {
-	PRECISION tremap;
+double time_shift(double t) {
+	double tremap;
 #ifdef TIME_DEPENDANT_SHEAR
 	tremap = sin(OMEGA_SHEAR * t);
 #else
@@ -16,7 +16,7 @@ PRECISION time_shift(PRECISION t) {
 	return(tremap);
 }
 
-void remap(PRECISION complex qi[]) {
+void remap(double complex qi[]) {
 	int i, j, k;
 	int nx, ny, nxtarget;
 	
@@ -81,7 +81,7 @@ void remap(PRECISION complex qi[]) {
 	return;
 }
 
-void kvolve(const PRECISION tremap) {
+void kvolve(const double tremap) {
 	int i, j, k;
 #ifdef _OPENMP
 	#pragma omp parallel for private(i,j,k) schedule(static)	

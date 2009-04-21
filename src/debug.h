@@ -1,7 +1,7 @@
 #ifdef DEBUG
 
 void D_show_all(struct Field fldi);
-void D_show_field(PRECISION complex * field);
+void D_show_field(double complex * field);
 void debug_start_f(const char ErrorRoutine[], const int line, const char ErrorFile[]);
 void debug_end_f(const char ErrorRoutine[], const int line, const char ErrorFile[]);
 

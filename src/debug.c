@@ -5,16 +5,16 @@
 
 #ifdef DEBUG
 	
-void D_show_field(PRECISION complex * field) {
+void D_show_field(double complex * field) {
 	// Print several informations about the field field
-	PRECISION complex * df;
-	PRECISION * dfr;
-	PRECISION maxfield, minfield, avgfield, avg2field;
+	double complex * df;
+	double * dfr;
+	double maxfield, minfield, avgfield, avg2field;
 	int i;
 	
-	df = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX );
+	df = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX );
 	if (df == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for df allocation");
-	dfr = (PRECISION *) df;
+	dfr = (double *) df;
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
 		df[i] =  field[i];
 	}
@@ -33,10 +33,10 @@ void D_show_field(PRECISION complex * field) {
 		avg2field+=dfr[i]*dfr[i];
 	}
 	
-	maxfield=maxfield/ ((PRECISION) NTOTAL);
-	minfield=minfield/ ((PRECISION) NTOTAL);
-	avgfield=avgfield/ ((PRECISION)  NTOTAL*NTOTAL);
-	avg2field=avg2field/ ((PRECISION) NTOTAL*NTOTAL*NTOTAL);
+	maxfield=maxfield/ ((double) NTOTAL);
+	minfield=minfield/ ((double) NTOTAL);
+	avgfield=avgfield/ ((double)  NTOTAL*NTOTAL);
+	avg2field=avg2field/ ((double) NTOTAL*NTOTAL*NTOTAL);
 	
 #ifdef MPI_SUPPORT
 	reduce(&maxfield,2);

@@ -6,25 +6,26 @@
 #include "interface.h"
 #include "gfft.h"
 #include "shear.h"
+#include "transpose.h"
 #include "debug.h"
 
 struct Field			dfld, fld1;
 
-PRECISION complex		gammaRK[3];
-PRECISION complex		xiRK[2];
+double complex		gammaRK[3];
+double complex		xiRK[2];
 
-PRECISION forcing_last_time;
+double forcing_last_time;
 
-PRECISION newdt(PRECISION tremap) {
+double newdt(double tremap) {
 
 	int i;
-	PRECISION gamma_v;
-	PRECISION maxfx   , maxfy, maxfz;
+	double gamma_v;
+	double maxfx   , maxfy, maxfz;
 #ifdef MHD
-	PRECISION gamma_b;
-	PRECISION maxbx   , maxby, maxbz;
+	double gamma_b;
+	double maxbx   , maxby, maxbz;
 #endif
-	PRECISION dt;
+	double dt;
 	
 	DEBUG_START_FUNC;
 	
@@ -129,48 +130,48 @@ void init_mainloop() {
 
 	DEBUG_START_FUNC;
 	
-	dfld.vx = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	dfld.vx = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (dfld.vx == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for dfld.vx allocation");
 	
-	dfld.vy = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	dfld.vy = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (dfld.vy == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for dfld.vy allocation");
 	
-	dfld.vz = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	dfld.vz = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (dfld.vz == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for dfld.vz allocation");
 	
-	fld1.vx = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	fld1.vx = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (fld1.vx == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld1.vx allocation");
 	
-	fld1.vy = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	fld1.vy = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (fld1.vy == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld1.vy allocation");
 	
-	fld1.vz = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	fld1.vz = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (fld1.vz == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld1.vz allocation");
 
 #ifdef BOUSSINESQ
-	dfld.th = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	dfld.th = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (dfld.th == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for dfld.th allocation");
 	
-	fld1.th = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	fld1.th = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (fld1.th == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld1.th allocation");
 #endif
 #ifdef MHD
-	dfld.bx = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	dfld.bx = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (dfld.bx == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for dfld.bx allocation");
 	
-	dfld.by = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	dfld.by = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (dfld.by == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for dfld.by allocation");
 	
-	dfld.bz = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	dfld.bz = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (dfld.bz == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for dfld.bz allocation");
 	
-	fld1.bx = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	fld1.bx = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (fld1.bx == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld1.bx allocation");
 	
-	fld1.by = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	fld1.by = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (fld1.by == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld1.by allocation");
 	
-	fld1.bz = (PRECISION complex *) fftw_malloc( sizeof(PRECISION complex) * NTOTAL_COMPLEX);
+	fld1.bz = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (fld1.bz == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld1.bz allocation");
 #endif
 	
@@ -182,15 +183,6 @@ void init_mainloop() {
 	
 	xiRK[0] = -17.0 / 60.0;
 	xiRK[1] = -5.0 / 12.0;
-
-/*
-	gammaRK[0] = 1.0;
-	gammaRK[1] = 0.0;
-	gammaRK[2] = 0.0;
-	
-	xiRK[0] = 0.0;
-	xiRK[1] = 0.0;
-*/
 
 	DEBUG_END_FUNC;
 	
@@ -222,13 +214,21 @@ void finish_mainloop() {
 	return;
 }
 
-
-void mainloop() {
-	PRECISION		dt = 0.0;
-	PRECISION	    t = 0.0;
-	PRECISION		tremap = 0.0;
+/***************************************************************/
+/**
+	Integrate in time the field stored in fld (found and initialized in common.c/common.h)
+	from t_start to t_end. Outputs are done according to gvars.h
 	
-	double tstart, tend;
+	@param t_start: initial time of the simulation (usually 0...)
+	@param t_end: final time of the simulation (will stop precisely at that time).
+*/
+/***************************************************************/
+void mainloop(double t_start, double t_end) {
+	double		dt = 0.0;
+	double	    t = 0.0;
+	double		tremap = 0.0;
+	
+	double timer_end, timer_start;
 	int i,nloop;
 	
 	DEBUG_START_FUNC;
@@ -242,7 +242,7 @@ void mainloop() {
 #endif
 	read_dump(fld,&t);
 #else
-	t = T_INITIAL;
+	t = t_start;
 	clear_timevar();
 	output(t);
 #endif
@@ -254,9 +254,9 @@ void mainloop() {
 	tremap = 0.0;
 #endif
 	
-	tstart = get_c_time();
+	timer_start = get_c_time();
 	
-	while (t < T_FINAL) {
+	while (t < t_end) {
 #ifdef DEBUG
 		MPI_Printf("Begining of loop:\n");
 		MPI_Printf("fld:\n");
@@ -265,9 +265,11 @@ void mainloop() {
 #endif
 
 		nloop++;
-		if(!(nloop % INTERFACE_CHECK)) check_interface(fld,t,dt,nloop,tstart);
+		if(!(nloop % INTERFACE_CHECK)) check_interface(fld,t,dt,nloop,timer_start);
 		
 		dt = newdt(tremap);
+		// Let's try to stop exactly at t_final
+		if(dt > (t_end - t)) dt = t_end - t;
 		
 		// This is an order 3 runge Kutta scheme with low storage
 		
@@ -446,8 +448,12 @@ void mainloop() {
 				
 		output(t);
 	}
-	tend=get_c_time();
-	MPI_Printf("mainloop finished in %d loops and %f seconds (%f sec/loop)\n",nloop,tend-tstart,(tend-tstart)/nloop);
+	timer_end=get_c_time();
+	MPI_Printf("mainloop finished in %d loops and %f seconds (%f sec/loop)\n",nloop,timer_end-timer_start,(timer_end-timer_start)/nloop);
+#ifdef MPI_SUPPORT
+	MPI_Printf("Time used for transpose: %f seconds, or %f pc of total computation time\n",read_transpose_timer(), read_transpose_timer()/(timer_end-timer_start)*100.0);
+#endif
+
 	finish_mainloop();
 	return;
 

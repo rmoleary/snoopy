@@ -1,4 +1,4 @@
-OBJ= error.o snoopy.o mainloop.o initflow.o timestep.o common.o output.o interface.o gfft.o transpose.o debug.o shear.o
+OBJ= error.o snoopy.o mainloop.o initflow.o timestep.o common.o output.o interface.o gfft.o transpose.o debug.o shear.o peanuts_wrapper.o
 
 all: snoopy
 

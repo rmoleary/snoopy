@@ -23,48 +23,48 @@
 // Structures
 
 struct Field {
-	PRECISION complex *vx;
-	PRECISION complex *vy;
-	PRECISION complex *vz;
+	double complex *vx;
+	double complex *vy;
+	double complex *vz;
 #ifdef BOUSSINESQ
-	PRECISION complex *th;
+	double complex *th;
 #endif
 #ifdef MHD
-	PRECISION complex *bx;
-	PRECISION complex *by;
-	PRECISION complex *bz;
+	double complex *bx;
+	double complex *by;
+	double complex *bz;
 #endif
 };
 
 // All these variables may be used in the code as they are initialized by common.c
 // Wave number pointers
-extern PRECISION	*kx,	*ky,	*kz,	*kxt,	*k2t,	*ik2t;
-extern PRECISION	kxmax,	kymax,  kzmax,	kmax;
+extern double	*kx,	*ky,	*kz,	*kxt,	*k2t,	*ik2t;
+extern double	kxmax,	kymax,  kzmax,	kmax;
 
 
 // Mask for dealiasing
-extern PRECISION   *mask;
+extern double   *mask;
 
-extern PRECISION	*wr1,	*wr2,	*wr3;
-extern PRECISION	*wr4,	*wr5,	*wr6;
-extern PRECISION	*wr7,	*wr8,	*wr9;
-extern PRECISION	*wr10;
+extern double	*wr1,	*wr2,	*wr3;
+extern double	*wr4,	*wr5,	*wr6;
+extern double	*wr7,	*wr8,	*wr9;
+extern double	*wr10;
 
 extern struct Field				fld;
 
-extern PRECISION complex		*w1,	*w2,	*w3;
-extern PRECISION complex		*w4,	*w5,	*w6;
-extern PRECISION complex		*w7,	*w8,	*w9;
+extern double complex		*w1,	*w2,	*w3;
+extern double complex		*w4,	*w5,	*w6;
+extern double complex		*w7,	*w8,	*w9;
 
 // Physics variables 
-extern PRECISION	nu;
+extern double	nu;
 
 #ifdef BOUSSINESQ
-extern PRECISION	nu_th;
+extern double	nu_th;
 #endif
 
 #ifdef MHD
-extern PRECISION	eta;
+extern double	eta;
 #endif
 
 // MPI
@@ -85,16 +85,16 @@ double get_c_time(void);
 // Useful only if MPI is active. Can be called without though...
 void reduce(double *var, const int op);
 
-PRECISION randm_normal(void);
-PRECISION randm (void);
+double randm_normal(void);
+double randm (void);
 
-void projector( PRECISION complex qx[],
-			    PRECISION complex qy[],
-			    PRECISION complex qz[]);
+void projector( double complex qx[],
+			    double complex qy[],
+			    double complex qz[]);
 				
-PRECISION energy(const PRECISION complex q[]);
+double energy(const double complex q[]);
 
 void enforce_symm(struct Field fldi);
-void symmetrize(PRECISION complex wi[]);
+void symmetrize(double complex wi[]);
 				
 				
