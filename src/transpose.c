@@ -1,5 +1,5 @@
 #include <string.h>
-#include "gvars.h"
+
 #include "common.h"
 #include <fftw3.h>
 

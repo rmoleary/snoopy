@@ -1,4 +1,3 @@
-#include "gvars.h"
 #include "common.h"
 #include "debug.h"
 
