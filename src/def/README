@@ -1,7 +1,5 @@
-This directory contains a default configuration file.
+This directory contains default configuration files for make and for Snoopy. It also contains the configuration file for the standard test (or Benchmark). Feel free to use
+any of these config file for your own configuration.
 
-It can be used for Benchmarks.
-
-type make def if you just want to initialize the configuration file with the default ones. If a configuration file already exists in src/, then one has to delete it as make def won't erase an already present config file. If make is called without any config file, make will call make def to use the default one.
 
 

@@ -240,7 +240,12 @@ void mainloop(double t_start, double t_end) {
 #ifdef DEBUG
 	MPI_Printf("Reading dump file\n");
 #endif
-	read_dump(fld,&t);
+	if(read_dump(fld,&t)) {
+		MPI_Printf("Mainloop: No dump found, using normal initialization.\n");
+		t = t_start;
+		clear_timevar();
+		output(t);
+	}
 #else
 	t = t_start;
 	clear_timevar();

@@ -368,7 +368,10 @@ void init_flow() {
 #endif
 
 #ifdef INIT_DUMP
-	read_dump(fld,NULL);
+	if(read_dump(fld,NULL)) {
+		ERROR_HANDLER(ERROR_CRITICAL,"No dump found for the initial conditions.");
+	}
+
 #endif
 
 	projector(fld.vx,fld.vy,fld.vz);

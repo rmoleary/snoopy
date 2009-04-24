@@ -385,7 +385,6 @@ void write_vtk(FILE * ht, double complex wi[], const double t) {
 		wr1[i] = wr1[i] / ((double) NTOTAL );
 	}
 	
-
 #ifdef WITH_SHEAR
 	remap_output(wr1,t);
 #endif
@@ -904,13 +903,14 @@ void output_dump( const struct Field fldi,
 	@param t time of the simulation, overwritten by this with the dump information.
 */
 /**************************************************************************************/
-void read_dump(   struct Field fldo,
+int read_dump(   struct Field fldo,
 				  double *t) {	
 				  
 	FILE *ht;
 	int dump_version;
 	int size_x,	size_y, size_z, included_field;
 	int marker;
+	int file_status;
 
 	DEBUG_START_FUNC;
 
@@ -918,8 +918,23 @@ void read_dump(   struct Field fldo,
 	
 	if(rank==0) {
 		ht=fopen(OUTPUT_DUMP,"r");
-		if(ht==NULL) ERROR_HANDLER( ERROR_CRITICAL, "Error opening dump file.");
+		if(ht==NULL) file_status = 0;
+		else		 file_status = 1;
+	}
 	
+#ifdef MPI_SUPPORT
+	MPI_Bcast(&file_status, 1, MPI_INT, 0, MPI_COMM_WORLD);
+#endif
+	
+	if(file_status==0) {
+		// The file can't be openend
+		ERROR_HANDLER(ERROR_WARNING, "Cannot open dump file.");
+		return(1);
+	}
+	
+	// The file has been opened by process 0
+	
+	if(rank==0) {
 		fread(&dump_version, sizeof(int), 1, ht);
 		if( dump_version != OUTPUT_DUMP_VERSION) ERROR_HANDLER( ERROR_CRITICAL, "Incorrect dump file version.");
 	
@@ -969,7 +984,7 @@ void read_dump(   struct Field fldo,
 	}
 #endif
 	
-#ifndef INIT_DUMP	// If the dump is used as an initial condition, we don't need to init these parameters
+#ifdef RESTART	// If the dump is used to restart, we need these extra variables
 	if(rank==0) {
 		fread(t			, sizeof(double)		   , 1			   , ht);
 	
@@ -998,7 +1013,7 @@ void read_dump(   struct Field fldo,
 
 	DEBUG_END_FUNC;
 	
-	return;
+	return(0);
 }
 	
 /*********************************************************
