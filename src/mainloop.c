@@ -276,6 +276,15 @@ void mainloop(double t_start, double t_end) {
 		// Let's try to stop exactly at t_final
 		if(dt > (t_end - t)) dt = t_end - t;
 		
+		// Stop if elpased time is larger than MAX_ELAPSED_TIME (in hours)
+#ifdef MAX_T_ELAPSED
+		if((get_c_time()-timer_start) > 3600 * MAX_T_ELAPSED) {
+			MPI_Printf("Maximum elapsed time reached. Terminating.\n");
+			dump_immediate(t);
+			break;
+		}
+#endif
+		
 		// This is an order 3 runge Kutta scheme with low storage
 		
 		// 1st RK3 step

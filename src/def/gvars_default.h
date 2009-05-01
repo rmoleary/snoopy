@@ -33,6 +33,7 @@
 
 #define		T_INITIAL		0.0			/**< Initial time of the simulation */
 #define		T_FINAL			100.0		/**< Simulation will stop if it reaches this time */
+#define		MAX_T_ELAPSED	0.0333334	/**< Maximum elapsed time (in hours). Will stop after this elapsed time */
 
 #define		TOUTPUT_TIME	0.1			/**< Time between two outputs in the timevar file */
 #define		TOUTPUT_FLOW	1.0			/**< Time between two snapshot outputs */
