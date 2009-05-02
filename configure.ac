@@ -56,7 +56,7 @@ FFTW_MPI_ACTIVE=notavailable
 
 AC_ARG_ENABLE(fftw-mpi, [  --enable-fftw-mpi     enable fftw3 experimental mpi support], ok=yes, ok=no)
 if test "$ok" = "yes"; then
-	AC_SEARCH_LIBS(fftw_mpi_init, fftw3_mpi fftw3 fftw3_threads,[
+	AC_SEARCH_LIBS(fftw_mpi_init, fftw3_mpi fftw3 fftw3_threads,[ ],[
 				  echo "******************************************"
 	              echo "Error! FFTW MPI libraries not found."
 				  echo "******************************************"
