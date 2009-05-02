@@ -3,15 +3,10 @@ OBJ= error.o snoopy.o mainloop.o initflow.o timestep.o common.o output.o interfa
 all: snoopy
 
 snoopy: $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS) $(FFTPATH) $(LDFLAGS)
+	$(CC) -o $@ $^ $(LDFLAGS)
 
-%.o: %.c gvars.h ../config.mk
+%.o: %.c gvars.h
 	$(CC) -o $@ $< $(CFLAGS) -c
-	
-config: gvars.h
-
-gvars.h:
-	cp def/gvars_default.h ./gvars.h
 
 clean:
 	rm -f *.o snoopy
@@ -20,4 +15,9 @@ fullclean:
 	rm -f *.o snoopy gvars.h
 
 bench:
+	mv ./gvars.h ./gvars.h.old
 	cp def/gvars_bench.h ./gvars.h
+
+benchclean:
+	rm -f ./gvars.h
+	mv ./gvars.h.old ./gvars.h

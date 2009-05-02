@@ -1,0 +1,115 @@
+# This is the default configuration
+
+###########################################
+## User can activate options, replacing  ##
+## no by yes. Options not available can't##
+## be activated                          ##
+###########################################
+
+OPENMP= @OPENMP_ACTIVE@
+MPI= @MPI_ACTIVE@
+FFTW3_MPI= @FFTW_MPI_ACTIVE@
+DEBUG= @DEBUG_ACTIVE@
+
+###########################################
+## Configuration found by ./configure    ##
+###########################################
+
+CLUSTER="@host@"
+CC=@CC@
+MPICC=@MPICC@
+CFLAGS=@CFLAGS@
+OPENMP_FLAG = @OPENMP_CFLAGS@
+LIBS= @LIBS@
+
+ifeq ($(DEBUG),yes)
+	CFLAGS=@CFLAGS_DEBUG@ -DDEBUG
+	LDFLAGS=@LDFLAGS_DEBUG@ -g
+endif
+
+###############################################################
+## General compilation variables
+###############################################################
+
+
+ifeq ($(OPENMP),yes)
+	CFLAGS+=$(OPENMP_FLAG)
+	LDFLAGS+=$(OPENMP_FLAG)
+endif
+ifeq ($(FFTW3_MPI),yes)
+	CFLAGS+=-DFFTW3_MPI_SUPPORT
+endif
+ifeq ($(MPI),yes)
+	CFLAGS+=-DMPI_SUPPORT
+	CC=$(MPICC)
+endif
+
+LDFLAGS+=$(LIBS)
+
+export CC
+export CFLAGS
+export LDFLAGS
+
+###############################################################
+## Compilation rules
+###############################################################
+
+all: data
+	@(cd src && $(MAKE))
+	cp src/snoopy .
+	@echo "***********************************************************"
+	@echo "Make has compiled for: " $(CLUSTER)
+ifeq ($(OPENMP),yes)
+	@echo "OpenMP support enabled"
+else
+	@echo "OpenMP support disabled"
+endif
+ifeq ($(MPI),yes)
+	@echo "MPI support enabled"
+else
+	@echo "MPI support disabled"
+endif
+	@echo "***********************************************************"
+
+data:
+	mkdir data
+
+clean:
+	@(cd src && $(MAKE) $@)
+	rm snoopy
+
+fullclean:
+	@(cd src && $(MAKE) $@)
+	rm -rf snoopy timevar spectrum.dat data dump.dmp
+
+#####################################################################
+## Rules for benchmark and checks                             #######
+#####################################################################
+check: bench all benchclean
+	@echo "******************************************"
+	@echo "** Executing Benchmark *******************"
+	@echo "******************************************"
+	./snoopy
+	@echo "******************************************"
+	@echo "*** Checking results                  ****"
+	@echo "******************************************"
+	diff timevar src/def/timevar_bench
+	@echo "******************************************"
+	@echo "*** All Done  !                       ****"
+	@echo "******************************************"
+
+bench:
+	@(cd src && $(MAKE) $@)
+	@echo "***********************************************************"
+	@echo "Initialized BENCHMARK configuration"
+	@echo "Please type make to compile" 
+	@echo "or make benchclean to restore the configuration"
+	@echo "***********************************************************"
+
+
+benchclean:
+	@(cd src && $(MAKE) $@)
+	@echo "***********************************************************"
+	@echo "Configuration restored"
+	@echo "***********************************************************"
+
