@@ -228,6 +228,9 @@ if test "$ac_test_CFLAGS" != "set"; then
 	  AC_MSG_RESULT($icc_archflag)
           if test "x$icc_archflag" != xunknown; then
             CFLAGS="$CFLAGS $icc_archflag"
+		  else
+		    # Test -xHOST for icc11 if we have not found anything else...
+			AX_CHECK_COMPILER_FLAGS(-xHOST, CFLAGS="$CFLAGS -xHOST")
           fi
         fi
 	;;
