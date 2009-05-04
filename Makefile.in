@@ -1,4 +1,6 @@
-# This is the default configuration
+# This is the default Makefile for Snoopy
+# @WARNING1@
+# @WARNING2@
 
 ###########################################
 ## User can activate options, replacing  ##
