@@ -83,13 +83,20 @@ if test "$ok" = "yes"; then
                   ])
 
 	#check if Threads or OpenMP is supported by fftw
+	#save CFLAGS and add openmp flag for next test
+
+	CFLAGS_SAVE=$CFLAGS
+	CFLAGS="$CFLAGS $OPENMP_CFLAGS"
 	
-	AC_SEARCH_LIBS(fftw_init_threads, fftw3_threads fftw3, OPENMP_ACTIVE=yes,[
+	AC_SEARCH_LIBS(fftw_init_threads, fftw3_threads, OPENMP_ACTIVE=yes,[
 				  echo "************************************************"
 	              echo "Error! Threads or OpenMP not supported by FFTW. "
 				  echo "************************************************"
                   exit -1
                   ])
+
+	#Restore CFLAGS
+	CFLAGS=$CFLAGS_SAVE
 				  
 fi
 

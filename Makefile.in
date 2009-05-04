@@ -21,13 +21,14 @@ MPICC=@MPICC@
 CFLAGS=@CFLAGS@
 OPENMP_FLAG = @OPENMP_CFLAGS@
 LIBS= @LIBS@
+LDFLAGS=@LDFLAGS@
 
 ifeq ($(DEBUG),yes)
 	CFLAGS=@CFLAGS_DEBUG@ -DDEBUG
 	LDFLAGS=@LDFLAGS_DEBUG@ -g
 endif
 
-###############################################################
+
 ## General compilation variables
 ###############################################################
 
