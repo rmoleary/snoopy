@@ -34,7 +34,7 @@ fi
 
 # FFT Path: Path where to find the fft libraries (e.g. ~/usr)
 
-if test "$FFTPATH" != NONE; then
+if test "$FFTPATH" != ""; then
 	CFLAGS="$CFLAGS -I$FFTPATH/include"
 	CFLAGS_DEBUG="$CFLAGS_DEBUG -I$FFTPATH/include"
 	LDFLAGS="$LDFLAGS -L$FFTPATH/lib"
