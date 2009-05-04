@@ -119,6 +119,9 @@ fi
 #   by the code (e.g. for gcc's -fstrict-aliasing), and that floating-point
 #   computations can be re-ordered as needed.
 #
+#	G. Lesur Modif:
+#   Includes icc11 option -xHOST test for newer Intel processors
+#
 #   Requires macros: AX_CHECK_COMPILER_FLAGS, AX_COMPILER_VENDOR,
 #   AX_GCC_ARCHFLAG, AX_GCC_X86_CPUID.
 #
@@ -126,6 +129,7 @@ fi
 #
 #   Copyright (c) 2008 Steven G. Johnson <stevenj@alum.mit.edu>
 #   Copyright (c) 2008 Matteo Frigo
+#   Copyright (c) 2009 Geoffroy Lesur
 #
 #   This program is free software: you can redistribute it and/or modify it
 #   under the terms of the GNU General Public License as published by the

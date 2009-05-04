@@ -28,53 +28,63 @@
 	*/
 	
 /*!	\page using Using the code
-	\section first_start Let's go
-	Type make in the root directory. If you're lucky, everything will work fine. If you're not, then you'll have to create a configuration for your architecture. If the compilation went successfully, just type ./snoopy and that's it!
-	\section makefile The Makefile
-	The makefile is divided in several files. "makefile" contains the rules to create a configuration file for several architectures. The file
-	rules.mk contains the compilation rules for the code. This should not be modified by ordinary users. Finally, config.mk
-	contains architecture-dependant flags, paths and compiler options. This file is meant to be modified by the user. Several default configuration
-	files are stored in src/def/*.mk. 
+	\section config Configuring the code
+	As any open source software, Snoopy comes with automatic configuration tools. The script ./configure allows one to configure the main options of snoopy, creating a customized Makefile
+	and producing a default gvars.h to setup the physics. The following options can be useful when using the configure script:
+	- --enable-mpi: Enable MPI parallelization
+	- --enable-fftw-mpi: Enable *experimental* support of MPI found in fftw3.3alpha. These routines replace the custom transpose routines found in Snoopy and are generally more efficient. NB: MPI support in fftw3 is still under developpement and untested. Unless you're sure of what you're doing, keeping this option off is safer.
+	- --enable-openmp: Enable OpenMP support. Useful on Intel Core** processors. This option requires OpenMP support in FFTW3 (see fftw3 doc).
+	- --enable-debug: Enable debug outputs. This option will override the optimisation flags and create LOTS of outputs when the code is run.
+	- CC=xxx: force the compiler to be xxx.
+	- CFLAGS=xxx: force the compilation flags to be xxx.
+	- LDFLAGS=xxx: force the link flags to be xxx.
+	- FFTPATH=xxx: specify where the FFTW 3 libraries are located (if not found in the default path). This option assumes the libraries files (libfftw3.a...) are in xxx/lib and the include files (fftw3.h...)
+	  are in xxx/include. 
+	  
+	Example: I want to configure Snoopy with openMP using the Intel compiler "icc". My fftw library is located in /opt (/opt/lib and /opt/include). I will type:
 	
-	When you first decompress or download the code, no config.mk is found in the root directory. To create one, type "make config". If you're lucky,
-	a configuration file relevant for your system will be found. if not, the default configuration file will be used and you'll have to edit the created
-	config.mk according to your system.
+	./configure CC=icc FFTPATH=/opt --enable-openmp
 	
-	The big options can be switched on and off in config.mk. Several self explanatory flags may be found to enable OpenMP, MPI, Debug and
-	MPI support from fftw3 Library (MPI support in fftw3 is still under developpement and untested. Unless you're sure of what you're doing, keeping this option off is safer).
+	Once the configure script has finished, you normally don't need to run it again, except if you want to change one of these options. 
 	
-	Make config also initializes a default configuration for the code, creating the file src/gvars.h. One can then modify gvars.h for a specific problem 
-	(make won't recreate it).
+	\section test Testing the code
 	
-	Finally, note that if you're lucky enough, typing make should initialize makefiles and configuration properly and should compile the code
-	without problem.
+	A standard test can be run typing "make check". This test, although not physically meaningful (magnetized 2D vortex with unstable boussinesq stratification), switches on almost all the routines of the code and therefore checks if everything is running
+	as it should. Make check compiles the code with a benchmark configuration (saving your gvars.h if you have already made modifications), runs it and compares the outputs to a standard
+	output. If the code behaves normally, "make check" should exit without any error. Not that make check is not yet totally compatible with MPI (the number of process can't be set properly). 
+	If you want to test an MPI version of the code, you should follow this procedure:
 	
-	\section test_case Test case
-	One can compute a standard test with Snoopy. This standard test, although not physically meaningful (magnetized 2D vortex with unstable boussinesq stratification), switches on almost all the routines of the code and therefore checks if everything is running
-	as it should. To do the full standard test, you can just type make test. This script will overwrite src/gvars.h, run the code, and compare the resulting output files with the reference
-	ones stored in src/def. If no problem is found, the script should finish successfully.
+	- make bench
+	- make
+	- make benchclean
+	- mpirun -np xx ./snoopy (where xx is the number of process you want to use)
+	- diff timevar src/def/timevar_bench 
 	
-	If your configuration needs a specific config.mk, you can first setup a config.mk with "make config", edit config.mk and then use "make test". 
+	\section physics Physics, grid and output setup
+	All these parameters are found in file src/gvars.h. After a modification, the code has to be compiled (make). Note that a default src/gvars.h is initialized by the configure script. Once it is created, this file is not
+	deleted, even if you run configure again. To completely clean the code tree, run "make fullclean" instead (CAUTION: this will also delete all the outputs!).
 	
 	\section interface Code interface
 	While the code is running, it's possible to know what's happening in real time using the so-called interface (located in interface.c). Typically, one creates a file with a filename
-	corresponding to one of the possible commands (e.g using the command "touch" on UNIX, as "touch status"). Once the command has been executed, the code erases the file.
+	corresponding to one of the possible commands (e.g using the command "touch" on UNIX, as "touch status"). Once the command has been executed, the code deletes the file.
 	The available commands are as follow:
 		- status: show the status of the code, including current time, current time step and code speed.
 		- output: Immediatly print the statistical informations in timevar, output one snapshot and a dump file (whatever are the variables in gvars.h).
 		- dump: Immediatly output a dump file.
 		- stop: Immediatly output a dump file and exit the code.
 	
-	It is possible to redirect the screen outputs of the interface to a file using the INTERFACE_OUTPUT_FILE option in gvars.h. This is useful when one wants to run in batch 
+	It is possible to redirect the display outputs of the interface to a file using the INTERFACE_OUTPUT_FILE option in gvars.h. This is useful when one wants to run in batch 
 	mode on a cluster. For performances reasons, the code doesn't check at each loop if the user has created a command file. Instead, it checks every INTERFACE_CHECK loops. A larger
 	INTERFACE_CHECK results in a smaller overhead but a longer delay between the command file creation and the actual output.
 */
 
 /*!	\page outputs Code outputs
 	\section timevar The timevar File
-	Blah
+	A text file containing several averaged quantities (see output.c for more details).
 	\section snap Snapshots
-	Blah
+	Snapshots can be found in raw binary files (.raw) or in vtk legacy format (.vtk, default) in the data directory. The output format is set in gvars.h. VTK files can are read natively
+	by Paraview 2-3 or Visit, available for free on the web. Several Matlab script are under developpment to read these files.
+	
 	\section dump Restart dump files
-	Blah
+	Binary restart file. See output.c for a complete description.
 */
