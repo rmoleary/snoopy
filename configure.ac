@@ -13,10 +13,10 @@ LDFLAGS_DEBUG=$LDFLAGS
 AC_CHECK_HEADERS([stdlib.h])
 AC_CHECK_HEADERS([math.h])
 AC_CHECK_HEADERS([complex.h],[ok=yes],[
-				  echo "******************************************"
-	              echo "Error! Complex type support not found."
-				  echo "******************************************"
-                  exit -1
+			echo "******************************************"
+	              	echo "Error! Complex type support not found."
+			echo "******************************************"
+                  	exit -1
                   ])
 
 #----------------------------------------------------
@@ -35,10 +35,12 @@ fi
 # FFT Path: Path where to find the fft libraries (e.g. ~/usr)
 
 if test "$FFTPATH" != ""; then
+	CPPFLAGS="$CPPFLAGS -I$FFTPATH/include"
 	CFLAGS="$CFLAGS -I$FFTPATH/include"
 	CFLAGS_DEBUG="$CFLAGS_DEBUG -I$FFTPATH/include"
 	LDFLAGS="$LDFLAGS -L$FFTPATH/lib"
 	LDFLAGS_DEBUG="$LDFLAGS_DEBUG -L$FFTPATH/lib"
+	
 fi
 
 
@@ -82,12 +84,16 @@ FFTW_MPI_ACTIVE=notavailable
 
 AC_ARG_ENABLE(fftw-mpi, [  --enable-fftw-mpi     enable fftw3 experimental mpi support], ok=yes, ok=no)
 if test "$ok" = "yes"; then
+	CCSAVE=$CC	## Save the current compiler, since we need mpicc for the following test
+	CC=$MPICC
 	AC_SEARCH_LIBS(fftw_mpi_init, fftw3_mpi fftw3 fftw3_threads,[ ],[
 				  echo "******************************************"
 	              echo "Error! FFTW MPI libraries not found."
 				  echo "******************************************"
                   exit -1
                   ])
+	FFTW_MPI_ACTIVE=yes
+	CC=$CCSAVE
 fi
 
 #----------------------------------------------------
@@ -143,3 +149,15 @@ fi
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
+echo "*******************************************************"
+echo "I will use the following configuration:"
+echo " Compiler:    $CC"
+echo " MPI:         $MPI_ACTIVE"
+echo " FFTW MPI:    $FFTW_MPI_ACTIVE"
+echo " OpenMP:      $OPENMP_ACTIVE"
+echo " Debug:       $DEBUG_ACTIVE"
+echo " CFlags:      $CFLAGS"
+echo " LDFlags:     $LDFLAGS"
+echo ""
+echo "Type make or make check to compile"
+echo "*******************************************************"

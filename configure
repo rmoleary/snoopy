@@ -3198,10 +3198,10 @@ _ACEOF
  ok=yes
 else
 
-				  echo "******************************************"
-	              echo "Error! Complex type support not found."
-				  echo "******************************************"
-                  exit -1
+			echo "******************************************"
+	              	echo "Error! Complex type support not found."
+			echo "******************************************"
+                  	exit -1
 
 fi
 
@@ -4469,10 +4469,12 @@ fi
 # FFT Path: Path where to find the fft libraries (e.g. ~/usr)
 
 if test "$FFTPATH" != ""; then
+	CPPFLAGS="$CPPFLAGS -I$FFTPATH/include"
 	CFLAGS="$CFLAGS -I$FFTPATH/include"
 	CFLAGS_DEBUG="$CFLAGS_DEBUG -I$FFTPATH/include"
 	LDFLAGS="$LDFLAGS -L$FFTPATH/lib"
 	LDFLAGS_DEBUG="$LDFLAGS_DEBUG -L$FFTPATH/lib"
+
 fi
 
 
@@ -5106,6 +5108,8 @@ else
   ok=no
 fi;
 if test "$ok" = "yes"; then
+	CCSAVE=$CC	## Save the current compiler, since we need mpicc for the following test
+	CC=$MPICC
 	echo "$as_me:$LINENO: checking for library containing fftw_mpi_init" >&5
 echo $ECHO_N "checking for library containing fftw_mpi_init... $ECHO_C" >&6
 if test "${ac_cv_search_fftw_mpi_init+set}" = set; then
@@ -5239,6 +5243,8 @@ else
 
 fi
 
+	FFTW_MPI_ACTIVE=yes
+	CC=$CCSAVE
 fi
 
 #----------------------------------------------------
@@ -6445,3 +6451,15 @@ if test "$no_create" != yes; then
   $ac_cs_success || { (exit 1); exit 1; }
 fi
 
+echo "*******************************************************"
+echo "I will use the following configuration:"
+echo " Compiler:    $CC"
+echo " MPI:         $MPI_ACTIVE"
+echo " FFTW MPI:    $FFTW_MPI_ACTIVE"
+echo " OpenMP:      $OPENMP_ACTIVE"
+echo " Debug:       $DEBUG_ACTIVE"
+echo " CFlags:      $CFLAGS"
+echo " LDFlags:     $LDFLAGS"
+echo ""
+echo "Type make or make check to compile"
+echo "*******************************************************"
