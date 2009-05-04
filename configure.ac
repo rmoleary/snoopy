@@ -19,6 +19,32 @@ AC_CHECK_HEADERS([complex.h],[ok=yes],[
                   exit -1
                   ])
 
+#----------------------------------------------------
+#Check best optimisation
+AX_CC_MAXOPT 
+
+#Create a gvars.h if none exist
+if test ! -e src/gvars.h; then
+	echo "creating default src/gvars.h"
+	cp src/def/gvars_default.h src/gvars.h
+fi
+
+#----------------------------------------------------
+#if FFTW is not in the standard PATH...
+
+# FFT Path: Path where to find the fft libraries (e.g. ~/usr)
+
+if test "$FFTPATH" != NONE; then
+	CFLAGS="$CFLAGS -I$FFTPATH/include"
+	CFLAGS_DEBUG="$CFLAGS_DEBUG -I$FFTPATH/include"
+	LDFLAGS="$LDFLAGS -L$FFTPATH/lib"
+	LDFLAGS_DEBUG="$LDFLAGS_DEBUG -L$FFTPATH/lib"
+fi
+
+
+#----------------------------------------------------
+#Check we have FFTW
+
 AC_CHECK_HEADERS([fftw3.h],[ok=yes],[
 				  echo "******************************************"
 	              echo "Error! FFTW library not found."
@@ -113,15 +139,7 @@ if test "$ok" = "yes"; then
 fi
 
 
-#----------------------------------------------------
-#Check best optimisation
-AX_CC_MAXOPT 
 
-#Create a gvars.h if none exist
-if test ! -e src/gvars.h; then
-	echo "creating default src/gvars.h"
-	cp src/def/gvars_default.h src/gvars.h
-fi
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
