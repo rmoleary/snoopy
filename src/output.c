@@ -10,6 +10,9 @@
 #define	OUTPUT_SPECTRUM_FILENAME	"spectrum.dat"
 
 #define	OUTPUT_DUMP					"dump.dmp"			/**< Dump files filename. */
+#define OUTPUT_DUMP_SAV				"dump_sav.dmp"      /**< Previous (saved) output dump. */
+#define OUTPUT_DUMP_WRITE			"dump_write.dmp"	/**< dump currently written. */
+
 #define	OUTPUT_DUMP_VERSION			04					/**< Version of the dump files read and written by this code. */
 
 #define	DUMP_MARKER					1981				/**< Marker used to signify the end of a dump file (it is also an excellent year...).*/
@@ -841,7 +844,7 @@ void output_dump( const struct Field fldi,
 	marker = DUMP_MARKER;
 	
 	if(rank==0) {
-		ht=fopen(OUTPUT_DUMP,"w");
+		ht=fopen(OUTPUT_DUMP_WRITE,"w");
 		if(ht==NULL) ERROR_HANDLER( ERROR_CRITICAL, "Error opening dump file.");
 	
 		fwrite(&dump_version, sizeof(int), 1, ht);
@@ -891,6 +894,19 @@ void output_dump( const struct Field fldi,
 		fclose(ht);
 	}
 	
+// This bit prevents the code from loosing all the dump files (this kind of thing happens sometimes...)
+// With this routine, one will always have a valid restart dump, either in OUTPUT_DUMP_WRITE, OUTPUT_DUMP or OUTPUT_DUMP_SAV 
+// (it should normally be in OUTPUT_DUMP)
+
+	if(rank==0) {
+		remove(OUTPUT_DUMP_SAV);				 // Delete the previously saved output dump
+		rename(OUTPUT_DUMP, OUTPUT_DUMP_SAV);	 // Save the current dump file
+		rename(OUTPUT_DUMP_WRITE, OUTPUT_DUMP);  // Move the new dump file to its final location
+	}
+	
+#ifdef MPI_SUPPORT
+	MPI_Barrier(MPI_COMM_WORLD);
+#endif
 	DEBUG_END_FUNC;
 	
 	return;
