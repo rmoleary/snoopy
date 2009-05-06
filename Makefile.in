@@ -83,7 +83,7 @@ clean:
 
 fullclean:
 	@(cd src && $(MAKE) $@)
-	rm -rf snoopy timevar spectrum.dat data dump.dmp
+	rm -rf snoopy timevar spectrum.dat data dump.dmp dump_sav.dmp
 
 #####################################################################
 ## Rules for benchmark and checks                             #######
