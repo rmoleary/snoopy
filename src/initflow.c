@@ -201,8 +201,10 @@ void init_Bench() {
 	if(rank==0) {
 		fld.vx[1] = 1000.0 / NTOTAL;
 		fld.vy[1] = 1000.0 / NTOTAL;
+#ifdef MHD
 		fld.bx[1] = 1000.0 / NTOTAL;
 		fld.by[1] = 1000.0 / NTOTAL;
+#endif
 	}
 	// done
 	return;
