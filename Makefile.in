@@ -88,20 +88,24 @@ fullclean:
 #####################################################################
 ## Rules for benchmark and checks                             #######
 #####################################################################
-check: bench all benchclean
-	@echo "******************************************"
-	@echo "** Executing Benchmark *******************"
-	@echo "******************************************"
-	./snoopy
+check: bench all exec benchclean
 	@echo "******************************************"
 	@echo "*** Checking results                  ****"
 	@echo "******************************************"
-	diff timevar src/def/timevar_bench
+	diff timevar cfg/bench/timevar_bench
 	@echo "******************************************"
 	@echo "*** All Done  !                       ****"
 	@echo "******************************************"
 
+exec:
+	@echo "******************************************"
+	@echo "** Executing Benchmark *******************"
+	@echo "******************************************"
+	./snoopy
+	
 bench:
+	mv snoopy.cfg snoopy.cfg.old
+	cp cfg/bench/snoopy.cfg .
 	@(cd src && $(MAKE) $@)
 	@echo "***********************************************************"
 	@echo "Initialized BENCHMARK configuration"
@@ -111,6 +115,8 @@ bench:
 
 
 benchclean:
+	rm snoopy.cfg
+	mv snoopy.cfg.old snoopy.cfg
 	@(cd src && $(MAKE) $@)
 	@echo "***********************************************************"
 	@echo "Configuration restored"

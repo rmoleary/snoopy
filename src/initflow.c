@@ -1,3 +1,4 @@
+#include "snoopy.h"
 #include "common.h"
 #include "gfft.h"
 #include "output.h"
@@ -30,9 +31,9 @@ void init_SpatialStructure() {
 	for(i = 0 ; i < NX/NPROC ; i++) {
 		for(j = 0 ; j < NY ; j++) {
 			for(k = 0 ; k < NZ ; k++) {
-				x[k + (NZ + 2) * j + (NZ + 2) * NY * i] = - LX / 2 + (LX * (i + rank * NX / NPROC)) / NX;
-				y[k + (NZ + 2) * j + (NZ + 2) * NY * i] = - LY / 2 + (LY * j ) / NY;
-				z[k + (NZ + 2) * j + (NZ + 2) * NY * i] = - LZ / 2 + (LZ * k ) / NZ;
+				x[k + (NZ + 2) * j + (NZ + 2) * NY * i] = - param.lx / 2 + (param.lx * (i + rank * NX / NPROC)) / NX;
+				y[k + (NZ + 2) * j + (NZ + 2) * NY * i] = - param.ly / 2 + (param.ly * j ) / NY;
+				z[k + (NZ + 2) * j + (NZ + 2) * NY * i] = - param.lz / 2 + (param.lz * k ) / NZ;
 			}
 		}
 	}
@@ -116,8 +117,8 @@ void init_SpatialStructure() {
 
 
 void init_KidaVortex() {
-	const double a = VORTEX_A;
-	const double b = VORTEX_B;
+	double a = param.vortex_a;
+	double b = param.vortex_b;
 	
 	int i,j,k;
 	
@@ -128,9 +129,9 @@ void init_KidaVortex() {
 	w0 = 1.0/chi*(chi + 1)/(chi-1.0);			// According to Kida!
 	
 	for(i = 0 ; i < NX/NPROC ; i++) {
-		x = - LX / 2 + (LX * (i + rank * NX / NPROC)) / NX;
+		x = - param.lx / 2 + (param.lx * (i + rank * NX / NPROC)) / NX;
 		for(j = 0 ; j < NY ; j++) {
-			y = - LY / 2 + (LY * j) / NY;
+			y = - param.ly / 2 + (param.ly * j) / NY;
 			for(k = 0 ; k < NZ ; k++) {
 				if(x * x / (a * a) + y * y / (b * b) < 1) {
 					// we are in the vortex
@@ -155,7 +156,6 @@ void init_KidaVortex() {
 	return;
 }
 
-#ifdef BENCH
 /************************************/
 /** Init some crazy structure involving
 /** A kida vortex and a vertical structure
@@ -174,9 +174,9 @@ void init_Bench() {
 	w0 = 1.0/chi*(chi + 1)/(chi-1.0);			// According to Kida!
 	
 	for(i = 0 ; i < NX/NPROC ; i++) {
-		x = - LX / 2 + (LX * (i + rank * NX / NPROC)) / NX;
+		x = - param.lx / 2 + (param.lx * (i + rank * NX / NPROC)) / NX;
 		for(j = 0 ; j < NY ; j++) {
-			y = - LY / 2 + (LY * j) / NY;
+			y = - param.ly / 2 + (param.ly * j) / NY;
 			for(k = 0 ; k < NZ ; k++) {
 				if(x * x / (a * a) + y * y / (b * b) < 1) {
 					// we are in the vortex
@@ -208,7 +208,6 @@ void init_Bench() {
 	return;
 }
 
-#endif
 
 void init_LargeScaleNoise() {
 	int i,j,k;
@@ -219,14 +218,14 @@ void init_LargeScaleNoise() {
 	for( i = 0; i < NX_COMPLEX/NPROC; i++) {
 		for( j = 0; j < NY_COMPLEX; j++) {
 			for( k = 0; k < NZ_COMPLEX; k++) {
-				if(pow(k2t[ IDX3D ], 0.5) / ( 2.0*M_PI ) < 1.0 / NOISE_CUT_LENGTH) {
-					fld.vx[ IDX3D ] += PER_AMPLITUDE_LARGE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
-					fld.vy[ IDX3D ] += PER_AMPLITUDE_LARGE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
-					fld.vz[ IDX3D ] += PER_AMPLITUDE_LARGE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
+				if(pow(k2t[ IDX3D ], 0.5) / ( 2.0*M_PI ) < 1.0 / param.noise_cut_length) {
+					fld.vx[ IDX3D ] += param.per_amplitude_large * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
+					fld.vy[ IDX3D ] += param.per_amplitude_large * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
+					fld.vz[ IDX3D ] += param.per_amplitude_large * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
 #ifdef MHD
-					fld.bx[ IDX3D ] += PER_AMPLITUDE_LARGE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
-					fld.by[ IDX3D ] += PER_AMPLITUDE_LARGE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
-					fld.bz[ IDX3D ] += PER_AMPLITUDE_LARGE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
+					fld.bx[ IDX3D ] += param.per_amplitude_large * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
+					fld.by[ IDX3D ] += param.per_amplitude_large * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
+					fld.bz[ IDX3D ] += param.per_amplitude_large * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
 #endif
 					if(mask[IDX3D] > 0) num_force++;
 				}
@@ -286,13 +285,13 @@ void init_WhiteNoise() {
 	for( i = 0; i < NX_COMPLEX/NPROC; i++) {
 		for( j = 0; j < NY_COMPLEX; j++) {
 			for( k = 0; k < NZ_COMPLEX; k++) {
-				fld.vx[ IDX3D ] += PER_AMPLITUDE_NOISE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * fact;
-				fld.vy[ IDX3D ] += PER_AMPLITUDE_NOISE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * fact;
-				fld.vz[ IDX3D ] += PER_AMPLITUDE_NOISE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * fact;
+				fld.vx[ IDX3D ] += param.per_amplitude_noise * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * fact;
+				fld.vy[ IDX3D ] += param.per_amplitude_noise * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * fact;
+				fld.vz[ IDX3D ] += param.per_amplitude_noise * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * fact;
 #ifdef MHD
-				fld.bx[ IDX3D ] += PER_AMPLITUDE_NOISE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * fact;
-				fld.by[ IDX3D ] += PER_AMPLITUDE_NOISE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * fact;
-				fld.bz[ IDX3D ] += PER_AMPLITUDE_NOISE * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * fact;
+				fld.bx[ IDX3D ] += param.per_amplitude_noise * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * fact;
+				fld.by[ IDX3D ] += param.per_amplitude_noise * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * fact;
+				fld.bz[ IDX3D ] += param.per_amplitude_noise * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * fact;
 #endif
 			}
 		}
@@ -316,9 +315,9 @@ void init_WhiteNoise() {
 void init_MeanField() {
 #ifdef MHD
 	if(rank==0) {
-		fld.bx[0] = BX0 * ((double) NTOTAL);
-		fld.by[0] = BY0 * ((double) NTOTAL);
-		fld.bz[0] = BZ0 * ((double) NTOTAL);
+		fld.bx[0] = param.bx0 * ((double) NTOTAL);
+		fld.by[0] = param.by0 * ((double) NTOTAL);
+		fld.bz[0] = param.bz0 * ((double) NTOTAL);
 	}
 #endif
 }
@@ -342,37 +341,24 @@ void init_flow() {
 		fld.bz[ i ] = 0.0;
 #endif
 	}
+	
+	if(param.init_large_scale_noise) init_LargeScaleNoise();
 
-#ifdef INIT_LARGE_SCALE_NOISE	
-	init_LargeScaleNoise();
-#endif
+	if(param.init_vortex) init_KidaVortex();
 
-#ifdef INIT_VORTEX
-	init_KidaVortex();
-#endif
+	if(param.init_spatial_structure) init_SpatialStructure();
 
-#ifdef INIT_SPATIAL_STRUCTURE
-	init_SpatialStructure();
-#endif
+	if(param.init_white_noise) init_WhiteNoise();
 
-#ifdef INIT_WHITE_NOISE
-	init_WhiteNoise();
-#endif
+	if(param.init_bench) init_Bench();
 
-#ifdef BENCH
-	init_Bench();
-#endif
-
-#ifdef INIT_MEAN_FIELD
-	init_MeanField();
-#endif
-
-#ifdef INIT_DUMP
-	if(read_dump(fld,NULL)) {
-		ERROR_HANDLER(ERROR_CRITICAL,"No dump found for the initial conditions.");
+	if(param.init_mean_field) init_MeanField();
+	
+	if(param.init_dump) {
+		if(read_dump(fld,NULL)) {
+			ERROR_HANDLER(ERROR_CRITICAL,"No dump found for the initial conditions.");
+		}
 	}
-
-#endif
 
 	projector(fld.vx,fld.vy,fld.vz);
 #ifdef MHD

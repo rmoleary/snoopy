@@ -139,10 +139,31 @@ if test "$ok" = "yes"; then
 fi
 
 #----------------------------------------------------
-#Create a gvars.h if none exist
+# if a problem is specified, create a gvars.h and snoopy.cfg
+# corresponding to this problem
+
+AC_ARG_WITH(problem, [  --with-problem=PBM	Problem generator from cfg/*], problem=$withval, problem=notset)
+if test ! "$problem" = "notset"; then
+	# initialize the problem $problem
+	if test -e cfg/$problem/gvars.h; then
+		cp cfg/$problem/gvars.h src/
+		cp cfg/$problem/snoopy.cfg .
+	else
+		ls cfg/
+		AC_MSG_ERROR([Invalid problem directory, valid names listed above])
+	fi
+fi
+
+#----------------------------------------------------
+#Create a code configuration if none exist
 if test ! -e src/gvars.h; then
-	echo "creating default src/gvars.h"
-	cp src/def/gvars_default.h src/gvars.h
+	echo "Using default problem"
+	problem=Default
+	cp -f cfg/default/gvars.h src/gvars.h
+fi
+if test ! -e snoopy.cfg; then
+	problem=Default
+	cp -f cfg/default/snoopy.cfg .
 fi
 
 #----------------------------------------------------
@@ -159,6 +180,7 @@ AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
 echo "*******************************************************"
 echo "I will use the following configuration:"
+echo " Problem:     $problem"
 echo " Compiler:    $CC"
 echo " MPI:         $MPI_ACTIVE"
 echo " FFTW MPI:    $FFTW_MPI_ACTIVE"

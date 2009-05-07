@@ -1,3 +1,4 @@
+#include "snoopy.h"
 #include "common.h"
 #ifdef MPI_SUPPORT
 #include "transpose.h"
@@ -9,9 +10,9 @@
 double time_shift(double t) {
 	double tremap;
 #ifdef TIME_DEPENDANT_SHEAR
-	tremap = sin(OMEGA_SHEAR * t);
+	tremap = sin(param.omega_shear * t);
 #else
-	tremap = fmod(t + LY / (2.0 * SHEAR * LX) , LY / (SHEAR * LX)) - LY / (2.0 * SHEAR * LX);
+	tremap = fmod(t + param.ly / (2.0 * param.shear * param.lx) , param.ly / (param.shear * param.lx)) - param.ly / (2.0 * param.shear * param.lx);
 #endif
 	return(tremap);
 }
@@ -89,7 +90,7 @@ void kvolve(const double tremap) {
 	for( i = 0; i < NX_COMPLEX/NPROC; i++) {
 		for( j = 0; j < NY_COMPLEX; j++) {
 			for( k = 0; k < NZ_COMPLEX; k++) {
-				kxt[ IDX3D ] = kx[ IDX3D ] + tremap * SHEAR * ky[ IDX3D ];
+				kxt[ IDX3D ] = kx[ IDX3D ] + tremap * param.shear * ky[ IDX3D ];
 			
 				k2t[ IDX3D ] = kxt[IDX3D] * kxt[IDX3D] +
 						       ky[IDX3D] * ky[IDX3D]+

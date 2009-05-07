@@ -1,6 +1,7 @@
 #include <math.h>
 #include <complex.h>
 
+#include "snoopy.h"
 #include "common.h"
 #include "gfft.h"
 #include "debug.h"
@@ -55,9 +56,9 @@ void timestep( struct Field dfldo,
 	// Find the shear at time t
 #ifdef WITH_SHEAR
 #ifdef TIME_DEPENDANT_SHEAR
-	S = SHEAR * OMEGA_SHEAR * cos(OMEGA_SHEAR * t);
+	S = param.shear * param.omega_shear * cos(param.omega_shear * t);
 #else
-	S = SHEAR;
+	S = param.shear;
 #endif
 #endif
 
@@ -145,13 +146,13 @@ void timestep( struct Field dfldo,
 #endif
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
 #ifdef VERTSTRAT
-		dfldo.vz[i] -= N2 * fldi.th[i];
+		dfldo.vz[i] -= param.N2 * fldi.th[i];
 						
 		dfldo.th[i] = - I * mask[i] * (
 			kxt[i] * w5[i] + ky[i] * w6[i] + kz[i] * w7[i])
 			+ fldi.vz[i];
 #else
-		dfldo.vx[i] -= N2 * fldi.th[i];
+		dfldo.vx[i] -= param.N2 * fldi.th[i];
 						
 		dfldo.th[i] = - I * mask[i] * (
 			kxt[i] * w5[i] + ky[i] * w6[i] + kz[i] * w7[i])
@@ -251,14 +252,15 @@ void timestep( struct Field dfldo,
 	#pragma omp parallel for private(i) schedule(static)
 #endif
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
-		dfldo.vx[i] += 2.0 * OMEGA * fldi.vy[i];
+#ifdef WITH_ROTATION
+		dfldo.vx[i] += 2.0 * param.omega * fldi.vy[i];
+		dfldo.vy[i] -= 2.0 * param.omega * fldi.vx[i];
+#endif
 #ifdef WITH_SHEAR
-		dfldo.vy[i] += (S - 2.0 * OMEGA) * fldi.vx[i];
+		dfldo.vy[i] += S  * fldi.vx[i];
 #ifdef MHD
 		dfldo.by[i] -= S * fldi.bx[i];
-#endif
-#else
-		dfldo.vy[i] += (- 2.0 * OMEGA) * fldi.vx[i];
+#endif		
 #endif
 	}
 			

@@ -1,3 +1,5 @@
+#include "snoopy.h"
+
 #include <stdlib.h>
 
 // Timing support
@@ -8,43 +10,9 @@
 #endif
 #endif
 
-#include <math.h>
-#include <complex.h>
-#include <fftw3.h>
-
-#ifdef MPI_SUPPORT
-#include <mpi.h>
-#ifdef FFTW3_MPI_SUPPORT
-#include <fftw3-mpi.h>
-#endif
-#endif
-
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
-#include "gvars.h"
 #include "error.h"
 #include "gfft.h"
-
-// Structures
-
-/**\brief General structure for fields in snoopy. Holds all the information for the field at a given time*/
-struct Field {						
-	double complex *vx;			/**< X velocity */
-	double complex *vy;			/**< Y velocity */
-	double complex *vz;			/**< Z velocity */
-#ifdef BOUSSINESQ
-	double complex *th;			/**< Entropy perturbations (when using boussinesq) */
-#endif
-#ifdef MHD
-	double complex *bx;			/**< X magnetic field */
-	double complex *by;			/**< Y magnetic field */
-	double complex *bz;			/**< Z magnetic field */
-#endif
-};
-
-#include "debug.h"	// Has to be declared after the structure since this structure is used in debug.h
+#include "debug.h"
 
 // This are global variables used throughout the code
 // Wave number pointers
@@ -70,6 +38,8 @@ double complex		*w1,	*w2,	*w3;	/**< Temporary complex array (alias of real wr**)
 double complex		*w4,	*w5,	*w6;	/**< Temporary complex array (alias of real wr**) */
 double complex		*w7,	*w8,	*w9;	/**< Temporary complex array (alias of real wr**) */
 
+// Parameters
+struct Parameters			param;
 
 // Physics variables 
 double	nu;
@@ -127,13 +97,13 @@ void init_common(void) {
 	for( i = 0; i < NX_COMPLEX / NPROC; i++) {
 		for( j = 0; j < NY_COMPLEX; j++) {
 			for( k = 0; k < NZ_COMPLEX; k++) {
-				kx[ IDX3D ] = (2.0 * M_PI) / LX *
+				kx[ IDX3D ] = (2.0 * M_PI) / param.lx *
 						(fmod( NX_COMPLEX * rank / NPROC  + i + (NX_COMPLEX / 2) ,  NX_COMPLEX ) - NX_COMPLEX / 2 );
 					 
-				ky[ IDX3D ] = (2.0 * M_PI) / LY *
+				ky[ IDX3D ] = (2.0 * M_PI) / param.ly *
 						(fmod( j + (NY_COMPLEX / 2) ,  NY_COMPLEX ) - NY_COMPLEX / 2 );
 					 
-				kz[ IDX3D ] = (2.0 * M_PI) / LZ * k;
+				kz[ IDX3D ] = (2.0 * M_PI) / param.lz * k;
 
 				kxt[ IDX3D ]= kx[IDX3D];
 			
@@ -147,9 +117,9 @@ void init_common(void) {
 		}
 	}
 	
-	kxmax = 2.0 * M_PI/ LX * ( (NX / 2) - 1);
-	kymax = 2.0 * M_PI/ LY * ( (NY / 2) - 1);
-	kzmax = 2.0 * M_PI/ LZ * ( (NZ / 2) - 1);
+	kxmax = 2.0 * M_PI/ param.lx * ( (NX / 2) - 1);
+	kymax = 2.0 * M_PI/ param.ly * ( (NY / 2) - 1);
+	kzmax = 2.0 * M_PI/ param.lz * ( (NZ / 2) - 1);
 	
 	if( (kxmax>kymax) && (kxmax>kzmax) ) kmax = kxmax;
 	else if( (kymax>kxmax) && (kymax > kzmax)) kmax = kymax;
@@ -165,33 +135,34 @@ void init_common(void) {
 			for( k = 0; k < NZ_COMPLEX; k++) {
 
 				mask[ IDX3D ] = 1.0;
-#ifdef ANTIALIASING
-				if( fabs( kx[ IDX3D ] ) > 2.0/3.0 * kxmax)
-					mask[ IDX3D ] = 0.0;
+				if(param.antialiasing) {
+					if( fabs( kx[ IDX3D ] ) > 2.0/3.0 * kxmax)
+						mask[ IDX3D ] = 0.0;
 				
-				if( fabs( ky[ IDX3D ] ) > 2.0/3.0 * kymax)
-					mask[ IDX3D ] = 0.0;
+					if( fabs( ky[ IDX3D ] ) > 2.0/3.0 * kymax)
+						mask[ IDX3D ] = 0.0;
 					
-				if( fabs( kz[ IDX3D ] ) > 2.0/3.0 * kzmax)
-					mask[ IDX3D ] = 0.0;
-#else			
-			if (  NX_COMPLEX / NPROC * rank + i == NX_COMPLEX / 2 ) 
-				mask[ IDX3D ] = 0.0;
-			if ( j == NY_COMPLEX / 2 )  
-				mask[ IDX3D ] = 0.0;
-			if ( k == NZ_COMPLEX ) 
-				mask[ IDX3D ] = 0.0;
-#endif
+					if( fabs( kz[ IDX3D ] ) > 2.0/3.0 * kzmax)
+						mask[ IDX3D ] = 0.0;
+				}
+				else {			
+					if (  NX_COMPLEX / NPROC * rank + i == NX_COMPLEX / 2 ) 
+						mask[ IDX3D ] = 0.0;
+					if ( j == NY_COMPLEX / 2 )  
+						mask[ IDX3D ] = 0.0;
+					if ( k == NZ_COMPLEX ) 
+						mask[ IDX3D ] = 0.0;
+				}
 			}
 		}
 	}
 
-#ifdef ANTIALIASING
-	kxmax = kxmax * 2.0 / 3.0;
-	kymax = kymax * 2.0 / 3.0;
-	kzmax = kzmax * 2.0 / 3.0;
-	kmax = kmax * 2.0 / 3.0;
-#endif
+	if(param.antialiasing) {
+		kxmax = kxmax * 2.0 / 3.0;
+		kymax = kymax * 2.0 / 3.0;
+		kzmax = kzmax * 2.0 / 3.0;
+		kmax = kmax * 2.0 / 3.0;
+	}
 
 	
 
@@ -264,12 +235,12 @@ void init_common(void) {
 	
 // Physic initialisation
 
-	nu = 1.0 / REYNOLDS;
+	nu = 1.0 / param.reynolds;
 #ifdef BOUSSINESQ	
-	nu_th = 1.0 / REYNOLDS_TH;
+	nu_th = 1.0 / param.reynolds_th;
 #endif
 #ifdef MHD
-	eta = 1.0 / REYNOLDS_M;
+	eta = 1.0 / param.reynolds_m;
 #endif
 	DEBUG_END_FUNC;
 	return;

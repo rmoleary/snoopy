@@ -10,6 +10,7 @@
 #include "output.h"
 #include "initflow.h"
 #include "gfft.h"
+#include "read_config.h"
 
 void please_wait(void)
 {
@@ -75,47 +76,52 @@ void print_information(void) {
 	MPI_Printf("OpenMP disabled\n");
 #endif
 	MPI_Printf("(NX,NY,NZ)=\t(%d,%d,%d)\n",NX,NY,NZ);
-	MPI_Printf("(LX,LY,LZ)=\t(%f,%f,%f)\n",LX,LY,LZ);
-	MPI_Printf("Reynolds=\t%f\n\n",REYNOLDS);
+	MPI_Printf("(LX,LY,LZ)=\t(%f,%f,%f)\n",param.lx,param.ly,param.lz);
+	MPI_Printf("Reynolds=\t%f\n\n",param.reynolds);
 #ifdef BOUSSINESQ
 #ifdef VERTSTRAT
 	MPI_Printf("Vertical Boussinesq\n");
 #else
 	MPI_Printf("Horizontal (x) Boussinesq\n");
 #endif
-	MPI_Printf("Reynolds_th=\t%f\n",REYNOLDS_TH);
-	MPI_Printf("N2=\t\t%f\n",N2);
+	MPI_Printf("Reynolds_th=\t%f\n",param.reynolds_th);
+	MPI_Printf("N2=\t\t%f\n",param.N2);
 #else
 	MPI_Printf("No Boussinesq\n");
 #endif
 #ifdef MHD
 	MPI_Printf("\nMHD enabled\n");
-	MPI_Printf("BX0=\t\t%f\n",BX0);
-	MPI_Printf("BY0=\t\t%f\n",BY0);
-	MPI_Printf("BZ0=\t\t%f\n",BZ0);
-	MPI_Printf("Reynolds_m=\t%f\n",REYNOLDS_M);
+	if(param.init_mean_field) {
+		MPI_Printf("BX0=\t\t%f\n",param.bx0);
+		MPI_Printf("BY0=\t\t%f\n",param.by0);
+		MPI_Printf("BZ0=\t\t%f\n",param.bz0);
+	}
+	MPI_Printf("Reynolds_m=\t%f\n",param.reynolds_m);
 #else
 	MPI_Printf("\nNo MHD\n");
 #endif
-	MPI_Printf("\nOmega=\t\t%f\n",OMEGA);
+#ifdef WITH_ROTATION
+	MPI_Printf("\nOmega=\t\t%f\n",param.omega);
+#endif
 #ifdef WITH_SHEAR
-	MPI_Printf("Shear=\t\t%f\n",SHEAR);
+	MPI_Printf("Shear=\t\t%f\n",param.shear);
+#ifdef TIME_DEPENDANT_SHEAR
+	MPI_Printf("Omega_shear=\t\t%f\n",param.omega_shear);
+#endif
 #else
 	MPI_Printf("No Shear\n");
 #endif
-	MPI_Printf("\nT_initial=\t%f\n",T_INITIAL);
-	MPI_Printf("T_final=\t%f\n",T_FINAL);
-	MPI_Printf("Toutput_time=\t%f\n",TOUTPUT_TIME);
-	MPI_Printf("Toutput_flow=\t%f\n",TOUTPUT_FLOW);
-	MPI_Printf("Toutput_dump=\t%f\n",TOUTPUT_DUMP);
-#ifdef RESTART
-	MPI_Printf("Using Restart Dump\n");
-#endif
-#ifdef ANTIALIASING
-	MPI_Printf("Using Antialiasing 2/3 Rule\n");
-#else
-	MPI_Printf("No antialiasing\n");
-#endif
+	MPI_Printf("\nT_initial=\t%f\n",param.t_initial);
+	MPI_Printf("T_final=\t%f\n",param.t_final);
+	MPI_Printf("Toutput_time=\t%f\n",param.toutput_time);
+	MPI_Printf("Toutput_flow=\t%f\n",param.toutput_flow);
+	MPI_Printf("Toutput_dump=\t%f\n",param.toutput_dump);
+	if(param.restart)
+		MPI_Printf("Using Restart Dump\n");
+	if(param.antialiasing)
+		MPI_Printf("Using Antialiasing 2/3 Rule\n");
+	else
+		MPI_Printf("No antialiasing\n");
 	MPI_Printf("***********************************************************\n");
 	return;
 }
@@ -134,9 +140,10 @@ int main(int argc, char *argv[]) {
 	rank=0;
 #endif
 	print_logo();
-	MPI_Printf("The Snoopy code v2.0\n");
+	MPI_Printf("The Snoopy code v3.0\n");
 	MPI_Printf("(c) 2004-2009 G. Lesur (University of Cambridge, UK)\n");
 	MPI_Printf("Compiled on %s at %s\n",__DATE__ , __TIME__);
+	read_config();
 	print_information();
 	MPI_Printf("Initializing...\n");
 	init_common();
@@ -147,7 +154,7 @@ int main(int argc, char *argv[]) {
 
 	MPI_Printf("Calling mainloop... touch status, output, dump or stop to print more information.\n");
 	please_wait();
-	mainloop(T_INITIAL, T_FINAL);
+	mainloop(param.t_initial, param.t_final);
 	
 	finish_output();
 	finish_gfft();

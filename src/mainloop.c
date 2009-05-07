@@ -1,5 +1,6 @@
 #include <stdlib.h>
 
+#include "snoopy.h"
 #include "common.h"
 #include "timestep.h"
 #include "output.h"
@@ -63,15 +64,19 @@ double newdt(double tremap) {
 	reduce(&maxfz,2);
 #endif
 	
-	gamma_v = (kxmax + fabs(tremap)*kymax) * maxfx + kymax * maxfy + kzmax * maxfz + fabs(OMEGA) / SAFETY_SOURCE;
+	gamma_v = (kxmax + fabs(tremap)*kymax) * maxfx + kymax * maxfy + kzmax * maxfz;
+#ifdef WITH_ROTATION
+	gamma_v += fabs(param.omega) / param.safety_source;
+#endif
+
 #ifdef WITH_SHEAR
-	gamma_v += fabs(SHEAR) / SAFETY_SOURCE;
+	gamma_v += fabs(param.shear) / param.safety_source;
 #endif
 #ifdef BOUSSINESQ
-	gamma_v += pow(fabs(N2), 0.5) / SAFETY_SOURCE;
+	gamma_v += pow(fabs(param.N2), 0.5) / param.safety_source;
 #endif
 #ifdef TIME_DEPENDANT_SHEAR
-	gamma_v += fabs(OMEGA_SHEAR) / SAFETY_SOURCE;
+	gamma_v += fabs(param.omega_shear) / param.safety_source;
 #endif
 #ifdef MHD
 
@@ -111,9 +116,9 @@ double newdt(double tremap) {
 	
 	gamma_b = (kxmax + fabs(tremap)*kymax) * maxbx + kymax * maxby + kzmax * maxbz;
 	
-	dt = CFL / (gamma_v + gamma_b);
+	dt = param.cfl / (gamma_v + gamma_b);
 #else
-	dt = CFL / gamma_v;
+	dt = param.cfl / gamma_v;
 #endif
 
 #ifdef DEBUG
@@ -236,21 +241,22 @@ void mainloop(double t_start, double t_end) {
 	init_mainloop();
 	nloop=0;
 	
-#ifdef RESTART
+	if(param.restart) {
 #ifdef DEBUG
-	MPI_Printf("Reading dump file\n");
+		MPI_Printf("Reading dump file\n");
 #endif
-	if(read_dump(fld,&t)) {
-		MPI_Printf("Mainloop: No dump found, using normal initialization.\n");
+		if(read_dump(fld,&t)) {
+			MPI_Printf("Mainloop: No dump found, using normal initialization.\n");
+			t = t_start;
+			clear_timevar();
+			output(t);
+		}
+	}
+	else {
 		t = t_start;
 		clear_timevar();
 		output(t);
 	}
-#else
-	t = t_start;
-	clear_timevar();
-	output(t);
-#endif
 
 #ifdef WITH_SHEAR	
 	tremap = time_shift(t);
@@ -270,20 +276,18 @@ void mainloop(double t_start, double t_end) {
 #endif
 
 		nloop++;
-		if(!(nloop % INTERFACE_CHECK)) check_interface(fld,t,dt,nloop,timer_start);
+		if(!(nloop % param.interface_check)) check_interface(fld,t,dt,nloop,timer_start);
 		
 		dt = newdt(tremap);
 		// Let's try to stop exactly at t_final
 		if(dt > (t_end - t)) dt = t_end - t;
 		
 		// Stop if elpased time is larger than MAX_ELAPSED_TIME (in hours)
-#ifdef MAX_T_ELAPSED
-		if((get_c_time()-timer_start) > 3600 * MAX_T_ELAPSED) {
+		if((get_c_time()-timer_start) > 3600 * param.max_t_elapsed) {
 			MPI_Printf("Maximum elapsed time reached. Terminating.\n");
 			dump_immediate(t);
 			break;
 		}
-#endif
 		
 		// This is an order 3 runge Kutta scheme with low storage
 		
@@ -433,7 +437,7 @@ void mainloop(double t_start, double t_end) {
 		tremap = tremap + dt;
 		
 		// Check if a remap is needed
-		if(tremap > LY / (2.0 * SHEAR * LX)) {
+		if(tremap > param.ly / (2.0 * param.shear * param.lx)) {
 			tremap = time_shift(t);    // Recompute tremap from current time, assuming all the remaps have been done
 			remap(fld.vx);
 			remap(fld.vy);
@@ -451,9 +455,10 @@ void mainloop(double t_start, double t_end) {
 		kvolve(tremap);
 #endif
 		// Symmetries cleaning
-#ifdef FORCE_SYMMETRIES
-		if(!(nloop % SYMMETRIES_STEP)) enforce_symm(fld);
-#endif
+		if(param.force_symmetries) {
+			if(!(nloop % param.symmetries_step)) enforce_symm(fld);
+		}
+		
 		// Divergence cleaning
 		projector(fld.vx,fld.vy,fld.vz);
 #ifdef MHD

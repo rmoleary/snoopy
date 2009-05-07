@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "snoopy.h"
 #include "common.h"
 #include "mainloop.h"
 #include "output.h"
@@ -19,20 +20,17 @@
 #define			INTERFACE_OUTPUT	"output_interface.txt"
 
 void open_interface_io(FILE ** iostream) {
-
-#ifdef INTERFACE_OUTPUT_FILE
-	*iostream = fopen(INTERFACE_OUTPUT,"w");
-#else
-	*iostream = stdout;
-#endif
+	if(param.interface_output_file)
+		*iostream = fopen(INTERFACE_OUTPUT,"w");
+	else
+		*iostream = stdout;
 
 	return;
 }
 
 void close_interface_io(FILE ** iostream) {
-#ifdef INTERFACE_OUTPUT_FILE
-	fclose(*iostream);
-#endif
+	if(param.interface_output_file)
+		fclose(*iostream);
 	return;
 }
 

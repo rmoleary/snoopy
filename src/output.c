@@ -1,5 +1,6 @@
 #include <stdlib.h>
 
+#include "snoopy.h"
 #include "common.h"
 #include "timestep.h"
 #include "gfft.h"
@@ -58,7 +59,7 @@ void remap_output(	double wri[],
 	tvelocity = 0.0;
 #else	
 	tremap = time_shift(t);
-	tvelocity = fmod(t, 2.0 * LY / (SHEAR * LX));
+	tvelocity = fmod(t, 2.0 * param.ly / (param.shear * param.lx));
 #endif	
 	
 	
@@ -75,11 +76,11 @@ void remap_output(	double wri[],
 			// advection phase = ky*
 #ifdef TIME_DEPENDANT_SHEAR
 				// There is no proper remap in this case
-				phase = (double complex) ((2.0 * M_PI) / LY * (fmod( j + (NY / 2) ,  NY ) - NY / 2 ) * 
-											( ((double) (i + rank * (NX/NPROC)) / (double) NX - 0.5 ) * tremap ) * LX * SHEAR );
+				phase = (double complex) ((2.0 * M_PI) / param.ly * (fmod( j + (NY / 2) ,  NY ) - NY / 2 ) * 
+											( ((double) (i + rank * (NX/NPROC)) / (double) NX - 0.5 ) * tremap ) * param.lx * param.shear );
 #else
-				phase = (double complex) ((2.0 * M_PI) / LY * (fmod( j + (NY / 2) ,  NY ) - NY / 2 ) * 
-											( ((double) (i + rank * (NX/NPROC)) / (double) NX ) * tremap - tvelocity / 2.0 ) * LX * SHEAR);
+				phase = (double complex) ((2.0 * M_PI) / param.ly * (fmod( j + (NY / 2) ,  NY ) - NY / 2 ) * 
+											( ((double) (i + rank * (NX/NPROC)) / (double) NX ) * tremap - tvelocity / 2.0 ) * param.lx * param.shear);
 #endif
 				wexp = cexp( I * phase);
 									
@@ -276,19 +277,25 @@ void write_snap(const double t, const char filename[], const double complex wi[]
 			}
 #endif	
 
-#ifdef FORTRAN_OUTPUT_ORDER
-	for( k = 0 ; k < NZ; k++) {
-		for( j = 0; j < NY; j++) {
-			for( i = 0; i < NX/NPROC; i++) {
-#else
-	for( i = 0; i < NX/NPROC; i++) {
-		for( j = 0; j < NY; j++) {
-			for( k = 0 ; k < NZ; k++) {
-#endif
-				fwrite(&wr1[k + j * (NZ + 2) + i * NY * (NZ + 2) ], sizeof(double), 1, ht);
+	if(param.fortran_output_order) {
+		for( k = 0 ; k < NZ; k++) {
+			for( j = 0; j < NY; j++) {
+				for( i = 0; i < NX/NPROC; i++) {
+					fwrite(&wr1[k + j * (NZ + 2) + i * NY * (NZ + 2) ], sizeof(double), 1, ht);
+				}
 			}
 		}
 	}
+	else {
+		for( i = 0; i < NX/NPROC; i++) {
+			for( j = 0; j < NY; j++) {
+				for( k = 0 ; k < NZ; k++) {
+					fwrite(&wr1[k + j * (NZ + 2) + i * NY * (NZ + 2) ], sizeof(double), 1, ht);
+				}
+			}
+		}
+	}
+				
 #ifdef MPI_SUPPORT
 	}	// Close the for loop
 #endif
@@ -311,7 +318,6 @@ void write_snap(const double t, const char filename[], const double complex wi[]
 
 }
 
-#ifdef VTK_OUTPUT
 // VTK output using the visit_writer code.
 /*************************************************
 ** VTK For HD*************************************
@@ -455,8 +461,8 @@ void output_vtk(const int n, double t) {
 		fprintf(ht, "BINARY\n");
 		fprintf(ht, "DATASET STRUCTURED_POINTS\n");
 		fprintf(ht, "DIMENSIONS %d %d %d\n", NX, NY, NZ);
-		fprintf(ht, "ORIGIN %g %g %g\n", -LX/2.0, -LY/2.0, -LZ/2.0);
-		fprintf(ht, "SPACING %g %g %g\n", LX/NX, LY/NY, LZ/NZ);
+		fprintf(ht, "ORIGIN %g %g %g\n", -param.lx/2.0, -param.ly/2.0, -param.lz/2.0);
+		fprintf(ht, "SPACING %g %g %g\n", param.lx/NX, param.ly/NY, param.lz/NZ);
 	
 		// Write the primary scalar (f***ing VTK legacy format...)
 		fprintf(ht, "POINT_DATA %d\n",NX*NY*NZ);
@@ -504,7 +510,6 @@ void output_vtk(const int n, double t) {
 	return;
 	
 }
-#endif
 	
 /***********************************************************/
 /** 
@@ -706,7 +711,7 @@ void output_timevar(const struct Field fldi,
 		fprintf(ht,"%08e\t",maxwell_stress);
 		fprintf(ht,"%08e\t%08e",thmax,thmin);
 #ifdef TIME_DEPENDANT_SHEAR
-		fprintf(ht,"\t%08e",SHEAR * OMEGA_SHEAR * cos(OMEGA_SHEAR * t));
+		fprintf(ht,"\t%08e",param.shear * param.omega_shear * cos(param.omega_shear * t));
 #endif
 		fprintf(ht,"\n");
 		fclose(ht);
@@ -1000,32 +1005,32 @@ int read_dump(   struct Field fldo,
 	}
 #endif
 	
-#ifdef RESTART	// If the dump is used to restart, we need these extra variables
-	if(rank==0) {
-		fread(t			, sizeof(double)		   , 1			   , ht);
+	if(param.restart) {		// If the dump is used to restart, we need these extra variables
+		if(rank==0) {
+			fread(t			, sizeof(double)		   , 1			   , ht);
 	
-		fread(&noutput_flow			, sizeof(int)			   , 1             , ht);
-		fread(&lastoutput_time		, sizeof(double)		   , 1			   , ht);
-		fread(&lastoutput_flow		, sizeof(double)		   , 1			   , ht);
-		fread(&lastoutput_dump		, sizeof(double)		   , 1			   , ht);
+			fread(&noutput_flow			, sizeof(int)			   , 1             , ht);
+			fread(&lastoutput_time		, sizeof(double)		   , 1			   , ht);
+			fread(&lastoutput_flow		, sizeof(double)		   , 1			   , ht);
+			fread(&lastoutput_dump		, sizeof(double)		   , 1			   , ht);
 	
-		fread(&marker , sizeof(int)			   , 1, ht);
+			fread(&marker , sizeof(int)			   , 1, ht);
 	
-		if(marker != DUMP_MARKER) ERROR_HANDLER( ERROR_CRITICAL, "Incorrect marker. Probably an incorrect dump file!");	
-		fclose(ht);
-	}
+			if(marker != DUMP_MARKER) ERROR_HANDLER( ERROR_CRITICAL, "Incorrect marker. Probably an incorrect dump file!");	
+			fclose(ht);
+		}
 	
 	// Transmit the values to all processes
 #ifdef MPI_SUPPORT
-	MPI_Bcast( t,					1, MPI_DOUBLE,	0, MPI_COMM_WORLD);
-	MPI_Bcast( &noutput_flow,		1, MPI_INT,		0, MPI_COMM_WORLD);
-	MPI_Bcast( &lastoutput_time,	1, MPI_DOUBLE,	0, MPI_COMM_WORLD);
-	MPI_Bcast( &lastoutput_flow,	1, MPI_DOUBLE,	0, MPI_COMM_WORLD);
-	MPI_Bcast( &lastoutput_dump,	1, MPI_DOUBLE,	0, MPI_COMM_WORLD);
+		MPI_Bcast( t,					1, MPI_DOUBLE,	0, MPI_COMM_WORLD);
+		MPI_Bcast( &noutput_flow,		1, MPI_INT,		0, MPI_COMM_WORLD);
+		MPI_Bcast( &lastoutput_time,	1, MPI_DOUBLE,	0, MPI_COMM_WORLD);
+		MPI_Bcast( &lastoutput_flow,	1, MPI_DOUBLE,	0, MPI_COMM_WORLD);
+		MPI_Bcast( &lastoutput_dump,	1, MPI_DOUBLE,	0, MPI_COMM_WORLD);
 #endif
 	
-	MPI_Printf("Restarting at t=%e...\n",*t);
-#endif
+		MPI_Printf("Restarting at t=%e...\n",*t);
+	}
 
 	DEBUG_END_FUNC;
 	
@@ -1068,17 +1073,18 @@ void init_output() {
 	
 #endif	
 
+	if(!param.restart) {
 	
-#ifndef RESTART
-	noutput_flow=0;
-	lastoutput_time = T_INITIAL - TOUTPUT_TIME;
-	lastoutput_flow = T_INITIAL - TOUTPUT_FLOW;
-	lastoutput_dump = T_INITIAL - TOUTPUT_DUMP;
+		noutput_flow=0;
+		lastoutput_time = param.t_initial - param.toutput_time;
+		lastoutput_flow = param.t_initial - param.toutput_flow;
+		lastoutput_dump = param.t_initial - param.toutput_dump;
 	
 #ifdef WITH_SHEAR
-	init1Dspectrum();
+		init1Dspectrum();
 #endif
-#endif
+	}
+	
 	DEBUG_END_FUNC;
 	
 	return;
@@ -1118,26 +1124,25 @@ void output(const double t) {
 	DEBUG_START_FUNC;
 	
 	// Very rough output function
-	if( (t-lastoutput_time)>=TOUTPUT_TIME) {
+	if( (t-lastoutput_time)>=param.toutput_time) {
 		output_timevar(fld,t);
 #ifdef WITH_SHEAR
 		output1Dspectrum(fld);
 #endif
-		lastoutput_time = lastoutput_time + TOUTPUT_TIME;
+		lastoutput_time = lastoutput_time + param.toutput_time;
 	}
 	
-	if( (t-lastoutput_flow)>=TOUTPUT_FLOW) {
-#ifdef VTK_OUTPUT
-		output_vtk(noutput_flow,t);
-#else
-		output_flow(noutput_flow,t);
-#endif
+	if( (t-lastoutput_flow)>=param.toutput_flow) {
+		if(param.vtk_output) 
+			output_vtk(noutput_flow,t);
+		else
+			output_flow(noutput_flow,t);
 		noutput_flow++;
-		lastoutput_flow = lastoutput_flow + TOUTPUT_FLOW;
+		lastoutput_flow = lastoutput_flow + param.toutput_flow;
 	}
 		
-	if( (t-lastoutput_dump)>=TOUTPUT_DUMP) {
-		lastoutput_dump=lastoutput_dump+TOUTPUT_DUMP;
+	if( (t-lastoutput_dump)>=param.toutput_dump) {
+		lastoutput_dump=lastoutput_dump+param.toutput_dump;
 		output_dump(fld,t);
 	}
 
@@ -1154,7 +1159,7 @@ void output(const double t) {
 /**************************************************************************************/
 void output_status(FILE * iostream) {
 	if(rank==0)
-		fprintf(iostream,"Next output in file n %d, at t=%e\n",noutput_flow, lastoutput_flow+TOUTPUT_FLOW);
+		fprintf(iostream,"Next output in file n %d, at t=%e\n",noutput_flow, lastoutput_flow+param.toutput_flow);
 	return;
 }
 
@@ -1170,11 +1175,10 @@ void output_immediate(const double t) {
 	// Very rough output function
 	// Immediate output
 	output_timevar(fld,t);
-#ifdef VTK_OUTPUT
-	output_vtk(noutput_flow,t);
-#else
-	output_flow(noutput_flow,t);
-#endif
+	if(param.vtk_output) 
+		output_vtk(noutput_flow,t);
+	else
+		output_flow(noutput_flow,t);
 	noutput_flow++;
 	output_dump(fld,t);
 	return;
