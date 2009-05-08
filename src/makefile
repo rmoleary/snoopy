@@ -16,7 +16,7 @@ fullclean:
 
 bench:
 	mv ./gvars.h ./gvars.h.old
-	cp ../cfg/bench/gvars.h ./gvars.h
+	cp problem/bench/gvars.h ./gvars.h
 
 benchclean:
 	rm -f ./gvars.h

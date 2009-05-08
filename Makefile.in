@@ -92,7 +92,7 @@ check: bench all exec benchclean
 	@echo "******************************************"
 	@echo "*** Checking results                  ****"
 	@echo "******************************************"
-	diff timevar cfg/bench/timevar_bench
+	diff timevar src/problem/bench/timevar_bench
 	@echo "******************************************"
 	@echo "*** All Done  !                       ****"
 	@echo "******************************************"
@@ -105,7 +105,7 @@ exec:
 	
 bench:
 	mv snoopy.cfg snoopy.cfg.old
-	cp cfg/bench/snoopy.cfg .
+	cp src/problem/bench/snoopy.cfg .
 	@(cd src && $(MAKE) $@)
 	@echo "***********************************************************"
 	@echo "Initialized BENCHMARK configuration"

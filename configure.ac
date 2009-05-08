@@ -145,12 +145,15 @@ fi
 AC_ARG_WITH(problem, [  --with-problem=PBM	Problem generator from cfg/*], problem=$withval, problem=notset)
 if test ! "$problem" = "notset"; then
 	# initialize the problem $problem
-	if test -e cfg/$problem/gvars.h; then
-		cp cfg/$problem/gvars.h src/
-		cp cfg/$problem/snoopy.cfg .
+	if test -e src/problem/$problem/gvars.h; then
+		cp src/problem/$problem/gvars.h src/
+		cp src/problem/$problem/snoopy.cfg .
 	else
-		ls cfg/
-		AC_MSG_ERROR([Invalid problem directory, valid names listed above])
+		echo "********************************************************"
+		echo "Invalid problem directory, valid names listed below:"
+		ls src/problem/
+		echo "********************************************************"
+		exit -1
 	fi
 fi
 
@@ -159,11 +162,11 @@ fi
 if test ! -e src/gvars.h; then
 	echo "Using default problem"
 	problem=Default
-	cp -f cfg/default/gvars.h src/gvars.h
+	cp -f src/problem/default/gvars.h src/gvars.h
 fi
 if test ! -e snoopy.cfg; then
 	problem=Default
-	cp -f cfg/default/snoopy.cfg .
+	cp -f src/problem/default/snoopy.cfg .
 fi
 
 #----------------------------------------------------
