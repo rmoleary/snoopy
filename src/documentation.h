@@ -54,16 +54,8 @@
 	
 	A standard test can be run typing "make check". This test, although not physically meaningful (magnetized 2D vortex with unstable boussinesq stratification), switches on almost all the routines of the code and therefore checks if everything is running
 	as it should. Make check compiles the code with a benchmark configuration (saving your gvars.h if you have already made modifications), runs it and compares the outputs to a standard
-	output. If the code behaves normally, "make check" should exit without any error. Not that make check is not yet totally compatible with MPI (the number of process can't be set properly). 
-	If you want to test an MPI version of the code, you should follow this procedure:
-	\verbatim
-make bench
-make
-mpirun -np xx ./snoopy (where xx is the number of process you want to use)
-make benchclean
-diff timevar src/def/timevar_bench 
-	\endverbatim
-	
+	output. If the code behaves normally, "make check" should exit without any error.
+		
 	\section problem Problem setup
 	A problem correponds to a header file src/gvars.h and a config file snoopy.cfg. Templates of these files for several problems are located in src/problem. Each problem (corresponding to a subdirectory in src/problem) can be initialized 
 	using --with-problem=PROB of the configure script or alternatively moving by hand gvars.h in ROOT/src and snoopy.cfg in ROOT/. The file gvars.h contains major options requiring a recompilation of the code (make). The file snoopy.cfg is read at runtime
