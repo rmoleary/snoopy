@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "snoopy.h"
 #include "common.h"
 #include "mainloop.h"
 #include "output.h"

@@ -30,7 +30,8 @@
 /*!	\page using Using the code
 	\section config Configuring the code
 	As any open source software, Snoopy comes with automatic configuration tools. The script ./configure allows one to configure the main options of snoopy, creating a customized Makefile
-	and producing a default gvars.h to setup the physics. The following options can be useful when using the configure script:
+	and producing a default src/gvars.h and snoopy.cfg to setup the physics. The following options may be used with the configure script:
+	- --with-problem=PROB: Initialize the code with problem PROB. This initializes snoopy.cfg and src/gvars.h according to PROB. See the section \ref problem for a standard list of problems.
 	- --enable-mpi: Enable MPI parallelization
 	- --enable-fftw-mpi: Enable *experimental* support of MPI found in fftw3.3alpha. These routines replace the custom transpose routines found in Snoopy and are generally more efficient. NB: MPI support in fftw3 is still under developpement and untested. Unless you're sure of what you're doing, keeping this option off is safer.
 	- --enable-openmp: Enable OpenMP support. Useful on Intel Core** processors. This option requires OpenMP support in FFTW3 (see fftw3 doc).
@@ -40,10 +41,12 @@
 	- LDFLAGS=xxx: force the link flags to be xxx.
 	- FFTPATH=xxx: specify where the FFTW 3 libraries are located (if not found in the default path). This option assumes the libraries files (libfftw3.a...) are in xxx/lib and the include files (fftw3.h...)
 	  are in xxx/include. 
+
 	  
-	Example: I want to configure Snoopy with openMP using the Intel compiler "icc". My fftw library is located in /opt (/opt/lib and /opt/include). I will type:
-	
-	./configure CC=icc FFTPATH=/opt --enable-openmp
+	Example: One wants to configure Snoopy with openMP using the Intel compiler "icc". The fftw library is located in /opt (/opt/lib and /opt/include) and one wants to initialize an MRI problem. One has to configure Snoopy with:
+\verbatim
+./configure CC=icc FFTPATH=/opt --enable-openmp --with-problem=mri
+\endverbatim
 	
 	Once the configure script has finished, you normally don't need to run it again, except if you want to change one of these options. 
 	
@@ -53,16 +56,25 @@
 	as it should. Make check compiles the code with a benchmark configuration (saving your gvars.h if you have already made modifications), runs it and compares the outputs to a standard
 	output. If the code behaves normally, "make check" should exit without any error. Not that make check is not yet totally compatible with MPI (the number of process can't be set properly). 
 	If you want to test an MPI version of the code, you should follow this procedure:
+	\verbatim
+make bench
+make
+mpirun -np xx ./snoopy (where xx is the number of process you want to use)
+make benchclean
+diff timevar src/def/timevar_bench 
+	\endverbatim
 	
-	- make bench
-	- make
-	- make benchclean
-	- mpirun -np xx ./snoopy (where xx is the number of process you want to use)
-	- diff timevar src/def/timevar_bench 
+	\section problem Problem setup
+	A problem correponds to a header file src/gvars.h and a config file snoopy.cfg. Templates of these files for several problems are located in src/problem. Each problem (corresponding to a subdirectory in src/problem) can be initialized 
+	using --with-problem=PROB of the configure script or alternatively moving by hand gvars.h in ROOT/src and snoopy.cfg in ROOT/. The file gvars.h contains major options requiring a recompilation of the code (make). The file snoopy.cfg is read at runtime
+	and should be accessible by at least process of rank 0 (for MPI runs). The available options in gvars.h and snoopy.cfg are described in the \ref code_config documentation. The following problems are available by default
+	(the user can create new problems with new directories in src/problem).
 	
-	\section physics Physics, grid and output setup
-	All these parameters are found in file src/gvars.h. After a modification, the code has to be compiled (make). Note that a default src/gvars.h is initialized by the configure script. Once it is created, this file is not
-	deleted, even if you run configure again. To completely clean the code tree, run "make fullclean" instead (CAUTION: this will also delete all the outputs!).
+	- default
+	- bench
+	- mri
+	- convection
+	- couette
 	
 	\section interface Code interface
 	While the code is running, it's possible to know what's happening in real time using the so-called interface (located in interface.c). Typically, one creates a file with a filename
@@ -78,6 +90,138 @@
 	INTERFACE_CHECK results in a smaller overhead but a longer delay between the command file creation and the actual output.
 */
 
+/*! \page code_config Code configuration
+	Snoopy configuration is divided in two files: gvars.h and snoopy.cfg, which are described below.
+    \section gvars File gvars.h
+	To activate or deactivate a feature, one uncomments or comments (//) the corresponding #define. Any modification made to this file requires a recompilation of the code (make)
+	to include them in the code. Here is an example of a gvars.h file (an updated version of this file may be found in src/problem/defaut/gvars.h):
+	\verbatim
+	
+#define NX              96            // X Dimension in real space. Must be multiples of 
+                                      // NPROC when using MPI.
+#define	 NY              96            // Y Dimension in real space. Must be multiples of 
+                                      // NPROC when using MPI.
+#define	 NZ              96            // Z Dimension in real space. 
+
+#define	 MHD                           // Uncomment to activate MHD
+
+#define	 BOUSSINESQ                    // Uncomment to activate Boussinesq
+#define	 VERTSTRAT                     // Vertical stratification. Otherwise,
+                                      // Boussinesq stratification is in X
+
+#define	 WITH_ROTATION                 // Uncomment to add rotation around the z axis.
+
+#define	 WITH_SHEAR                    // Uncomment to activate shear (U_y(x))
+#define	 TIME_DEPENDANT_SHEAR          // Enable Time dependant shear
+
+#define	 FORCING                       // Uncomment to use internal forcing of the 
+                                      // velocity field (see forcing in timestep.c)
+
+#define	 FFT_PLANNING    FFTW_MEASURE  // can be either FFTW_ESTIMATE, FFTW_MEASURE, 
+                                      // FFTW_PATIENT or FFTW_EXHAUSTIVE 
+                                      // (see fftw3 doc). Measure leads to longer 
+                                      // initialisation of fft routines
+	\endverbatim
+	
+	\section configsnoopy File snoopy.cfg
+	The file snoopy.cfg is located where the executable is located and is read at run time. Snoopy uses a variation of the 
+	library <A HREF=http://www.hyperrealm.com/libconfig/>libconfig</A> to read these files. A standard snoopy file is divided into
+	3 blocks: physics, code and init corresponding to physics parameters, code parameters and initial conditions. If any of the described 
+	parameter (or even block) is ommited, the default value (as described below) will be used. This is a commented example of snoopy.cfg
+	containing all the possible parameters assigned to their default value (an updated version of this file may be found in src/problem/defaut/snoopy.cfg):
+	\verbatim
+	# Example of a Snoopy configuration file
+
+configname = "Default Snoopy configuration file";
+
+physics:                             // Physics parameters
+{
+	boxsize = (1.0, 1.0, 1.0);       // Box length in X, Y and Z
+	
+	reynolds = 1.0;                  // Reynolds number (actully the inverse of the viscosity)
+	reynolds_magnetic = 1.0;         // Magnetic Reynolds number (actully the inverse of the resistivity).  Used only when MHD is on
+	reynolds_thermic = 1.0;          // Thermal Reynolds number (actully the inverse of the thermal diffusivity).  Used only when Boussinesq is on
+	
+	brunt_vaissala_squared = 0.0;    // Brunt Vaissala frequency squared. Used only when Boussinesq is on
+	
+	omega = 0.0;                     // Vertical rotation rate (if Shear=1, Keplerian if found for 2.0/3.0). Used only when WITH_ROTATION is on
+	
+	shear = 0.0;                     // Shear rate. Used only when WITH_SHEAR is on.
+	omega_shear = 0.0;               // Pulsation of time dependant shear. Used only when both WITH_SHEAR and TIME_DEPENDANT_SHEAR are on.
+};
+
+//-------------------------------------------------------------------------------------------------------------------------
+
+code:                                // code parameters
+{
+	cfl = 1.5;                       // CFL safety factor. Should be smaller than sqrt(3) for RK3 to be stable.
+	safety_source = 0.2;             // Safety factor for SHEAR, Coriolis and Boussinesq terms (should be ~0.2 for accuracy)
+	
+	t_initial = 0.0;                 // Initial time of the simulation
+	t_final = 1.0;                   // Simulation will stop if it reaches this time
+	max_t_elapsed = 1e30;            // Maximum elapsed time (in hours). Will stop after this elapsed time if t_final is not reached.
+	
+	interface_check = 5;             // Number of loops between two checks for a user input. On slow filesystems, increase this number 
+	interface_output_file = false;   // Set to true to force interface outputs to a file instead of displaying them
+	
+	force_symmetries = false;        // Uncomment to enforce spectral symmetries and mean flow to zero. Useful when N^2 or kappa^2 < 0. (see enforce_symm() )
+	symmetries_step = 20;            // Number of loops between which the symmetries are enforced. Should be around ~20 for Boussinesq convection.
+	
+	antialiasing = true;             // 2/3 Antialisaing rule. Could be removed if you assume is unimportant (untested feature).
+	
+	restart = false;                 // set to true to restart from a dump file. If no dump file is found, this option has no effect.
+};
+
+//-------------------------------------------------------------------------------------------------------------------------
+
+output:	                             // output parameters
+{
+	timevar_step = 1.0;	             // Time between two outputs in the timevar file
+	snapshot_step = 1.0;             // Time between two snapshot outputs
+	dump_step = 1.0;                 // Time between two restart dump outputs (restart dump are erased)
+	
+	vtk_output = true;               // Use VTK legacy files for output instead of raw binaries (useful with paraview)
+	fortran_output_order = false;    // If vtk_output is disabled, the code will output binary in C-major order. Uncomment this to get outputs in FORTRAN-major order (doesn't work with MPI)
+};
+
+//-------------------------------------------------------------------------------------------------------------------------
+
+init:                                // Initial conditions parameters
+{
+	vortex:                          // Add a 2D Kida vortex in the box. Assumes S=1. Requires b>a
+	{
+		enable = false;              // Set this to true to enable the vortex
+		a = 1.0;                     // x dimension of the vortex
+		b = 2.0;                     // y dimension of the vortex
+	};
+	large_scale_noise:               // Init a large scale random noise down to cut_length
+	{
+		enable = false;	             // set this to true to enable large scale noise
+		amplitude = 0.0;             // noise amplitude
+		cut_length = 0.0;            // Wavelength over which the noise is applied
+	};
+	white_noise:                     // Init a random noise at all scales
+	{
+		enable = false;	             // set this to true to enable white noise
+		amplitude = 0.0;             // noise amplitude
+	};
+	mean_field:	                     // Force the mean magnetic field to a given value.
+	{
+		enable = false;	             // Set this to true to enable mean field
+		bx0 = 0.0;                   // Mean magnetic field in the x direction
+		by0 = 0.0;                   // Mean magnetic field in the y direction
+		bz0 = 0.0;                   // Mean magnetic field in the z direction
+	};
+	spatial_structure = false;       // set this to true to init a user_defined spatial structure (see initflow.c)
+	dump = false;                    // set this to true to use a dump file as an initial condition (this is NOT a restart option!)
+	bench = false;                   // set this to true to init a benchmark initial condition.
+};
+		
+
+	\endverbatim
+*/
+
+
 /*!	\page outputs Code outputs
 	\section timevar The timevar File
 	A text file containing several averaged quantities (see output.c for more details).
@@ -88,3 +232,4 @@
 	\section dump Restart dump files
 	Binary restart file. See output.c for a complete description.
 */
+

@@ -1,4 +1,3 @@
-#include "snoopy.h"
 #include "common.h"
 #ifdef MPI_SUPPORT
 #include "transpose.h"

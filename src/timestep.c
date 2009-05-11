@@ -1,7 +1,6 @@
 #include <math.h>
 #include <complex.h>
 
-#include "snoopy.h"
 #include "common.h"
 #include "gfft.h"
 #include "debug.h"

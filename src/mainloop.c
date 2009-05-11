@@ -1,6 +1,5 @@
 #include <stdlib.h>
 
-#include "snoopy.h"
 #include "common.h"
 #include "timestep.h"
 #include "output.h"

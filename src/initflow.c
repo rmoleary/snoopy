@@ -1,4 +1,3 @@
-#include "snoopy.h"
 #include "common.h"
 #include "gfft.h"
 #include "output.h"

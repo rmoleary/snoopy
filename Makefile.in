@@ -101,7 +101,11 @@ exec:
 	@echo "******************************************"
 	@echo "** Executing Benchmark *******************"
 	@echo "******************************************"
+ifeq ($(MPI support),yes)
+	mpiexec -n 2 ./snoopy
+else
 	./snoopy
+endif
 	
 bench:
 	mv snoopy.cfg snoopy.cfg.old
