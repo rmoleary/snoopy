@@ -60,7 +60,7 @@ read_config() {
 			param.shear = 0.0;
 		}
 	
-		if(!config_lookup_float(&config, "physics.omega_shear",&param.shear)) {
+		if(!config_lookup_float(&config, "physics.omega_shear",&param.omega_shear)) {
 			param.omega_shear = 0.0;
 		}
 	
