@@ -478,6 +478,9 @@ void output_vtk(const int n, double t) {
 	num_remain_field += 1;
 #endif
 	
+	if(param.output_pressure)
+		num_remain_field +=1;
+		
 	if(rank==0) fprintf(ht, "FIELD FieldData %d\n",num_remain_field);
 	
 	// Write all the remaining fields
@@ -502,6 +505,10 @@ void output_vtk(const int n, double t) {
 	if(rank==0) fprintf(ht, "th 1 %d float\n",NX*NY*NZ);
 	write_vtk(ht,fld.th,t);
 #endif	  
+	if(param.output_pressure) {
+		if(rank==0) fprintf(ht, "p 1 %d float\n",NX*NY*NZ);	// Output the pressure field when needed.
+		write_vtk(ht,pressure,t);
+	}
 	if(rank==0) fclose(ht);
 	
 	DEBUG_END_FUNC;
@@ -550,6 +557,10 @@ void output_flow(const int n, const double t) {
 	write_snap(t, filename, fld.bz);
 #endif
 
+	if(param.output_pressure) {
+		sprintf(filename,"data/p%04i.raw",n);
+		write_snap(t, filename, pressure);
+	}
 	DEBUG_END_FUNC;
 	
 	return;

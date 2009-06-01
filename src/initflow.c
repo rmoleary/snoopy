@@ -125,7 +125,7 @@ void init_KidaVortex() {
 	double chi;
 	
 	chi = b / a;
-	w0 = 1.0/chi*(chi + 1)/(chi-1.0);			// According to Kida!
+	w0 = 1.0/chi*(chi + 1.0)/(chi-1.0);			// According to Kida!
 	
 	for(i = 0 ; i < NX/NPROC ; i++) {
 		x = - param.lx / 2 + (param.lx * (i + rank * NX / NPROC)) / NX;
@@ -173,9 +173,9 @@ void init_Bench() {
 	w0 = 1.0/chi*(chi + 1)/(chi-1.0);			// According to Kida!
 	
 	for(i = 0 ; i < NX/NPROC ; i++) {
-		x = - param.lx / 2 + (param.lx * (i + rank * NX / NPROC)) / NX;
+		x = - param.lx / 2. + (param.lx * (i + rank * NX / NPROC)) / NX;
 		for(j = 0 ; j < NY ; j++) {
-			y = - param.ly / 2 + (param.ly * j) / NY;
+			y = - param.ly / 2. + (param.ly * j) / NY;
 			for(k = 0 ; k < NZ ; k++) {
 				if(x * x / (a * a) + y * y / (b * b) < 1) {
 					// we are in the vortex

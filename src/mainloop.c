@@ -292,7 +292,8 @@ void mainloop(double t_start, double t_end) {
 		
 		// 1st RK3 step
 		
-		timestep(dfld, fld, t, dt);
+		timestep(dfld, fld, pressure, t, dt );
+		
 #ifdef _OPENMP
 		#pragma omp parallel for private(i) schedule(static)	
 #endif
@@ -341,7 +342,7 @@ void mainloop(double t_start, double t_end) {
 #endif
 #endif
 		
-		timestep(dfld, fld, t+gammaRK[0]*dt, dt);
+		timestep(dfld, fld, NULL, t+gammaRK[0]*dt, dt);
 
 #ifdef _OPENMP
 		#pragma omp parallel for private(i) schedule(static)	
@@ -391,7 +392,7 @@ void mainloop(double t_start, double t_end) {
 #endif
 #endif
 		
-		timestep(dfld, fld, t + (gammaRK[0] + xiRK[0] + gammaRK[1]) * dt, dt);
+		timestep(dfld, fld, NULL, t + (gammaRK[0] + xiRK[0] + gammaRK[1]) * dt, dt);
 
 #ifdef _OPENMP
 		#pragma omp parallel for private(i) schedule(static)	
@@ -441,6 +442,8 @@ void mainloop(double t_start, double t_end) {
 			remap(fld.vx);
 			remap(fld.vy);
 			remap(fld.vz);
+			if(param.output_pressure)
+				remap(pressure);
 #ifdef BOUSSINESQ
 			remap(fld.th);
 #endif

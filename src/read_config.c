@@ -123,6 +123,10 @@ read_config() {
 			param.fortran_output_order = 0;
 		}
 	
+		if(!config_lookup_bool(&config, "output.pressure",&param.output_pressure)) {
+			param.output_pressure = 0;
+		}
+		
 		// Initial conditions parameters-------------------------------------------------------------------------
 		if(!config_lookup_bool(&config, "init.vortex.enable",&param.init_vortex)) {
 			param.init_vortex = 0;
@@ -130,7 +134,7 @@ read_config() {
 		if(!config_lookup_float(&config, "init.vortex.a",&param.vortex_a)) {
 			param.vortex_a = 1.0;
 		}
-		if(!config_lookup_float(&config, "init.vortex_b",&param.vortex_b)) {
+		if(!config_lookup_float(&config, "init.vortex.b",&param.vortex_b)) {
 			param.vortex_b = 2.0;
 		}
 		if(!config_lookup_bool(&config, "init.spatial_structure",&param.init_spatial_structure)) {

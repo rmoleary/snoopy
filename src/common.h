@@ -20,6 +20,8 @@ extern double complex		*w1,	*w2,	*w3;
 extern double complex		*w4,	*w5,	*w6;
 extern double complex		*w7,	*w8,	*w9;
 
+extern double complex		*pressure;
+
 // Parameters
 extern struct Parameters			param;
 

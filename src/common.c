@@ -38,6 +38,10 @@ double complex		*w1,	*w2,	*w3;	/**< Temporary complex array (alias of real wr**)
 double complex		*w4,	*w5,	*w6;	/**< Temporary complex array (alias of real wr**) */
 double complex		*w7,	*w8,	*w9;	/**< Temporary complex array (alias of real wr**) */
 
+double complex		*pressure;				/**< Pressure field computed during the code evolution.
+												 Is only initialized if param.output_pressure is true. */
+												
+
 // Parameters
 struct Parameters			param;
 
@@ -219,6 +223,13 @@ void init_common(void) {
 	
 	w9 = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (w9 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w9 allocation");
+	
+	if(param.output_pressure) {
+		pressure = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
+		if (pressure == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for pressure allocation");
+	}
+	else
+		pressure = NULL;
 	
 	/* Will use the same memory space for real and complex fields */
 	

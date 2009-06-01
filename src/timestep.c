@@ -44,8 +44,9 @@ void forcing(struct Field fldi,
 
 void timestep( struct Field dfldo,
 			   struct Field fldi,
+			   double complex *po,
 			   const double t,
-			   const double dt ) {
+			   const double dt) {
 			   
 	int i;
 	double complex q0;
@@ -266,6 +267,7 @@ void timestep( struct Field dfldo,
 /************************************
 ** PRESSURE TERMS *******************
 ************************************/
+
 #ifdef _OPENMP
 	#pragma omp parallel for private(i,q0) schedule(static)
 #endif
@@ -275,6 +277,9 @@ void timestep( struct Field dfldo,
 #else
 		q0= kxt[i] * dfldo.vx[i] + ky[i] * dfldo.vy[i] + kz[i] * dfldo.vz[i];
 #endif
+		if(po != NULL) {
+			po[i] = - I * ik2t[i] * q0;	// Save the pressure field (if needed)
+		}
 		dfldo.vx[i] += -kxt[i]* q0 * ik2t[i];
 		dfldo.vy[i] += -ky[i] * q0 * ik2t[i];
 		dfldo.vz[i] += -kz[i] * q0 * ik2t[i];

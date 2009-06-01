@@ -104,6 +104,8 @@ struct Parameters {
 
 	int    vtk_output;			/**< Use VTK legacy files for output instead of raw binaries (useful with paraview) */
 	
+	int		output_pressure;	/**< Output the pressure field in the 3D snapshots */
+	
 	// initial conditions
 	int	   init_vortex;			/**< Add a 2D Kida vortex in the box. Assumes S=1. Requires b>a*/
 	double vortex_a;			/**< x dimension of the vortex */
