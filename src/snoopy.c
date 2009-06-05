@@ -136,6 +136,7 @@ int main(int argc, char *argv[]) {
 	// Some consistancy check
 	if(NX/NPROC < 1) ERROR_HANDLER( ERROR_CRITICAL, "NX should be a multiple of the number of process.");
 	if(NY/NPROC < 1) ERROR_HANDLER( ERROR_CRITICAL, "NY should be a multiple of the number of process.");
+	if(NZ < 2) ERROR_HANDLER( ERROR_CRITICAL, "You need NZ > 1, even if you want to do 2D simulations!.");
 #else
 	rank=0;
 #endif
