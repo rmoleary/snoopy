@@ -1,3 +1,21 @@
+/*	
+	This file is part of the Snoopy code.
+
+    Snoopy code is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Snoopy code is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Snoopy code.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -142,7 +160,10 @@ int main(int argc, char *argv[]) {
 #endif
 	print_logo();
 	MPI_Printf("The Snoopy code v4.0\n");
-	MPI_Printf("(c) 2004-2009 G. Lesur (University of Cambridge, UK)\n");
+	MPI_Printf("Copyright (c) 2004-2009 Geoffroy Lesur (University of Cambridge, UK)\n");
+	MPI_Printf("This program comes with ABSOLUTELY NO WARRANTY;\n");
+	MPI_Printf("This is free software, and you are welcome to\n");
+    MPI_Printf("redistribute it under certain conditions.\n");
 	MPI_Printf("Compiled on %s at %s\n",__DATE__ , __TIME__);
 	read_config();
 	print_information();
