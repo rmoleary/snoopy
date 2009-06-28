@@ -41,9 +41,21 @@
 	or using the alpha version of the MPI implementation included in fftw 3.3
 	\subsection snoop Why Snoopy?
 	Why not? I felt that since Zeus, Athena and Ramses were already used, a bit of modern history would sound good (and cool). Snoopy actually means nothing (appart from a dog), 
-	although one might say that S stands for Spectral, and noopy stands for... (to be completed).
-	\subsection what What is this code actually doing?
-	Noops
+	although one might say that S stands for Spectral, and noopy stands for... (I still don't know).
+	\subsection lic License
+	The Snoopy code is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Snoopy code is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Snoopy code.  If not, see <A HREF=http://www.gnu.org/licenses/> http://www.gnu.org/licenses/ </A>.
+
 	*/
 	
 /*!	\page using Using the code
