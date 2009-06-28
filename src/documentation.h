@@ -104,11 +104,11 @@
 	corresponding to one of the possible commands (e.g using the command "touch" on UNIX, as "touch status"). Once the command has been executed, the code deletes the file.
 	The available commands are as follow:
 		- status: show the status of the code, including current time, current time step and code speed.
-		- output: Immediatly print the statistical informations in timevar, output one snapshot and a dump file (whatever are the variables in gvars.h).
+		- output: Immediatly write the statistical informations in timevar, output one snapshot and a dump file.
 		- dump: Immediatly output a dump file.
 		- stop: Immediatly output a dump file and exit the code.
 	
-	It is possible to redirect the display outputs of the interface to a file using the INTERFACE_OUTPUT_FILE option in gvars.h. This is useful when one wants to run in batch 
+	It is possible to redirect the display outputs of the interface to a file using the interface_output_file option in snoopy.cfg. This is useful when one wants to run in batch 
 	mode on a cluster. For performances reasons, the code doesn't check at each loop if the user has created a command file. Instead, it checks every INTERFACE_CHECK loops. A larger
 	INTERFACE_CHECK results in a smaller overhead but a longer delay between the command file creation and the actual output.
 */
@@ -149,8 +149,8 @@
 	\section configsnoopy File snoopy.cfg
 	The file snoopy.cfg is located where the executable is located and is read at run time. Snoopy uses a variation of the 
 	library <A HREF=http://www.hyperrealm.com/libconfig/>libconfig</A> to read these files. A standard snoopy file is divided into
-	3 blocks: physics, code and init corresponding to physics parameters, code parameters and initial conditions. If any of the described 
-	parameter (or even block) is ommited, the default value (as described below) will be used. This is a commented example of snoopy.cfg
+	3 blocks: physics, code and init corresponding to physical parameters, code parameters and initial conditions. If any of the described 
+	parameter (or even block) is ommited, the default value (given below) will be used. This is a commented example of snoopy.cfg
 	containing all the possible parameters assigned to their default value (an updated version of this file may be found in src/problem/defaut/snoopy.cfg):
 	\verbatim
 	# Example of a Snoopy configuration file
@@ -250,10 +250,11 @@ init:                                // Initial conditions parameters
 	\section timevar The timevar File
 	A text file containing several averaged quantities (see output.c for more details).
 	\section snap Snapshots
-	Snapshots can be found in raw binary files (.raw) or in vtk legacy format (.vtk, default) in the data directory. The output format is set in gvars.h. VTK files can are read natively
+	Snapshots can be written in raw binary files (.raw) or in vtk legacy format (.vtk, default) in the data directory. The output format is set in snoopy.cfg (default is VTK). VTK files can are read natively
 	by Paraview 2-3 or Visit, available for free on the web. Several Matlab script are under developpment to read these files.
 	
 	\section dump Restart dump files
-	Binary restart file. See output.c for a complete description.
+	Binary restart file. A maximum of two restart dumps can be found in the running directory: dump.dmp and dump_sav.dmp. The former is the more recent dump whereas the latter is the preceeding dump. 
+	Older dumps are deleted during the execution. It is possible to restart the code from a restart dump setting the restart option in snoopy.cfg to true. See output.c for a complete description.
 */
 
