@@ -380,10 +380,15 @@ void init_flow() {
 		}
 	}
 
+#ifdef BOUNDARY_C
+	boundary_c(fld);
+#endif
 	projector(fld.vx,fld.vy,fld.vz);
 #ifdef MHD
 	projector(fld.bx,fld.by,fld.bz);
 #endif	
+
+	
 
 #ifdef DEBUG
 	MPI_Printf("Initflow:\n");

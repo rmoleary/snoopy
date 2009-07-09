@@ -367,12 +367,18 @@ void projector( double complex qx[],
 				
 	int i;
 	double complex q0;
+	
+	DEBUG_START_FUNC;
+	
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
 		q0 = kxt[i] * qx[i] + ky[i] * qy[i] + kz[i] * qz[i];
 		qx[i] = qx[i] - kxt[i] * q0 * ik2t[i];
 		qy[i] = qy[i] - ky[i] * q0 * ik2t[i];
 		qz[i] = qz[i] - kz[i] * q0 * ik2t[i];
 	}
+	
+	DEBUG_END_FUNC;
+	
 	return;
 }
 
@@ -488,6 +494,161 @@ void symmetrize(double complex wi[]) {
 	}
 	return;
 }
+
+/*****************************************/
+/** Symmetrize the complex space assuming
+**  wi is a cosine in the x direction
+/*******************************************/
+
+void symm_cos_x(double complex wi[]) {
+	
+	int i,j,k,itarget;
+	double complex q0, q1;
+	
+	DEBUG_START_FUNC;
+	
+#ifdef MPI_SUPPORT
+	transpose_complex_XY(wi,wi);
+	for( j = 0; j < NY_COMPLEX/NPROC; j++) {
+		for( i = 0; i < NX_COMPLEX / 2; i++) {
+			if(i!=0)
+				itarget = NX_COMPLEX - i;
+			else
+				itarget = i;
+			for( k = 0; k < NZ_COMPLEX; k++) {
+				q0=wi[ k + i * NZ_COMPLEX + j * NZ_COMPLEX * NX_COMPLEX];
+				q1=wi[ k + itarget * NZ_COMPLEX + j * NZ_COMPLEX * NX_COMPLEX];
+				q0 = 0.5*(q0+q1);
+				wi[ k + i * NZ_COMPLEX + j * NZ_COMPLEX * NX_COMPLEX]= q0;
+				wi[ k + itarget * NZ_COMPLEX + j * NZ_COMPLEX * NX_COMPLEX] = q0;
+			}
+		}
+	}
+	transpose_complex_YX(wi,wi);
+#else
+	for( i = 0; i < NX_COMPLEX / 2; i++) {
+		if(i!=0)
+			itarget = NX_COMPLEX - i;
+		else
+			itarget = i;
+			
+		//MPI_Printf("i=%d, itarget=%d\n",i,itarget);
+		for( j = 0; j < NY_COMPLEX; j++) {
+			for( k = 0; k < NZ_COMPLEX; k++) {
+				
+				//MPI_Printf("kx1=%g, kx2=%g, ky1=%g, ky2=%g, kz1=%g, kz2=%g\n",kx[ k + j * NZ_COMPLEX + i * NZ_COMPLEX * NY_COMPLEX],kx[ k + j * NZ_COMPLEX + itarget * NZ_COMPLEX * NY_COMPLEX],ky[ k + j * NZ_COMPLEX + i * NZ_COMPLEX * NY_COMPLEX],ky[ k + j * NZ_COMPLEX + itarget * NZ_COMPLEX * NY_COMPLEX],kz[ k + j * NZ_COMPLEX + i * NZ_COMPLEX * NY_COMPLEX],kz[ k + j * NZ_COMPLEX + itarget * NZ_COMPLEX * NY_COMPLEX]);
+				q0=wi[ k + j * NZ_COMPLEX + i * NZ_COMPLEX * NY_COMPLEX];
+				q1=wi[ k + j * NZ_COMPLEX + itarget * NZ_COMPLEX * NY_COMPLEX];
+				q0 = 0.5*(q0+q1);
+				wi[ k + j * NZ_COMPLEX + i * NZ_COMPLEX * NY_COMPLEX]= q0;
+				wi[ k + j * NZ_COMPLEX + itarget * NZ_COMPLEX * NY_COMPLEX] = q0;
+			}
+		}
+	}
+#endif
+	
+	DEBUG_END_FUNC;
+	
+	return;
+}
+
+/*****************************************/
+/** Symmetrize the complex space assuming
+**  wi is a cosine in the x direction
+/*******************************************/
+
+void symm_sin_x(double complex wi[]) {
+	
+	int i,j,k,itarget;
+	double complex q0, q1;
+	
+	DEBUG_START_FUNC;
+	
+#ifdef MPI_SUPPORT
+	transpose_complex_XY(wi,wi);
+	for( j = 0; j < NY_COMPLEX/NPROC; j++) {
+		for( i = 0; i < NX_COMPLEX / 2; i++) {
+			if(i!=0)
+				itarget = NX_COMPLEX - i;
+			else
+				itarget = i;
+			for( k = 0; k < NZ_COMPLEX; k++) {
+				q0=wi[ k + i * NZ_COMPLEX + j * NZ_COMPLEX * NX_COMPLEX];
+				q1=wi[ k + itarget * NZ_COMPLEX + j * NZ_COMPLEX * NX_COMPLEX];
+				q0 = 0.5*(q0+q1);
+				wi[ k + i * NZ_COMPLEX + j * NZ_COMPLEX * NX_COMPLEX]= q0;
+				wi[ k + itarget * NZ_COMPLEX + j * NZ_COMPLEX * NX_COMPLEX] = q0;
+			}
+		}
+	}
+	transpose_complex_YX(wi,wi);
+#else
+	for( i = 0; i < NX_COMPLEX / 2; i++) {
+		if(i!=0)
+			itarget = NX_COMPLEX - i;
+		else
+			itarget = i;
+			
+		//MPI_Printf("i=%d, itarget=%d\n",i,itarget);
+		for( j = 0; j < NY_COMPLEX; j++) {
+			for( k = 0; k < NZ_COMPLEX; k++) {
+				
+				//MPI_Printf("kx1=%g, kx2=%g, ky1=%g, ky2=%g, kz1=%g, kz2=%g\n",kx[ k + j * NZ_COMPLEX + i * NZ_COMPLEX * NY_COMPLEX],kx[ k + j * NZ_COMPLEX + itarget * NZ_COMPLEX * NY_COMPLEX],ky[ k + j * NZ_COMPLEX + i * NZ_COMPLEX * NY_COMPLEX],ky[ k + j * NZ_COMPLEX + itarget * NZ_COMPLEX * NY_COMPLEX],kz[ k + j * NZ_COMPLEX + i * NZ_COMPLEX * NY_COMPLEX],kz[ k + j * NZ_COMPLEX + itarget * NZ_COMPLEX * NY_COMPLEX]);
+				q0=wi[ k + j * NZ_COMPLEX + i * NZ_COMPLEX * NY_COMPLEX];
+				q1=wi[ k + j * NZ_COMPLEX + itarget * NZ_COMPLEX * NY_COMPLEX];
+				q0 = 0.5*(q0-q1);
+				wi[ k + j * NZ_COMPLEX + i * NZ_COMPLEX * NY_COMPLEX]= q0;
+				wi[ k + j * NZ_COMPLEX + itarget * NZ_COMPLEX * NY_COMPLEX] = -q0;
+			}
+		}
+	}
+#endif
+	
+	DEBUG_END_FUNC;
+	
+	return;
+}
+
+/*****************************************/
+/** Symmetrize the complex space assuming
+**  we have walls in the radial direction
+**	is equivalent to a plane Couette flow (but
+**	no spectral accuracy...)
+*/
+/*******************************************/
+
+void symmetrize_walls_x(struct Field fldi) {
+	DEBUG_START_FUNC;
+	
+	symm_sin_x(fldi.vx);
+	symm_cos_x(fldi.vy);
+	symm_cos_x(fldi.vz);
+#ifdef MHD
+	symm_cos_x(fldi.bx);
+	symm_sin_x(fldi.by);
+	symm_sin_x(fldi.bz);
+#endif
+#ifdef BOUSSINESQ
+	symm_sin_x(fldi.th);
+#endif
+	
+	DEBUG_END_FUNC;
+	return;
+}				
+	
+/***********************************
+** Bounadry conditions call
+************************************/
+
+void boundary_c(struct Field fldi) {
+	DEBUG_START_FUNC;
+	
+	symmetrize_walls_x(fldi);
+	
+	DEBUG_END_FUNC;
+	return;
+}
+
 
 /*****************************************
 /** Enforce Symmetries of field fld     

@@ -341,6 +341,10 @@ void mainloop(double t_start, double t_end) {
 #endif			
 		}
 		
+#ifdef BOUNDARY_C
+//		boundary_c(fld);
+#endif
+		
 #ifdef DEBUG
 		MPI_Printf("RK, 1st Step:\n");
 		MPI_Printf("fld:\n");
@@ -390,6 +394,10 @@ void mainloop(double t_start, double t_end) {
 #endif
 		}
 
+#ifdef BOUNDARY_C
+//		boundary_c(fld);
+#endif
+
 #ifdef DEBUG
 		MPI_Printf("RK, 2nd Step:\n");
 		MPI_Printf("fld:\n");
@@ -430,6 +438,10 @@ void mainloop(double t_start, double t_end) {
 #endif
 		}
 
+#ifdef BOUNDARY_C
+//		boundary_c(fld);
+#endif
+
 #ifdef DEBUG
 		MPI_Printf("RK, 3rd Step:\n");
 		MPI_Printf("fld:\n");
@@ -445,6 +457,10 @@ void mainloop(double t_start, double t_end) {
 		
 		// Implicit step
 		implicitstep(fld, t, dt);
+		
+#ifdef BOUNDARY_C
+//		boundary_c(fld);
+#endif
 		
 		// evolving the frame
 		t = t + dt;
@@ -485,7 +501,11 @@ void mainloop(double t_start, double t_end) {
 #ifdef MHD
 		projector(fld.bx,fld.by,fld.bz);
 #endif
-				
+
+#ifdef BOUNDARY_C
+//		boundary_c(fld);
+#endif
+
 		output(t);
 	}
 	timer_end=get_c_time();
