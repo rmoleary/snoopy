@@ -341,10 +341,6 @@ void mainloop(double t_start, double t_end) {
 #endif			
 		}
 		
-#ifdef BOUNDARY_C
-//		boundary_c(fld);
-#endif
-		
 #ifdef DEBUG
 		MPI_Printf("RK, 1st Step:\n");
 		MPI_Printf("fld:\n");
@@ -394,10 +390,6 @@ void mainloop(double t_start, double t_end) {
 #endif
 		}
 
-#ifdef BOUNDARY_C
-//		boundary_c(fld);
-#endif
-
 #ifdef DEBUG
 		MPI_Printf("RK, 2nd Step:\n");
 		MPI_Printf("fld:\n");
@@ -438,10 +430,6 @@ void mainloop(double t_start, double t_end) {
 #endif
 		}
 
-#ifdef BOUNDARY_C
-//		boundary_c(fld);
-#endif
-
 #ifdef DEBUG
 		MPI_Printf("RK, 3rd Step:\n");
 		MPI_Printf("fld:\n");
@@ -457,10 +445,6 @@ void mainloop(double t_start, double t_end) {
 		
 		// Implicit step
 		implicitstep(fld, t, dt);
-		
-#ifdef BOUNDARY_C
-//		boundary_c(fld);
-#endif
 		
 		// evolving the frame
 		t = t + dt;
@@ -501,9 +485,11 @@ void mainloop(double t_start, double t_end) {
 #ifdef MHD
 		projector(fld.bx,fld.by,fld.bz);
 #endif
-
+		// The boundary conditions arises naturally from the initial conditions (the relevant symmetries are conserved by the eq. of motion)
+		// We keep this instruction here to enforce these boundary conditions at the end of each loop to remove numerical noise.
+		// Nevertheless, it is not required to call it so often...
 #ifdef BOUNDARY_C
-//		boundary_c(fld);
+		boundary_c(fld);
 #endif
 
 		output(t);

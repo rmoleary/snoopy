@@ -497,6 +497,85 @@ void symmetrize(double complex wi[]) {
 
 /*****************************************/
 /** Symmetrize the complex space assuming
+**  wi is a sine in the z direction
+/*******************************************/
+void symm_sin_z(double complex wi[]) {
+	int i,j,k,itarget,jtarget;
+	double complex q0, q1;
+#ifdef MPI_SUPPORT
+	ERROR_HANDLER(ERROR_CRITICAL, "MPI version of wall in z direction is not implemented yet");
+#else
+	
+	for( i = 0; i <= NX_COMPLEX / 2; i++) {
+		if(i!=0)
+			itarget = NX_COMPLEX - i;
+		else
+			itarget = i;
+			
+		//MPI_Printf("i=%d, itarget=%d\n",i,itarget);
+		for( j = 0; j < NY_COMPLEX; j++) {
+			if(j!=0)
+				jtarget = NY_COMPLEX - j;
+			else
+				jtarget = j;
+
+			for( k = 0; k < NZ_COMPLEX; k++) {
+				
+				//MPI_Printf("kx1=%g, kx2=%g, ky1=%g, ky2=%g, kz1=%g, kz2=%g\n",kx[ k + j * NZ_COMPLEX + i * NZ_COMPLEX * NY_COMPLEX],kx[ k + j * NZ_COMPLEX + itarget * NZ_COMPLEX * NY_COMPLEX],ky[ k + j * NZ_COMPLEX + i * NZ_COMPLEX * NY_COMPLEX],ky[ k + j * NZ_COMPLEX + itarget * NZ_COMPLEX * NY_COMPLEX],kz[ k + j * NZ_COMPLEX + i * NZ_COMPLEX * NY_COMPLEX],kz[ k + j * NZ_COMPLEX + itarget * NZ_COMPLEX * NY_COMPLEX]);
+				q0=wi[ k + j * NZ_COMPLEX + i * NZ_COMPLEX * NY_COMPLEX];
+				q1=conj(wi[ k + jtarget * NZ_COMPLEX + itarget * NZ_COMPLEX * NY_COMPLEX]);
+				q0 = 0.5*(q0-q1);
+				wi[ k + j * NZ_COMPLEX + i * NZ_COMPLEX * NY_COMPLEX]= q0;
+				wi[ k + jtarget * NZ_COMPLEX + itarget * NZ_COMPLEX * NY_COMPLEX] = -conj(q0);
+			}
+		}
+	}
+#endif
+	return;
+}
+
+
+/*****************************************/
+/** Symmetrize the complex space assuming
+**  wi is a cosine in the z direction
+/*******************************************/
+void symm_cos_z(double complex wi[]) {
+	int i,j,k,itarget,jtarget;
+	double complex q0, q1;
+#ifdef MPI_SUPPORT
+	ERROR_HANDLER(ERROR_CRITICAL, "MPI version of wall in z direction is not implemented yet");
+#else
+	
+	for( i = 0; i <= NX_COMPLEX / 2; i++) {
+		if(i!=0)
+			itarget = NX_COMPLEX - i;
+		else
+			itarget = i;
+			
+		//MPI_Printf("i=%d, itarget=%d\n",i,itarget);
+		for( j = 0; j < NY_COMPLEX; j++) {
+			if(j!=0)
+				jtarget = NY_COMPLEX - j;
+			else
+				jtarget = j;
+
+			for( k = 0; k < NZ_COMPLEX; k++) {
+				
+				//MPI_Printf("kx1=%g, kx2=%g, ky1=%g, ky2=%g, kz1=%g, kz2=%g\n",kx[ k + j * NZ_COMPLEX + i * NZ_COMPLEX * NY_COMPLEX],kx[ k + j * NZ_COMPLEX + itarget * NZ_COMPLEX * NY_COMPLEX],ky[ k + j * NZ_COMPLEX + i * NZ_COMPLEX * NY_COMPLEX],ky[ k + j * NZ_COMPLEX + itarget * NZ_COMPLEX * NY_COMPLEX],kz[ k + j * NZ_COMPLEX + i * NZ_COMPLEX * NY_COMPLEX],kz[ k + j * NZ_COMPLEX + itarget * NZ_COMPLEX * NY_COMPLEX]);
+				q0=wi[ k + j * NZ_COMPLEX + i * NZ_COMPLEX * NY_COMPLEX];
+				q1=conj(wi[ k + jtarget * NZ_COMPLEX + itarget * NZ_COMPLEX * NY_COMPLEX]);
+				q0 = 0.5*(q0+q1);
+				wi[ k + j * NZ_COMPLEX + i * NZ_COMPLEX * NY_COMPLEX]= q0;
+				wi[ k + jtarget * NZ_COMPLEX + itarget * NZ_COMPLEX * NY_COMPLEX] = conj(q0);
+			}
+		}
+	}
+#endif
+	return;
+}
+
+/*****************************************/
+/** Symmetrize the complex space assuming
 **  wi is a cosine in the x direction
 /*******************************************/
 
@@ -636,6 +715,35 @@ void symmetrize_walls_x(struct Field fldi) {
 	return;
 }				
 	
+/*****************************************/
+/** Symmetrize the complex space assuming
+**  we have walls in the radial direction
+**	is equivalent to a plane Couette flow (but
+**	no spectral accuracy...)
+*/
+/*******************************************/
+
+void symmetrize_walls_z(struct Field fldi) {
+	DEBUG_START_FUNC;
+	
+	symm_cos_z(fldi.vx);
+	symm_cos_z(fldi.vy);
+	symm_sin_z(fldi.vz);
+#ifdef MHD
+	symm_sin_z(fldi.bx);
+	symm_sin_z(fldi.by);
+	symm_cos_z(fldi.bz);
+#endif
+#ifdef BOUSSINESQ
+	symm_sin_z(fldi.th);
+#endif
+
+	DEBUG_END_FUNC;
+	return;
+}				
+
+	
+	
 /***********************************
 ** Bounadry conditions call
 ************************************/
@@ -643,7 +751,7 @@ void symmetrize_walls_x(struct Field fldi) {
 void boundary_c(struct Field fldi) {
 	DEBUG_START_FUNC;
 	
-	symmetrize_walls_x(fldi);
+	symmetrize_walls_z(fldi);
 	
 	DEBUG_END_FUNC;
 	return;
