@@ -502,8 +502,77 @@ void symmetrize(double complex wi[]) {
 void symm_sin_z(double complex wi[]) {
 	int i,j,k,itarget,jtarget;
 	double complex q0, q1;
+
 #ifdef MPI_SUPPORT
-	ERROR_HANDLER(ERROR_CRITICAL, "MPI version of wall in z direction is not implemented yet");
+	double complex * zplane;
+	int index;
+	
+	DEBUG_START_FUNC;
+	
+	if(rank==0) {
+		zplane = (double complex *) fftw_malloc( sizeof(double complex) * NX_COMPLEX * NY_COMPLEX);
+		if (zplane == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for zplane allocation");
+	}
+		
+	// Loop on all kzs
+	for(k = 0 ; k < NZ_COMPLEX ; k++) {
+		//copy the k plane into w1
+		index=0;
+		for(i=0 ; i< NX_COMPLEX/NPROC ; i++) {
+			for(j=0 ; j < NY_COMPLEX ; j++ ) {
+				w1[index] = wi[ IDX3D ];
+				index++;
+			}
+		}
+		// construct the full kz=k plane in zplane on rank=0 process
+		MPI_Gather(w1,	   2 * NX_COMPLEX * NY_COMPLEX / NPROC, MPI_DOUBLE,
+				   zplane, 2 * NX_COMPLEX * NY_COMPLEX / NPROC, MPI_DOUBLE,
+				   0, MPI_COMM_WORLD);
+			   
+		// loop in rank=0 to symmetrize the thing...
+		if(rank==0) {
+			for( i = 0; i <= NX_COMPLEX / 2; i++) {
+				if(i!=0)
+					itarget = NX_COMPLEX - i;
+				else
+					itarget = i;
+				for( j = 0; j < NY_COMPLEX; j++) {
+					if(j!=0)
+						jtarget = NY_COMPLEX - j;
+					else
+						jtarget = j;
+					
+					q0 = zplane[ j + i * NY_COMPLEX];					
+					q1 = conj(zplane[ jtarget  + itarget * NY_COMPLEX]);
+					q0 = 0.5*(q0-q1);
+					zplane[ j + i * NY_COMPLEX] = q0;
+					zplane[ jtarget  + itarget * NY_COMPLEX] = -conj(q0);
+				}
+			}
+		}
+		
+		// everyone wait here
+		MPI_Barrier(MPI_COMM_WORLD);
+		//Send it back
+		MPI_Scatter( zplane, 2 * NX_COMPLEX * NY_COMPLEX / NPROC, MPI_DOUBLE,
+					 w1,     2 * NX_COMPLEX * NY_COMPLEX / NPROC, MPI_DOUBLE,
+					 0, MPI_COMM_WORLD);
+		
+		// put it back
+		index=0;
+		for(i=0 ; i< NX_COMPLEX/NPROC ; i++) {
+			for(j=0 ; j < NY_COMPLEX ; j++ ) {
+				wi[ IDX3D ] = w1[index];
+				index++;
+			}
+		}
+		// end of k-loop
+	}
+	
+	if(rank==0) {
+		free(zplane);
+	}
+
 #else
 	
 	for( i = 0; i <= NX_COMPLEX / 2; i++) {
@@ -531,6 +600,9 @@ void symm_sin_z(double complex wi[]) {
 		}
 	}
 #endif
+
+	DEBUG_END_FUNC;
+	
 	return;
 }
 
@@ -542,8 +614,77 @@ void symm_sin_z(double complex wi[]) {
 void symm_cos_z(double complex wi[]) {
 	int i,j,k,itarget,jtarget;
 	double complex q0, q1;
+
 #ifdef MPI_SUPPORT
-	ERROR_HANDLER(ERROR_CRITICAL, "MPI version of wall in z direction is not implemented yet");
+	double complex * zplane;
+	int index;
+	
+	DEBUG_START_FUNC;
+	
+	if(rank==0) {
+		zplane = (double complex *) fftw_malloc( sizeof(double complex) * NX_COMPLEX * NY_COMPLEX);
+		if (zplane == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for zplane allocation");
+	}
+		
+	// Loop on all kzs
+	for(k = 0 ; k < NZ_COMPLEX ; k++) {
+		//copy the k plane into w1
+		index=0;
+		for(i=0 ; i< NX_COMPLEX/NPROC ; i++) {
+			for(j=0 ; j < NY_COMPLEX ; j++ ) {
+				w1[index] = wi[ IDX3D ];
+				index++;
+			}
+		}
+		// construct the full kz=k plane in zplane on rank=0 process
+		MPI_Gather(w1,	   2 * NX_COMPLEX * NY_COMPLEX / NPROC, MPI_DOUBLE,
+				   zplane, 2 * NX_COMPLEX * NY_COMPLEX / NPROC, MPI_DOUBLE,
+				   0, MPI_COMM_WORLD);
+			   
+		// loop in rank=0 to symmetrize the thing...
+		if(rank==0) {
+			for( i = 0; i <= NX_COMPLEX / 2; i++) {
+				if(i!=0)
+					itarget = NX_COMPLEX - i;
+				else
+					itarget = i;
+				for( j = 0; j < NY_COMPLEX; j++) {
+					if(j!=0)
+						jtarget = NY_COMPLEX - j;
+					else
+						jtarget = j;
+					
+					q0 = zplane[ j + i * NY_COMPLEX];					
+					q1 = conj(zplane[ jtarget  + itarget * NY_COMPLEX]);
+					q0 = 0.5*(q0+q1);
+					zplane[ j + i * NY_COMPLEX] = q0;
+					zplane[ jtarget  + itarget * NY_COMPLEX] = conj(q0);
+				}
+			}
+		}
+		
+		// everyone wait here
+		MPI_Barrier(MPI_COMM_WORLD);
+		//Send it back
+		MPI_Scatter( zplane, 2 * NX_COMPLEX * NY_COMPLEX / NPROC, MPI_DOUBLE,
+					 w1,     2 * NX_COMPLEX * NY_COMPLEX / NPROC, MPI_DOUBLE,
+					 0, MPI_COMM_WORLD);
+		
+		// put it back
+		index=0;
+		for(i=0 ; i< NX_COMPLEX/NPROC ; i++) {
+			for(j=0 ; j < NY_COMPLEX ; j++ ) {
+				wi[ IDX3D ] = w1[index];
+				index++;
+			}
+		}
+		// end of k-loop
+	}
+	
+	if(rank==0) {
+		free(zplane);
+	}
+
 #else
 	
 	for( i = 0; i <= NX_COMPLEX / 2; i++) {
@@ -571,6 +712,8 @@ void symm_cos_z(double complex wi[]) {
 		}
 	}
 #endif
+
+	DEBUG_END_FUNC;
 	return;
 }
 
