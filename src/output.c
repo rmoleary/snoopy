@@ -415,7 +415,11 @@ void write_vtk(FILE * ht, double complex wi[], const double t) {
 	remap_output(wr1,t);
 #endif
 
+#ifdef BOUNDARY_C
+	for( k = 0 ; k < NZ / 2 ; k++) {
+#else
 	for( k = 0 ; k < NZ; k++) {
+#endif
 		for( j = 0; j < NY; j++) {
 #ifdef MPI_SUPPORT
 			// We have to transpose manually to be Fortran compliant
@@ -466,10 +470,16 @@ void output_vtk(const int n, double t) {
 	FILE *ht = NULL;
 	char  filename[50];
 	int num_remain_field;
+	int array_size;
 	
 	DEBUG_START_FUNC;
 
 	sprintf(filename,"data/v%04i.vtk",n);
+#ifdef BOUNDARY_C
+	array_size=NX*NY*NZ/2;	// Remove half of the vertical direction for symmetry reason when using walls in z
+#else
+	array_size=NX*NY*NZ;
+#endif
 	if(rank==0) {
 		ht=fopen(filename,"w");
 	
@@ -477,12 +487,16 @@ void output_vtk(const int n, double t) {
 		fprintf(ht, "Created by the Snoopy Code\n");
 		fprintf(ht, "BINARY\n");
 		fprintf(ht, "DATASET STRUCTURED_POINTS\n");
+#ifdef BOUNDARY_C
+		fprintf(ht, "DIMENSIONS %d %d %d\n", NX, NY, NZ / 2);
+#else
 		fprintf(ht, "DIMENSIONS %d %d %d\n", NX, NY, NZ);
+#endif
 		fprintf(ht, "ORIGIN %g %g %g\n", -param.lx/2.0, -param.ly/2.0, -param.lz/2.0);
 		fprintf(ht, "SPACING %g %g %g\n", param.lx/NX, param.ly/NY, param.lz/NZ);
 	
 		// Write the primary scalar (f***ing VTK legacy format...)
-		fprintf(ht, "POINT_DATA %d\n",NX*NY*NZ);
+		fprintf(ht, "POINT_DATA %d\n",array_size);
 		fprintf(ht, "SCALARS vx float\n");
 		fprintf(ht, "LOOKUP_TABLE default\n");
 	}
@@ -503,28 +517,28 @@ void output_vtk(const int n, double t) {
 	
 	// Write all the remaining fields
 	
-	if(rank==0) fprintf(ht, "vy 1 %d float\n",NX*NY*NZ);
+	if(rank==0) fprintf(ht, "vy 1 %d float\n",array_size);
 	write_vtk(ht,fld.vy,t);
 	
-	if(rank==0) fprintf(ht, "vz 1 %d float\n",NX*NY*NZ);
+	if(rank==0) fprintf(ht, "vz 1 %d float\n",array_size);
 	write_vtk(ht,fld.vz,t);
 
 #ifdef MHD
-	if(rank==0) fprintf(ht, "bx 1 %d float\n",NX*NY*NZ);
+	if(rank==0) fprintf(ht, "bx 1 %d float\n",array_size);
 	write_vtk(ht,fld.bx,t);
 
-	if(rank==0) fprintf(ht, "by 1 %d float\n",NX*NY*NZ);
+	if(rank==0) fprintf(ht, "by 1 %d float\n",array_size);
 	write_vtk(ht,fld.by,t);
 
-	if(rank==0) fprintf(ht, "bz 1 %d float\n",NX*NY*NZ);
+	if(rank==0) fprintf(ht, "bz 1 %d float\n",array_size);
 	write_vtk(ht,fld.bz,t);
 #endif
 #ifdef BOUSSINESQ
-	if(rank==0) fprintf(ht, "th 1 %d float\n",NX*NY*NZ);
+	if(rank==0) fprintf(ht, "th 1 %d float\n",array_size);
 	write_vtk(ht,fld.th,t);
 #endif	  
 	if(param.output_pressure) {
-		if(rank==0) fprintf(ht, "p 1 %d float\n",NX*NY*NZ);	// Output the pressure field when needed.
+		if(rank==0) fprintf(ht, "p 1 %d float\n",array_size);	// Output the pressure field when needed.
 		write_vtk(ht,pressure,t);
 	}
 	if(rank==0) fclose(ht);
