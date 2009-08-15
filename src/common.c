@@ -68,6 +68,9 @@ struct Parameters			param;
 double	nu;
 #ifdef BOUSSINESQ
 double	nu_th;
+#ifdef N2PROFILE
+double *N2_profile;
+#endif
 #endif
 #ifdef MHD
 double	eta;
@@ -80,6 +83,9 @@ int		NPROC;									/**< NPROC is a variable when MPI is on. Otherwise, it is pr
 int		rank;
 int		nthreads;								/**< Number of OpenMP threads */
 
+
+/* Function prototypes */
+void init_N2_profile();
 
 /** Init all global variables, aligning them in memory */
 void init_common(void) {
@@ -249,7 +255,7 @@ void init_common(void) {
 	}
 	else
 		pressure = NULL;
-	
+			
 	/* Will use the same memory space for real and complex fields */
 	
 	wr1 = (double *) w1;
@@ -262,9 +268,18 @@ void init_common(void) {
 	wr8 = (double *) w8;
 	wr9 = (double *) w9;
 
+#ifdef BOUSSINESQ
+#ifdef N2PROFILE
+	N2_profile = (double *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
+	if (N2_profile == NULL) ERROR_HANDLER( ERROR_CRITICAL, "no memory for N2 profile allocation");
+#endif
+#endif
 	
 // Physic initialisation
 
+#ifdef N2PROFILE
+	init_N2_profile();
+#endif
 	nu = 1.0 / param.reynolds;
 #ifdef BOUSSINESQ	
 	nu_th = 1.0 / param.reynolds_th;
@@ -936,3 +951,66 @@ void enforce_symm(struct Field fldi) {
 	
 	return;
 }
+
+/******************************************
+** init the brunt vaissala frequency profile
+******************************************/
+#ifdef BOUSSINESQ
+#ifdef N2PROFILE
+void init_N2_profile() {
+	double *x,*y,*z;
+	int i,j,k;
+	
+	/*******************************************************************
+	** This part does not need to be modified **************************
+	********************************************************************/
+	// Allocate coordinate arrays
+	x = (double *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
+	if (x == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for x allocation");
+	
+	y = (double *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
+	if (y == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for y allocation");
+	
+	z = (double *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
+	if (z == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for z allocation");
+
+	// Initialize the (transposed!) arrays
+	for(i = 0 ; i < NX ; i++) {
+		for(j = 0 ; j < NY/NPROC ; j++) {
+			for(k = 0 ; k < NZ ; k++) {
+				x[k + (NZ + 2) * i + (NZ + 2) * NX * j] = - param.lx / 2 + (param.lx * i ) / NX;
+				y[k + (NZ + 2) * i + (NZ + 2) * NX * j] = - param.ly / 2 + (param.ly * (j + rank * NY / NPROC)) / NY;
+				z[k + (NZ + 2) * i + (NZ + 2) * NX * j] = - param.lz / 2 + (param.lz * k ) / NZ;
+			}
+		}
+	}
+	
+	// Initialize the extra points (k=NZ and k=NZ+1) to zero to prevent stupid things from happening...
+	for(i = 0 ; i < NX ; i++) {
+		for(j = 0 ; j < NY/NPROC ; j++) {
+			for(k = NZ ; k < NZ + 2 ; k++) {
+				x[k + (NZ + 2) * i + (NZ + 2) * NX * j] = 0.0;
+				y[k + (NZ + 2) * i + (NZ + 2) * NX * j] = 0.0;
+				z[k + (NZ + 2) * i + (NZ + 2) * NX * j] = 0.0;
+			}
+		}
+	}
+	
+	// Init array to zero
+	for(i = 0 ; i < NX ; i++) {
+		for(j = 0 ; j < NY/NPROC ; j++) {
+			for(k = 0 ; k < NZ + 2 ; k++) {
+				N2_profile[ k + (NZ + 2) * i + (NZ + 2) * NX * j ] = 0.0;
+			}
+		}
+	}
+	
+	// Init array
+	for(i = 0 ; i < 2*NTOTAL_COMPLEX ; i++) {
+		N2_profile[i] = - cos( 2.0 * M_PI * z[i] / param.lz);
+	}
+	return;
+}
+#endif
+#endif
+	

@@ -153,24 +153,38 @@ void timestep( struct Field dfldo,
 		wr5[i] = wr1[i] * wr4[i] / ((double) NTOTAL*NTOTAL);
 		wr6[i] = wr2[i] * wr4[i] / ((double) NTOTAL*NTOTAL);
 		wr7[i] = wr3[i] * wr4[i] / ((double) NTOTAL*NTOTAL);
+#ifdef N2PROFILE
+		wr8[i] = N2_profile[i] * wr4[i] / ((double) NTOTAL);
+#endif
 	}
 
 	gfft_r2c_t(wr5);
 	gfft_r2c_t(wr6);
 	gfft_r2c_t(wr7);
+#ifdef N2PROFILE
+	gfft_r2c_t(wr8);
+#endif
 	
 #ifdef _OPENMP
 	#pragma omp parallel for private(i) schedule(static)	
 #endif
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
 #ifdef VERTSTRAT
+#ifdef N2PROFILE
+		dfldo.vz[i] -= w8[i] * mask[i];
+#else
 		dfldo.vz[i] -= param.N2 * fldi.th[i];
+#endif
 						
 		dfldo.th[i] = - I * mask[i] * (
 			kxt[i] * w5[i] + ky[i] * w6[i] + kz[i] * w7[i])
 			+ fldi.vz[i];
 #else
+#ifdef N2PROFILE
+		dfldo.vx[i] -= w8[i] * mask[i];
+#else
 		dfldo.vx[i] -= param.N2 * fldi.th[i];
+#endif
 						
 		dfldo.th[i] = - I * mask[i] * (
 			kxt[i] * w5[i] + ky[i] * w6[i] + kz[i] * w7[i])

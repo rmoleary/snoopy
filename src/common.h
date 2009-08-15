@@ -49,6 +49,9 @@ extern double	nu;
 
 #ifdef BOUSSINESQ
 extern double	nu_th;
+#ifdef N2PROFILE
+extern double *N2_profile;
+#endif
 #endif
 
 #ifdef MHD
