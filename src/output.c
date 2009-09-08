@@ -117,10 +117,124 @@ void remap_output(	double wri[],
 	return;
 }
 
+
+#endif
+
+/***********************************************************/
+/**
+	compute a shell-integrated spectrum of the tensor real(wi*wj+)
+	and write it on OUTPUT_SPECTRUM_FILENAME
+	
+	@param wi 1st double complex array from which the spectrum has to be deduced
+	@param wj 2nd double complex array from which the spectrum has to be deduced
+	@param ti Current time
+*/
+/***********************************************************/
+
+void write_spectrum(const double complex wi[], const double complex wj[], const double ti) {
+	DEBUG_START_FUNC;
+	int i,j,k,m;
+	double spectrum[ OUTPUT_SPECTRUM_N_BIN ];
+	FILE *ht;
+	
+	for( i = 0; i < OUTPUT_SPECTRUM_N_BIN; i++ )
+		spectrum[ i ] = 0.0;
+		
+	for( i = 0; i < NX_COMPLEX/NPROC; i++) {
+		for( j = 0; j < NY_COMPLEX; j++) {
+			for( k = 0; k < NZ_COMPLEX; k++) {
+				m = (int) floor( ( pow( k2t[ IDX3D ], 0.5 ) * OUTPUT_SPECTRUM_N_BIN ) / kmax );
+				if ( m < OUTPUT_SPECTRUM_N_BIN) {
+					if( k == 0) 
+						// k=0, we have all the modes.
+						spectrum[ m ] = spectrum[ m ] + creal( 0.5 * wi[ IDX3D ] * conj( wj[ IDX3D ] ) ) / ((double) NTOTAL*NTOTAL);
+					else
+						// k>0, only half of the complex plane is represented.
+						spectrum[ m ] = spectrum[ m ] + creal( wi[ IDX3D ] * conj( wj[ IDX3D ] ) ) / ((double) NTOTAL*NTOTAL);
+				}
+			}
+		}
+	}
+	
+#ifdef MPI_SUPPORT
+	// Reduce each component
+	for( m=0; m < OUTPUT_SPECTRUM_N_BIN; m++)
+		reduce(&spectrum[m], 1);
+#endif
+
+	if(rank==0) {
+		ht = fopen(OUTPUT_SPECTRUM_FILENAME,"a");
+		fprintf(ht,"%08e\t", ti);
+		for( i = 0; i < OUTPUT_SPECTRUM_N_BIN; i++) 
+			fprintf(ht,"%08e\t", spectrum[i]);
+	
+		fprintf(ht,"\n");
+		fclose(ht);
+	}
+
+		
+	DEBUG_END_FUNC;
+	return;
+}
+
+/**********************************************************/
+/**
+	Output the transport spectrum in a file (OUTPUT_SPECTRUM_FILENAME)
+	This routine is called only when shear is present.
+	
+	@param fldi: field from which the transport is computed
+	@param ti: current time
+*/
+/*********************************************************/
+
+void output1Dspectrum(const struct Field fldi, const double ti) {
+	int i;
+	
+	DEBUG_START_FUNC;
+	
+	// The zero array is to be used for dummy spectrums
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		w1[i] = 0.0;
+	}
+	
+	// V,B and theta spectrums
+	write_spectrum(fldi.vx, fldi.vx, ti);
+	write_spectrum(fldi.vy, fldi.vy, ti);
+	write_spectrum(fldi.vz, fldi.vz, ti);
+	
+#ifdef MHD
+	write_spectrum(fldi.bx, fldi.bx, ti);
+	write_spectrum(fldi.by, fldi.by, ti);
+	write_spectrum(fldi.bz, fldi.bz, ti);
+#else
+	write_spectrum(w1, w1, ti);
+	write_spectrum(w1, w1, ti);
+	write_spectrum(w1, w1, ti);
+#endif
+
+#ifdef BOUSSINESQ
+	write_spectrum(fldi.th, fldi.th, ti);
+#else
+	write_spectrum(w1, w1, ti);
+#endif
+
+	// Transport spectrums
+	write_spectrum(fldi.vx,fldi.vy, ti);
+#ifdef MHD
+	write_spectrum(fldi.bx,fldi.by, ti);
+#else
+	write_spectrum(w1, w1, ti);
+#endif
+	
+	DEBUG_END_FUNC;
+	
+	return;
+}
+
 /**********************************************************/
 /**
 	Initialise the 1D spectrum output routine, used
-	to output the transport spectrum (only when shear is on)
+	to output the spectrum
 	This routine print the mode ks in the first line
 	It also counts the number of mode in each shell and 
 	output it in the second line of OUTPUT_SPECTRUM_FILENAME
@@ -137,7 +251,7 @@ void init1Dspectrum() {
 		ht = fopen(OUTPUT_SPECTRUM_FILENAME,"w");
 		
 		for( m=0; m < OUTPUT_SPECTRUM_N_BIN; m++) 
-			fprintf(ht,"%08e\t",kmax*m/(2.0*M_PI*OUTPUT_SPECTRUM_N_BIN));
+			fprintf(ht,"%08e\t",kmax*m/((double) OUTPUT_SPECTRUM_N_BIN));
 	
 		fprintf(ht,"\n");
 	}
@@ -174,67 +288,6 @@ void init1Dspectrum() {
 	
 	return;
 }
-
-/**********************************************************/
-/**
-	Output the transport spectrum in a file (OUTPUT_SPECTRUM_FILENAME)
-	This routine is called only when shear is present.
-	
-	@param fldi: field from which the transport is computed
-*/
-/*********************************************************/
-
-void output1Dspectrum(const struct Field fldi) {
-					  
-	int i,j,k,m;
-	double spectrum[ OUTPUT_SPECTRUM_N_BIN ];
-	FILE *ht;
-	
-	DEBUG_START_FUNC;
-	
-	for( i = 0; i < OUTPUT_SPECTRUM_N_BIN; i++ )
-		spectrum[ i ] = 0.0;
-		
-	for( i = 0; i < NX_COMPLEX/NPROC; i++) {
-		for( j = 0; j < NY_COMPLEX; j++) {
-			for( k = 0; k < NZ_COMPLEX; k++) {
-				m = (int) floor( ( pow( k2t[ IDX3D ], 0.5 ) * OUTPUT_SPECTRUM_N_BIN ) / kmax );
-				if ( m < OUTPUT_SPECTRUM_N_BIN) {
-					if( k == 0) 
-						// k=0, we have all the modes.
-						spectrum[ m ] = spectrum[ m ] + creal( 0.5 * fldi.vx[ IDX3D ] * conj( fldi.vy[ IDX3D ] ) ) / ((double) NTOTAL*NTOTAL);
-					else
-						// k>0, only half of the complex plane is represented.
-						spectrum[ m ] = spectrum[ m ] + creal( fldi.vx[ IDX3D ] * conj( fldi.vy[ IDX3D ] ) ) / ((double) NTOTAL*NTOTAL);
-				}
-			}
-		}
-	}
-	
-#ifdef MPI_SUPPORT
-	// Reduce each component
-	for( m=0; m < OUTPUT_SPECTRUM_N_BIN; m++)
-		reduce(&spectrum[m], 1);
-#endif
-
-	if(rank==0) {
-		ht = fopen(OUTPUT_SPECTRUM_FILENAME,"a");
-
-		for( i = 0; i < OUTPUT_SPECTRUM_N_BIN; i++) 
-			fprintf(ht,"%08e\t", spectrum[i]);
-	
-	
-		fprintf(ht,"\n");
-	
-		fclose(ht);
-	}
-	
-	DEBUG_END_FUNC;
-	
-	return;
-}
-
-#endif
 
 
 /***********************************************************/
@@ -1122,9 +1175,7 @@ void init_output() {
 		lastoutput_flow = param.t_initial - param.toutput_flow;
 		lastoutput_dump = param.t_initial - param.toutput_dump;
 	
-#ifdef WITH_SHEAR
 		init1Dspectrum();
-#endif
 	}
 	
 	DEBUG_END_FUNC;
@@ -1168,9 +1219,7 @@ void output(const double t) {
 	// Very rough output function
 	if( (t-lastoutput_time)>=param.toutput_time) {
 		output_timevar(fld,t);
-#ifdef WITH_SHEAR
-		output1Dspectrum(fld);
-#endif
+		output1Dspectrum(fld,t);
 		lastoutput_time = lastoutput_time + param.toutput_time;
 	}
 	
