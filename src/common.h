@@ -85,8 +85,5 @@ void projector( double complex qx[],
 				
 double energy(const double complex q[]);
 
-void enforce_symm(struct Field fldi);
-void boundary_c(struct Field fldi);
-void symmetrize(double complex wi[]);
-				
+
 				

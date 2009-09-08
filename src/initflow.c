@@ -20,6 +20,7 @@
 #include "common.h"
 #include "gfft.h"
 #include "output.h"
+#include "symmetries.h"
 
 #include "debug.h"
 
@@ -278,17 +279,17 @@ void init_LargeScaleNoise() {
 		}
 	}
 	
-  symmetrize(fld.vx);
+  symmetrize_complex(fld.vx);
   if(rank==0) fld.vx[0]=0.0;
-  symmetrize(fld.vy);
+  symmetrize_complex(fld.vy);
   if(rank==0) fld.vy[0]=0.0;
-  symmetrize(fld.vz);
+  symmetrize_complex(fld.vz);
   if(rank==0) fld.vz[0]=0.0;
   
 #ifdef MHD
-  symmetrize(fld.bx);
-  symmetrize(fld.by);
-  symmetrize(fld.bz);
+  symmetrize_complex(fld.bx);
+  symmetrize_complex(fld.by);
+  symmetrize_complex(fld.bz);
 #endif
   
 }
@@ -317,17 +318,17 @@ void init_WhiteNoise() {
 		}
 	}
 	
-  symmetrize(fld.vx);
+  symmetrize_complex(fld.vx);
   if(rank==0) fld.vx[0]=0.0;
-  symmetrize(fld.vy);
+  symmetrize_complex(fld.vy);
   if(rank==0) fld.vy[0]=0.0;
-  symmetrize(fld.vz);
+  symmetrize_complex(fld.vz);
   if(rank==0) fld.vz[0]=0.0;
   
 #ifdef MHD
-  symmetrize(fld.bx);
-  symmetrize(fld.by);
-  symmetrize(fld.bz);
+  symmetrize_complex(fld.bx);
+  symmetrize_complex(fld.by);
+  symmetrize_complex(fld.bz);
 #endif
   
 }
@@ -361,6 +362,8 @@ void init_flow() {
 		fld.bz[ i ] = 0.0;
 #endif
 	}
+	
+	fld.vx[ 0 ] = (double) NTOTAL;
 	
 	if(param.init_large_scale_noise) init_LargeScaleNoise();
 

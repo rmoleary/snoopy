@@ -26,6 +26,10 @@
 #include "gfft.h"
 #include "shear.h"
 #include "transpose.h"
+#include "symmetries.h"
+#ifdef BOUNDARY_C
+#include "boundary.h"
+#endif
 #include "debug.h"
 
 struct Field			dfld, fld1;
@@ -360,7 +364,6 @@ void mainloop(double t_start, double t_end) {
 		kvolve(tremap+gammaRK[0]*dt);
 #endif
 #endif
-		
 		timestep(dfld, fld, NULL, t+gammaRK[0]*dt, dt);
 
 #ifdef _OPENMP
@@ -410,7 +413,6 @@ void mainloop(double t_start, double t_end) {
 		kvolve(tremap + (gammaRK[0] + xiRK[0] + gammaRK[1]) * dt );
 #endif
 #endif
-		
 		timestep(dfld, fld, NULL, t + (gammaRK[0] + xiRK[0] + gammaRK[1]) * dt, dt);
 
 #ifdef _OPENMP
@@ -445,7 +447,6 @@ void mainloop(double t_start, double t_end) {
 		
 		// Implicit step
 		implicitstep(fld, t, dt);
-		
 		// evolving the frame
 		t = t + dt;
 
@@ -477,7 +478,7 @@ void mainloop(double t_start, double t_end) {
 #endif
 		// Symmetries cleaning
 		if(param.force_symmetries) {
-			if(!(nloop % param.symmetries_step)) enforce_symm(fld);
+			if(!(nloop % param.symmetries_step)) enforce_complex_symm(fld);
 		}
 		
 		// Divergence cleaning
@@ -491,7 +492,6 @@ void mainloop(double t_start, double t_end) {
 #ifdef BOUNDARY_C
 		boundary_c(fld);
 #endif
-
 		output(t);
 	}
 	timer_end=get_c_time();
