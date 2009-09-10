@@ -666,6 +666,7 @@ void output_timevar(const struct Field fldi,
 	FILE *ht;
 	double vxmax, vxmin, vymax, vymin, vzmax, vzmin, thmin, thmax;
 	double bxmax, bxmin, bymax, bymin, bzmax, bzmin;
+	double vort2, curr2;
 	double energy_total;	
 	double energy_mag;
 	double reynolds_stress;
@@ -795,6 +796,25 @@ void output_timevar(const struct Field fldi,
 	reduce(&maxwell_stress,1);
 #endif
 
+// Compute vorticity and currents
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		w1[i] = ky[i] * fldi.vz[i] - kz[i] * fldi.vy[i];
+		w2[i] = kz[i] * fldi.vx[i] - kxt[i] * fldi.vz[i];
+		w3[i] = kxt[i] * fldi.vy[i] - ky[i] * fldi.vx[i];
+#ifdef MHD
+		w5[i] = ky[i] * fldi.bz[i] - kz[i] * fldi.by[i];
+		w6[i] = kz[i] * fldi.bx[i] - kxt[i] * fldi.bz[i];
+		w7[i] = kxt[i] * fldi.by[i] - ky[i] * fldi.bx[i];
+#endif
+	}
+	
+	vort2 = energy(w1) + energy(w2) + energy(w3);
+	reduce(&vort2, 1);
+	
+#ifdef MHD
+	curr2 = energy(w5) + energy(w6) + energy(w7);
+	reduce(&curr2, 1);
+#endif
 	
 	if(rank==0) {
 		ht=fopen("timevar","a");
@@ -804,7 +824,8 @@ void output_timevar(const struct Field fldi,
 		fprintf(ht,"%08e\t",reynolds_stress);
 		fprintf(ht,"%08e\t%08e\t%08e\t%08e\t%08e\t%08e\t",bxmax,bxmin,bymax,bymin,bzmax,bzmin);
 		fprintf(ht,"%08e\t",maxwell_stress);
-		fprintf(ht,"%08e\t%08e",thmax,thmin);
+		fprintf(ht,"%08e\t%08e\t",thmax,thmin);
+		fprintf(ht,"%08e\t%08e",vort2,curr2);
 #ifdef TIME_DEPENDANT_SHEAR
 		fprintf(ht,"\t%08e",param.shear * param.omega_shear * cos(param.omega_shear * t));
 #endif
