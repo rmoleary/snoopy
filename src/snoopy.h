@@ -48,7 +48,9 @@
 
 // fix NPROC if MPI_SUPPORT is disabled
 #ifndef	MPI_SUPPORT
+#ifndef		NPROC
 #define		NPROC			1
+#endif
 #endif
 
 #define		NTOTAL			NX * NY * NZ	/**< Total number of grid points over all the processors */

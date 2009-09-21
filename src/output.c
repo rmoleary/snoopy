@@ -226,6 +226,91 @@ void output1Dspectrum(const struct Field fldi, const double ti) {
 	write_spectrum(w1, w1, ti);
 #endif
 	
+	// Transfer spectrums
+#ifdef MHD
+
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		w1[i] =  fldi.vx[i];
+		w2[i] =  fldi.vy[i];
+		w3[i] =  fldi.vz[i];
+		w4[i] =  fldi.bx[i];
+		w5[i] =  fldi.by[i];
+		w6[i] =  fldi.bz[i];
+	}
+
+	gfft_c2r_t(w1);
+	gfft_c2r_t(w2);
+	gfft_c2r_t(w3);
+	gfft_c2r_t(w4);
+	gfft_c2r_t(w5);
+	gfft_c2r_t(w6);
+	
+	// (vx,vy,vz) is in w1-w3 and (bx,by,bz) is in (w4-w6). It is now time to compute the emfs in w7-w9...
+
+	for( i = 0 ; i < 2*NTOTAL_COMPLEX ; i++) {
+		wr7[i] = (wr2[i] * wr6[i] - wr3[i] * wr5[i]) / ((double) NTOTAL*NTOTAL);
+		wr8[i] = (wr3[i] * wr4[i] - wr1[i] * wr6[i]) / ((double) NTOTAL*NTOTAL);
+		wr9[i] = (wr1[i] * wr5[i] - wr2[i] * wr4[i]) / ((double) NTOTAL*NTOTAL);
+	}
+
+	// Compute the curl of the emf involved in the induction equation.
+	
+	gfft_r2c_t(wr7);
+	gfft_r2c_t(wr8);
+	gfft_r2c_t(wr9);
+	
+
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		w1[i] = I * mask[i] * (ky[i] * w9[i] - kz[i] * w8[i]);
+		w2[i] = I * mask[i] * (kz[i] * w7[i] - kxt[i]* w9[i]);
+		w3[i] = I * mask[i] * (kxt[i]* w8[i] - ky[i] * w7[i]);
+	}
+
+	write_spectrum(fldi.bx, w1, ti);
+	write_spectrum(fldi.by, w2, ti);
+	write_spectrum(fldi.bz, w3, ti);
+	
+	// Let's do the Lorentz Force
+	// We already have (bx,by,bz) in w4-w6. No need to compute them again...
+
+	for( i = 0 ; i < 2*NTOTAL_COMPLEX ; i++) {
+		wr1[i] = wr4[i] * wr4[i] / ((double) NTOTAL*NTOTAL);
+		wr2[i] = wr5[i] * wr5[i] / ((double) NTOTAL*NTOTAL);
+		wr3[i] = wr6[i] * wr6[i] / ((double) NTOTAL*NTOTAL);
+		wr7[i] = wr4[i] * wr5[i] / ((double) NTOTAL*NTOTAL);
+		wr8[i] = wr4[i] * wr6[i] / ((double) NTOTAL*NTOTAL);
+		wr9[i] = wr5[i] * wr6[i] / ((double) NTOTAL*NTOTAL);
+	}
+
+	gfft_r2c_t(wr1);
+	gfft_r2c_t(wr2);
+	gfft_r2c_t(wr3);
+	gfft_r2c_t(wr7);
+	gfft_r2c_t(wr8);
+	gfft_r2c_t(wr9);
+
+
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		w4[i] = I * mask[i] * (kxt[i] * w1[i] + ky[i] * w7[i] + kz[i] * w8[i]);
+		w5[i] = I * mask[i] * (kxt[i] * w7[i] + ky[i] * w2[i] + kz[i] * w9[i]);
+		w6[i] = I * mask[i] * (kxt[i] * w8[i] + ky[i] * w9[i] + kz[i] * w3[i]);
+	}
+	
+	write_spectrum(fldi.vx, w4, ti);
+	write_spectrum(fldi.vy, w5, ti);
+	write_spectrum(fldi.vz, w6, ti);
+	
+#else
+	write_spectrum(w1, w1, ti);
+	write_spectrum(w1, w1, ti);
+	write_spectrum(w1, w1, ti);
+	write_spectrum(w1, w1, ti);
+	write_spectrum(w1, w1, ti);
+	write_spectrum(w1, w1, ti);
+	
+#endif
+
+	
 	DEBUG_END_FUNC;
 	
 	return;
