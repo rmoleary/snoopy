@@ -150,9 +150,7 @@ void init_common(void) {
 	kymax = 2.0 * M_PI/ param.ly * ( (NY / 2) - 1);
 	kzmax = 2.0 * M_PI/ param.lz * ( (NZ / 2) - 1);
 	
-	if( (kxmax>kymax) && (kxmax>kzmax) ) kmax = kxmax;
-	else if( (kymax>kxmax) && (kymax > kzmax)) kmax = kymax;
-	else kmax=kzmax;
+	kmax=pow(kxmax*kxmax+kymax*kymax+kzmax*kzmax,0.5);
 	
 	/* Initialize the dealiazing mask Or the nyquist frequency mask (in case dealiasing is not required) */
 	
@@ -192,7 +190,6 @@ void init_common(void) {
 		kzmax = kzmax * 2.0 / 3.0;
 		kmax = kmax * 2.0 / 3.0;
 	}
-
 	
 
 // Allocate fields
