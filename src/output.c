@@ -300,6 +300,18 @@ void output1Dspectrum(const struct Field fldi, const double ti) {
 	write_spectrum(fldi.vy, w5, ti);
 	write_spectrum(fldi.vz, w6, ti);
 	
+	// Helicity spectrums
+	
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		w1[i] = I * ik2t[i] * (ky[i] * fldi.bz[i] - kz[i] * fldi.by[i] );
+		w2[i] = I * ik2t[i] * (kz[i] * fldi.bx[i] - kxt[i]* fldi.bz[i] );
+		w3[i] = I * ik2t[i] * (kxt[i]* fldi.by[i] - ky[i] * fldi.bx[i] );
+	}
+	
+	write_spectrum(fldi.bx, w1, ti);
+	write_spectrum(fldi.by, w2, ti);
+	write_spectrum(fldi.bz, w3, ti);
+	
 #else
 	write_spectrum(w1, w1, ti);
 	write_spectrum(w1, w1, ti);
@@ -307,7 +319,9 @@ void output1Dspectrum(const struct Field fldi, const double ti) {
 	write_spectrum(w1, w1, ti);
 	write_spectrum(w1, w1, ti);
 	write_spectrum(w1, w1, ti);
-	
+	write_spectrum(w1, w1, ti);
+	write_spectrum(w1, w1, ti);
+	write_spectrum(w1, w1, ti);
 #endif
 
 	
@@ -622,7 +636,7 @@ void output_vtk(const int n, double t) {
 		ht=fopen(filename,"w");
 	
 		fprintf(ht, "# vtk DataFile Version 2.0\n");
-		fprintf(ht, "Created by the Snoopy Code\n");
+		fprintf(ht, "t=%15e Snoopy Code v5.0\n",t);
 		fprintf(ht, "BINARY\n");
 		fprintf(ht, "DATASET STRUCTURED_POINTS\n");
 #ifdef BOUNDARY_C
@@ -756,6 +770,7 @@ void output_timevar(const struct Field fldi,
 	double energy_mag;
 	double reynolds_stress;
 	double maxwell_stress;
+	double helicity;
 
 	int i;
 	
@@ -807,6 +822,7 @@ void output_timevar(const struct Field fldi,
 		wr5[i] = wr5[i] / ((double) NTOTAL );
 		wr6[i] = wr6[i] / ((double) NTOTAL );
 		wr7[i] = wr7[i] / ((double) NTOTAL );
+		
 #endif
 		
 	}
@@ -881,6 +897,32 @@ void output_timevar(const struct Field fldi,
 	reduce(&maxwell_stress,1);
 #endif
 
+// compute the magnetic helicity
+	helicity = 0.0;
+#ifdef MHD
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		w1[i] = I * ik2t[i] * (ky[i] * fldi.bz[i] - kz[i] * fldi.by[i] );
+		w2[i] = I * ik2t[i] * (kz[i] * fldi.bx[i] - kxt[i]* fldi.bz[i] );
+		w3[i] = I * ik2t[i] * (kxt[i]* fldi.by[i] - ky[i] * fldi.bx[i] );
+	}
+	
+	gfft_c2r(w1);
+	gfft_c2r(w2);
+	gfft_c2r(w3);
+	
+	for( i = 0 ; i < 2*NTOTAL_COMPLEX ; i++) {
+		wr1[i] = wr1[i] / ((double) NTOTAL );
+		wr2[i] = wr2[i] / ((double) NTOTAL );
+		wr3[i] = wr3[i] / ((double) NTOTAL );
+	}
+	
+	for(i = 0 ; i < 2 * NTOTAL_COMPLEX ; i ++) {
+		helicity += (wr1[i] * wr5[i] + wr2[i] * wr6[i] + wr3[i] * wr7[i]) / ((double) NTOTAL);
+	}
+	
+	reduce(&helicity,1);
+#endif
+	
 // Compute vorticity and currents
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
 		w1[i] = ky[i] * fldi.vz[i] - kz[i] * fldi.vy[i];
@@ -901,6 +943,12 @@ void output_timevar(const struct Field fldi,
 	reduce(&curr2, 1);
 #endif
 	
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		w1[i] = I * ik2t[i] * (ky[i] * fldi.bz[i] - kz[i] * fldi.by[i] );
+		w2[i] = I * ik2t[i] * (kz[i] * fldi.bx[i] - kxt[i]* fldi.bz[i] );
+		w3[i] = I * ik2t[i] * (kxt[i]* fldi.by[i] - ky[i] * fldi.bx[i] );
+	}
+	
 	if(rank==0) {
 		ht=fopen("timevar","a");
 		fprintf(ht,"%08e\t",t);
@@ -910,7 +958,7 @@ void output_timevar(const struct Field fldi,
 		fprintf(ht,"%08e\t%08e\t%08e\t%08e\t%08e\t%08e\t",bxmax,bxmin,bymax,bymin,bzmax,bzmin);
 		fprintf(ht,"%08e\t",maxwell_stress);
 		fprintf(ht,"%08e\t%08e\t",thmax,thmin);
-		fprintf(ht,"%08e\t%08e",vort2,curr2);
+		fprintf(ht,"%08e\t%08e\t%08e",vort2,curr2,helicity);
 #ifdef TIME_DEPENDANT_SHEAR
 		fprintf(ht,"\t%08e",param.shear * param.omega_shear * cos(param.omega_shear * t));
 #endif

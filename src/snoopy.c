@@ -159,7 +159,7 @@ int main(int argc, char *argv[]) {
 	rank=0;
 #endif
 	print_logo();
-	MPI_Printf("The Snoopy code v4.0\n");
+	MPI_Printf("The Snoopy code v5.0\n");
 	MPI_Printf("Copyright (c) 2004-2009 Geoffroy Lesur (University of Cambridge, UK)\n");
 	MPI_Printf("This program comes with ABSOLUTELY NO WARRANTY;\n");
 	MPI_Printf("This is free software, and you are welcome to\n");
