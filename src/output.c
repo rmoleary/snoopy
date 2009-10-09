@@ -636,7 +636,7 @@ void output_vtk(const int n, double t) {
 		ht=fopen(filename,"w");
 	
 		fprintf(ht, "# vtk DataFile Version 2.0\n");
-		fprintf(ht, "t=%15e Snoopy Code v5.0\n",t);
+		fprintf(ht, "t= %015.15e Snoopy Code v5.0\n",t);
 		fprintf(ht, "BINARY\n");
 		fprintf(ht, "DATASET STRUCTURED_POINTS\n");
 #ifdef BOUNDARY_C
