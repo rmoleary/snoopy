@@ -363,8 +363,6 @@ void init_flow() {
 #endif
 	}
 	
-	fld.vx[ 0 ] = (double) NTOTAL;
-	
 	if(param.init_large_scale_noise) init_LargeScaleNoise();
 
 	if(param.init_vortex) init_KidaVortex();
