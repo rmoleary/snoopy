@@ -126,6 +126,7 @@ struct Parameters {
 	int    vtk_output;			/**< Use VTK legacy files for output instead of raw binaries (useful with paraview) */
 	
 	int		output_pressure;	/**< Output the pressure field in the 3D snapshots */
+	int		output_vorticity;	/**< Output the vorticity field in the 3D snapshots */
 	
 	// initial conditions
 	int	   init_vortex;			/**< Add a 2D Kida vortex in the box. Assumes S=1. Requires b>a*/
@@ -134,9 +135,13 @@ struct Parameters {
 	
 	int    init_spatial_structure;	/**< Init a user-defined spatial structure (see initflow.c) */
 	
-	int	   init_large_scale_noise;	/**< Init a large scale random noise (4 largest modes) */
+	int	   init_large_scale_noise;	/**< Init a large scale random noise */
 	double per_amplitude_large;		/**< Amplitude of the large scale random noise */
 	double noise_cut_length;		/**< Wavelength over which the noise is applied */
+	
+	int	   init_large_scale_2D_noise;	/**< Init a large scale 2D (x,y) random noise  */
+	double per_amplitude_large_2D;		/**< Amplitude of the 2D large scale random noise */
+	double noise_cut_length_2D;		    /**< Wavelength over which the 2D noise is applied */
 	
 	int    init_white_noise;		/**< Init a random white noise on all the modes */
 	double per_amplitude_noise;		/**< total amplitude of the perturbation */

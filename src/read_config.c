@@ -143,6 +143,9 @@ read_config() {
 		if(!config_lookup_bool(&config, "output.pressure",&param.output_pressure)) {
 			param.output_pressure = 0;
 		}
+		if(!config_lookup_bool(&config, "output.vorticity",&param.output_vorticity)) {
+			param.output_vorticity = 0;
+		}
 		
 		// Initial conditions parameters-------------------------------------------------------------------------
 		if(!config_lookup_bool(&config, "init.vortex.enable",&param.init_vortex)) {
@@ -165,6 +168,15 @@ read_config() {
 		}	
 		if(!config_lookup_float(&config, "init.large_scale_noise.cut_length",&param.noise_cut_length)) {
 			param.noise_cut_length = 0.0;
+		}
+		if(!config_lookup_bool(&config, "init.large_scale_2D_noise.enable",&param.init_large_scale_2D_noise)) {
+			param.init_large_scale_2D_noise = 0;
+		}	
+		if(!config_lookup_float(&config, "init.large_scale_2D_noise.amplitude",&param.per_amplitude_large_2D)) {
+			param.per_amplitude_large_2D = 0.0;
+		}	
+		if(!config_lookup_float(&config, "init.large_scale_2D_noise.cut_length",&param.noise_cut_length_2D)) {
+			param.noise_cut_length_2D = 0.0;
 		}
 		if(!config_lookup_bool(&config, "init.white_noise.enable",&param.init_white_noise)) {
 			param.init_white_noise = 0;

@@ -671,7 +671,7 @@ void output_vtk(const int n, double t) {
 	FILE *ht = NULL;
 	char  filename[50];
 	int num_remain_field;
-	int array_size;
+	int array_size, i;
 	
 	DEBUG_START_FUNC;
 
@@ -714,6 +714,9 @@ void output_vtk(const int n, double t) {
 	if(param.output_pressure)
 		num_remain_field +=1;
 		
+	if(param.output_vorticity)
+		num_remain_field +=3;
+		
 	if(rank==0) fprintf(ht, "FIELD FieldData %d\n",num_remain_field);
 	
 	// Write all the remaining fields
@@ -742,6 +745,21 @@ void output_vtk(const int n, double t) {
 		if(rank==0) fprintf(ht, "p 1 %d float\n",array_size);	// Output the pressure field when needed.
 		write_vtk(ht,pressure,t);
 	}
+	if(param.output_vorticity) {
+		// Compute the vorticity field
+		for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+			w4[i] = I * (ky[i] * fld.vz[i] - kz[i] * fld.vy[i]);
+			w5[i] = I * (kz[i] * fld.vx[i] - kxt[i] * fld.vz[i]);
+			w6[i] = I * (kxt[i] * fld.vy[i] - ky[i] * fld.vx[i]);
+		}
+		if(rank==0) fprintf(ht, "wx 1 %d float\n",array_size);
+		write_vtk(ht,w4,t);
+		if(rank==0) fprintf(ht, "wy 1 %d float\n",array_size);
+		write_vtk(ht,w5,t);
+		if(rank==0) fprintf(ht, "wz 1 %d float\n",array_size);
+		write_vtk(ht,w6,t);
+	}
+		
 	if(rank==0) fclose(ht);
 	
 	DEBUG_END_FUNC;
@@ -974,13 +992,13 @@ void output_timevar(const struct Field fldi,
 	
 // Compute vorticity and currents
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
-		w1[i] = ky[i] * fldi.vz[i] - kz[i] * fldi.vy[i];
-		w2[i] = kz[i] * fldi.vx[i] - kxt[i] * fldi.vz[i];
-		w3[i] = kxt[i] * fldi.vy[i] - ky[i] * fldi.vx[i];
+		w1[i] = I * (ky[i] * fldi.vz[i] - kz[i] * fldi.vy[i]);
+		w2[i] = I * (kz[i] * fldi.vx[i] - kxt[i] * fldi.vz[i]);
+		w3[i] = I * (kxt[i] * fldi.vy[i] - ky[i] * fldi.vx[i]);
 #ifdef MHD
-		w5[i] = ky[i] * fldi.bz[i] - kz[i] * fldi.by[i];
-		w6[i] = kz[i] * fldi.bx[i] - kxt[i] * fldi.bz[i];
-		w7[i] = kxt[i] * fldi.by[i] - ky[i] * fldi.bx[i];
+		w5[i] = I * (ky[i] * fldi.bz[i] - kz[i] * fldi.by[i]);
+		w6[i] = I * (kz[i] * fldi.bx[i] - kxt[i] * fldi.bz[i]);
+		w7[i] = I * (kxt[i] * fldi.by[i] - ky[i] * fldi.bx[i]);
 #endif
 	}
 	
@@ -991,12 +1009,6 @@ void output_timevar(const struct Field fldi,
 	curr2 = energy(w5) + energy(w6) + energy(w7);
 	reduce(&curr2, 1);
 #endif
-	
-	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
-		w1[i] = I * ik2t[i] * (ky[i] * fldi.bz[i] - kz[i] * fldi.by[i] );
-		w2[i] = I * ik2t[i] * (kz[i] * fldi.bx[i] - kxt[i]* fldi.bz[i] );
-		w3[i] = I * ik2t[i] * (kxt[i]* fldi.by[i] - ky[i] * fldi.bx[i] );
-	}
 	
 	if(rank==0) {
 		ht=fopen("timevar","a");

@@ -294,6 +294,70 @@ void init_LargeScaleNoise() {
   
 }
 
+/******************************************
+** Large scale 2D (x,y) noise *************
+*******************************************/
+
+void init_LargeScale2DNoise() {
+	int i,j,k;
+	int num_force=0;
+	int total_num_force;
+	double fact;
+	
+	for( i = 0; i < NX_COMPLEX/NPROC; i++) {
+		for( j = 0; j < NY_COMPLEX; j++) {
+			k=0;
+			if(kz[ IDX3D ] == 0.0) {
+				if(pow(k2t[ IDX3D ], 0.5) / ( 2.0*M_PI ) < 1.0 / param.noise_cut_length_2D) {
+					fld.vx[ IDX3D ] += param.per_amplitude_large_2D * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
+					fld.vy[ IDX3D ] += param.per_amplitude_large_2D * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
+#ifdef MHD
+					fld.bx[ IDX3D ] += param.per_amplitude_large_2D * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
+					fld.by[ IDX3D ] += param.per_amplitude_large_2D * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
+#endif
+					if(mask[IDX3D] > 0) num_force++;
+				}
+			}
+		}
+	}
+	
+	// Get the total number of forced scales.
+#ifdef MPI_SUPPORT
+	MPI_Allreduce( &num_force, &total_num_force, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+#else
+	total_num_force=num_force;
+#endif
+	
+	fact=pow(total_num_force,0.5);
+	
+	// Divide by the total number of modes
+	for( i = 0; i < NX_COMPLEX/NPROC; i++) {
+		for( j = 0; j < NY_COMPLEX; j++) {
+			k=0;
+			if(kz[ IDX3D ] == 0.0) {
+				fld.vx[ IDX3D ] = fld.vx[ IDX3D ] / fact;
+				fld.vy[ IDX3D ] = fld.vy[ IDX3D ] / fact;
+#ifdef MHD
+				fld.bx[ IDX3D ] = fld.bx[ IDX3D ] / fact;
+				fld.by[ IDX3D ] = fld.by[ IDX3D ] / fact;
+#endif
+			}
+		}
+	}
+	
+  symmetrize_complex(fld.vx);
+  if(rank==0) fld.vx[0]=0.0;
+  symmetrize_complex(fld.vy);
+  if(rank==0) fld.vy[0]=0.0;
+  
+#ifdef MHD
+  symmetrize_complex(fld.bx);
+  symmetrize_complex(fld.by);
+#endif
+  
+}
+
+
 void init_WhiteNoise() {
 	int i,j,k;
 	int num_force=0;
@@ -364,6 +428,8 @@ void init_flow() {
 	}
 	
 	if(param.init_large_scale_noise) init_LargeScaleNoise();
+	
+	if(param.init_large_scale_2D_noise) init_LargeScale2DNoise();
 
 	if(param.init_vortex) init_KidaVortex();
 
