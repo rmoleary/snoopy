@@ -170,7 +170,7 @@ AC_ARG_ENABLE(portable-binary, [AC_HELP_STRING([--enable-portable-binary], [disa
 if test "$ac_test_CFLAGS" != "set"; then
   CFLAGS=""
   case $ax_cv_c_compiler_vendor in
-    dec) CFLAGS="-newc -w0 -O5 -ansi_alias -ansi_args -fp_reorder -tune host"
+    dec) CFLAGS="-newc -w0 -O5 -ansi_args -fp_reorder -tune host"
 	 if test "x$acx_maxopt_portable" = xno; then
            CFLAGS="$CFLAGS -arch host"
          fi;;
@@ -180,7 +180,7 @@ if test "$ac_test_CFLAGS" != "set"; then
 	   CFLAGS="$CFLAGS -xarch=generic"
          fi;;
 
-    hp)  CFLAGS="+Oall +Optrs_ansi +DSnative"
+    hp)  CFLAGS="+Oall +DSnative"
 	 if test "x$acx_maxopt_portable" = xyes; then
 	   CFLAGS="$CFLAGS +DAportable"
 	 fi;;
@@ -191,7 +191,7 @@ if test "$ac_test_CFLAGS" != "set"; then
            xlc_opt="-qtune=auto"
 	 fi
          AX_CHECK_COMPILER_FLAGS($xlc_opt,
-         	CFLAGS="-O3 -qansialias -w $xlc_opt",
+         	CFLAGS="-O3 -w $xlc_opt",
                [CFLAGS="-O3 -qansialias -w"
                 echo "******************************************************"
                 echo "*  You seem to have the IBM  C compiler.  It is      *"
@@ -205,7 +205,7 @@ if test "$ac_test_CFLAGS" != "set"; then
                 echo "******************************************************"])
          ;;
 
-    intel) CFLAGS="-O3 -ansi_alias"
+    intel) CFLAGS="-O3"
 	if test "x$acx_maxopt_portable" = xno; then
 	  icc_archflag=unknown
 	  icc_flags=""

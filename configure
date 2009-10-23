@@ -3910,7 +3910,7 @@ fi
 if test "$ac_test_CFLAGS" != "set"; then
   CFLAGS=""
   case $ax_cv_c_compiler_vendor in
-    dec) CFLAGS="-newc -w0 -O5 -ansi_alias -ansi_args -fp_reorder -tune host"
+    dec) CFLAGS="-newc -w0 -O5 -ansi_args -fp_reorder -tune host"
 	 if test "x$acx_maxopt_portable" = xno; then
            CFLAGS="$CFLAGS -arch host"
          fi;;
@@ -3920,7 +3920,7 @@ if test "$ac_test_CFLAGS" != "set"; then
 	   CFLAGS="$CFLAGS -xarch=generic"
          fi;;
 
-    hp)  CFLAGS="+Oall +Optrs_ansi +DSnative"
+    hp)  CFLAGS="+Oall +DSnative"
 	 if test "x$acx_maxopt_portable" = xyes; then
 	   CFLAGS="$CFLAGS +DAportable"
 	 fi;;
@@ -3980,7 +3980,7 @@ eval ax_check_compiler_flags=$`echo "ax_cv_c_flags_$xlc_opt" | $as_tr_sh`
 { echo "$as_me:$LINENO: result: $ax_check_compiler_flags" >&5
 echo "${ECHO_T}$ax_check_compiler_flags" >&6; }
 if test "x$ax_check_compiler_flags" = xyes; then
-	CFLAGS="-O3 -qansialias -w $xlc_opt"
+	CFLAGS="-O3 -w $xlc_opt"
 else
 	CFLAGS="-O3 -qansialias -w"
                 echo "******************************************************"
@@ -3997,7 +3997,7 @@ fi
 
          ;;
 
-    intel) CFLAGS="-O3 -ansi_alias"
+    intel) CFLAGS="-O3"
 	if test "x$acx_maxopt_portable" = xno; then
 	  icc_archflag=unknown
 	  icc_flags=""
