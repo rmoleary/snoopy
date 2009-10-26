@@ -163,14 +163,14 @@ AC_REQUIRE([AC_PROG_CC])
 AC_REQUIRE([AX_COMPILER_VENDOR])
 AC_REQUIRE([AC_CANONICAL_HOST])
 
-AC_ARG_ENABLE(portable-binary, [AC_HELP_STRING([--enable-portable-binary], [disable compiler optimizations that would produce unportable binaries])],
-	acx_maxopt_portable=$withval, acx_maxopt_portable=no)
+AC_ARG_ENABLE(portable-binary, [AC_HELP_STRING([--enable-portable-binary], [disable compiler optimizations that would produce unportable binaries])], 
+	acx_maxopt_portable=$enableval, acx_maxopt_portable=no)
 
 # Try to determine "good" native compiler flags if none specified via CFLAGS
 if test "$ac_test_CFLAGS" != "set"; then
   CFLAGS=""
   case $ax_cv_c_compiler_vendor in
-    dec) CFLAGS="-newc -w0 -O5 -ansi_args -fp_reorder -tune host"
+    dec) CFLAGS="-newc -w0 -O5 -ansi_alias -ansi_args -fp_reorder -tune host"
 	 if test "x$acx_maxopt_portable" = xno; then
            CFLAGS="$CFLAGS -arch host"
          fi;;
@@ -180,7 +180,7 @@ if test "$ac_test_CFLAGS" != "set"; then
 	   CFLAGS="$CFLAGS -xarch=generic"
          fi;;
 
-    hp)  CFLAGS="+Oall +DSnative"
+    hp)  CFLAGS="+Oall +Optrs_ansi +DSnative"
 	 if test "x$acx_maxopt_portable" = xyes; then
 	   CFLAGS="$CFLAGS +DAportable"
 	 fi;;
@@ -191,7 +191,7 @@ if test "$ac_test_CFLAGS" != "set"; then
            xlc_opt="-qtune=auto"
 	 fi
          AX_CHECK_COMPILER_FLAGS($xlc_opt,
-         	CFLAGS="-O3 -w $xlc_opt",
+         	CFLAGS="-O3 -qansialias -w $xlc_opt",
                [CFLAGS="-O3 -qansialias -w"
                 echo "******************************************************"
                 echo "*  You seem to have the IBM  C compiler.  It is      *"
@@ -206,9 +206,21 @@ if test "$ac_test_CFLAGS" != "set"; then
          ;;
 
     intel) CFLAGS="-O3"
+        # Intel seems to have changed the spelling of this flag recently
+    #NO ansi-alias with intel compilers (Generates problems)
+	
+	#    icc_ansi_alias="unknown"
+	#for flag in -ansi-alias -ansi_alias; do
+	#  AX_CHECK_COMPILER_FLAGS($flag, [icc_ansi_alias=$flag; break])
+	#done
+ 	#if test "x$icc_ansi_alias" != xunknown; then
+    #        CFLAGS="$CFLAGS $icc_ansi_alias"
+    #    fi
+	AX_CHECK_COMPILER_FLAGS(-malign-double, CFLAGS="$CFLAGS -malign-double")
 	if test "x$acx_maxopt_portable" = xno; then
 	  icc_archflag=unknown
 	  icc_flags=""
+	  # -xN etcetera are for older versions of icc:
 	  case $host_cpu in
 	    i686*|x86_64*)
               # icc accepts gcc assembly syntax, so these should work:
@@ -223,6 +235,8 @@ if test "$ac_test_CFLAGS" != "set"; then
                   esac ;;
               esac ;;
           esac
+          # newer icc versions should support -xHost
+	  icc_flags="-xHost $icc_flags"
           if test "x$icc_flags" != x; then
             for flag in $icc_flags; do
               AX_CHECK_COMPILER_FLAGS($flag, [icc_archflag=$flag; break])
@@ -232,14 +246,11 @@ if test "$ac_test_CFLAGS" != "set"; then
 	  AC_MSG_RESULT($icc_archflag)
           if test "x$icc_archflag" != xunknown; then
             CFLAGS="$CFLAGS $icc_archflag"
-		  else
-		    # Test -xHOST for icc11 if we have not found anything else...
-			AX_CHECK_COMPILER_FLAGS(-xHOST, CFLAGS="$CFLAGS -xHOST")
           fi
         fi
 	;;
-
-    gnu)
+    
+    gnu) 
      # default optimization flags for gcc on all systems
      CFLAGS="-O3 -fomit-frame-pointer"
 
@@ -281,6 +292,7 @@ if test "$ac_test_CFLAGS" != "set"; then
 
 fi
 ])
+
 
 # ===========================================================================
 #     http://www.nongnu.org/autoconf-archive/ax_check_compiler_flags.html
@@ -488,7 +500,7 @@ AC_DEFUN([AX_GCC_ARCHFLAG],
 [AC_REQUIRE([AC_PROG_CC])
 AC_REQUIRE([AC_CANONICAL_HOST])
 
-AC_ARG_WITH(gcc-arch, [AC_HELP_STRING([--with-gcc-arch=<arch>], [use architecture <arch> for gcc -march/-mtune, instead of guessing])],
+AC_ARG_WITH(gcc-arch, [AC_HELP_STRING([--with-gcc-arch=<arch>], [use architecture <arch> for gcc -march/-mtune, instead of guessing])], 
 	ax_gcc_arch=$withval, ax_gcc_arch=yes)
 
 AC_MSG_CHECKING([for gcc architecture flag])
@@ -503,7 +515,7 @@ if test "x$ax_gcc_arch" = xyes; then
 ax_gcc_arch=""
 if test "$cross_compiling" = no; then
 case $host_cpu in
-  i[[3456]]86*|x86_64*) # use cpuid codes, in part from x86info-1.7 by D. Jones
+  i[[3456]]86*|x86_64*|amd64*) # use cpuid codes, in part from x86info-1.21 by D. Jones
      AX_GCC_X86_CPUID(0)
      AX_GCC_X86_CPUID(1)
      case $ax_cv_gcc_x86_cpuid_0 in
@@ -514,26 +526,28 @@ case $host_cpu in
 	    *6[[3456]]?:*:*:*) ax_gcc_arch="pentium2 pentiumpro" ;;
 	    *6a?:*[[01]]:*:*) ax_gcc_arch="pentium2 pentiumpro" ;;
 	    *6a?:*[[234]]:*:*) ax_gcc_arch="pentium3 pentiumpro" ;;
-	    *6[[9d]]?:*:*:*) ax_gcc_arch="pentium-m pentium3 pentiumpro" ;;
 	    *6[[78b]]?:*:*:*) ax_gcc_arch="pentium3 pentiumpro" ;;
-	    *6??:*:*:*) ax_gcc_arch=pentiumpro ;;
-            *f3[[347]]:*:*:*|*f4[1347]:*:*:*)
+	    *6[[9d]]?:*:*:*) ax_gcc_arch="pentium-m pentium3 pentiumpro" ;;
+	    *6[[e]]?:*:*:*) ax_gcc_arch="native pentium-m pentium3 pentiumpro" ;; # Core Duo
+	    *6f?:*:*:*) ax_gcc_arch="core2 native pentium-m pentium3 pentiumpro" ;;
+	    *6??:*:*:*) ax_gcc_arch="native pentiumpro" ;;
+            *f3[[347]]:*:*:*|*f4[[1347]]:*:*:*)
 		case $host_cpu in
-                  x86_64*) ax_gcc_arch="nocona pentium4 pentiumpro" ;;
+                  x86_64*|amd64*) ax_gcc_arch="nocona pentium4 pentiumpro" ;;
                   *) ax_gcc_arch="prescott pentium4 pentiumpro" ;;
                 esac ;;
-            *f??:*:*:*) ax_gcc_arch="pentium4 pentiumpro";;
+            *f??:*:*:*) ax_gcc_arch="native pentium4 pentiumpro";;
           esac ;;
        *:68747541:*:*) # AMD
           case $ax_cv_gcc_x86_cpuid_1 in
 	    *5[[67]]?:*:*:*) ax_gcc_arch=k6 ;;
-	    *5[[8d]]?:*:*:*) ax_gcc_arch="k6-2 k6" ;;
-	    *5[[9]]?:*:*:*) ax_gcc_arch="k6-3 k6" ;;
+	    *5[[8c]]?:*:*:*) ax_gcc_arch="k6-2 k6" ;;
+	    *5[[9d]]?:*:*:*) ax_gcc_arch="k6-3 k6" ;;
 	    *60?:*:*:*) ax_gcc_arch=k7 ;;
 	    *6[[12]]?:*:*:*) ax_gcc_arch="athlon k7" ;;
 	    *6[[34]]?:*:*:*) ax_gcc_arch="athlon-tbird k7" ;;
 	    *67?:*:*:*) ax_gcc_arch="athlon-4 athlon k7" ;;
-	    *6[[68a]]?:*:*:*)
+	    *6[[68a]]?:*:*:*) 
 	       AX_GCC_X86_CPUID(0x80000006) # L2 cache size
 	       case $ax_cv_gcc_x86_cpuid_0x80000006 in
                  *:*:*[[1-9a-f]]??????:*) # (L2 = ecx >> 16) >= 256
@@ -543,7 +557,7 @@ case $host_cpu in
 	    *f[[4cef8b]]?:*:*:*) ax_gcc_arch="athlon64 k8" ;;
 	    *f5?:*:*:*) ax_gcc_arch="opteron k8" ;;
 	    *f7?:*:*:*) ax_gcc_arch="athlon-fx opteron k8" ;;
-	    *f??:*:*:*) ax_gcc_arch="k8" ;;
+	    *f??:*:*:*) ax_gcc_arch="native k8" ;;
           esac ;;
 	*:746e6543:*:*) # IDT
 	   case $ax_cv_gcc_x86_cpuid_1 in
@@ -555,10 +569,11 @@ case $host_cpu in
      esac
      if test x"$ax_gcc_arch" = x; then # fallback
 	case $host_cpu in
-	  i586*) ax_gcc_arch=pentium ;;
-	  i686*) ax_gcc_arch=pentiumpro ;;
+	  i586*) ax_gcc_arch="native pentium" ;;
+	  i686*) ax_gcc_arch="native pentiumpro" ;;
+          x86_64*|amd64*) ax_gcc_arch="native" ;;
         esac
-     fi
+     fi 
      ;;
 
   sparc*)
@@ -597,7 +612,8 @@ case $host_cpu in
        *POWER4*|*power4*|*gq*) ax_gcc_arch="power4 970";;
        *POWER5*|*power5*|*gr*|*gs*) ax_gcc_arch="power5 power4 970";;
        603ev|8240) ax_gcc_arch="$cputype 603e 603";;
-       *) ax_gcc_arch=$cputype ;;
+       *Cell*) ax_gcc_arch="cellppu cell";;
+       *) ax_gcc_arch="$cputype native" ;;
      esac
      ax_gcc_arch="$ax_gcc_arch powerpc"
      ;;
@@ -611,7 +627,7 @@ for arch in $ax_gcc_arch; do
     flags="-mtune=$arch"
     # -mcpu=$arch and m$arch generate nonportable code on every arch except
     # x86.  And some other arches (e.g. Alpha) don't accept -mtune.  Grrr.
-    case $host_cpu in i*86|x86_64*) flags="$flags -mcpu=$arch -m$arch";; esac
+    case $host_cpu in i*86|x86_64*|amd64*) flags="$flags -mcpu=$arch -m$arch";; esac
   else
     flags="-march=$arch -mcpu=$arch -m$arch"
   fi

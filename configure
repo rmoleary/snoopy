@@ -3900,7 +3900,7 @@ case $host_os in *\ *) host_os=`echo "$host_os" | sed 's/ /-/g'`;; esac
 
 # Check whether --enable-portable-binary was given.
 if test "${enable_portable_binary+set}" = set; then
-  enableval=$enable_portable_binary; acx_maxopt_portable=$withval
+  enableval=$enable_portable_binary; acx_maxopt_portable=$enableval
 else
   acx_maxopt_portable=no
 fi
@@ -3910,7 +3910,7 @@ fi
 if test "$ac_test_CFLAGS" != "set"; then
   CFLAGS=""
   case $ax_cv_c_compiler_vendor in
-    dec) CFLAGS="-newc -w0 -O5 -ansi_args -fp_reorder -tune host"
+    dec) CFLAGS="-newc -w0 -O5 -ansi_alias -ansi_args -fp_reorder -tune host"
 	 if test "x$acx_maxopt_portable" = xno; then
            CFLAGS="$CFLAGS -arch host"
          fi;;
@@ -3920,7 +3920,7 @@ if test "$ac_test_CFLAGS" != "set"; then
 	   CFLAGS="$CFLAGS -xarch=generic"
          fi;;
 
-    hp)  CFLAGS="+Oall +DSnative"
+    hp)  CFLAGS="+Oall +Optrs_ansi +DSnative"
 	 if test "x$acx_maxopt_portable" = xyes; then
 	   CFLAGS="$CFLAGS +DAportable"
 	 fi;;
@@ -3980,7 +3980,7 @@ eval ax_check_compiler_flags=$`echo "ax_cv_c_flags_$xlc_opt" | $as_tr_sh`
 { echo "$as_me:$LINENO: result: $ax_check_compiler_flags" >&5
 echo "${ECHO_T}$ax_check_compiler_flags" >&6; }
 if test "x$ax_check_compiler_flags" = xyes; then
-	CFLAGS="-O3 -w $xlc_opt"
+	CFLAGS="-O3 -qansialias -w $xlc_opt"
 else
 	CFLAGS="-O3 -qansialias -w"
                 echo "******************************************************"
@@ -3998,9 +3998,81 @@ fi
          ;;
 
     intel) CFLAGS="-O3"
+        # Intel seems to have changed the spelling of this flag recently
+    #NO ansi-alias with intel compilers (Generates problems)
+
+	#    icc_ansi_alias="unknown"
+	#for flag in -ansi-alias -ansi_alias; do
+	#  AX_CHECK_COMPILER_FLAGS($flag, [icc_ansi_alias=$flag; break])
+	#done
+ 	#if test "x$icc_ansi_alias" != xunknown; then
+    #        CFLAGS="$CFLAGS $icc_ansi_alias"
+    #    fi
+	 { echo "$as_me:$LINENO: checking whether C compiler accepts -malign-double" >&5
+echo $ECHO_N "checking whether C compiler accepts -malign-double... $ECHO_C" >&6; }
+if test "${ax_cv_c_flags__malign_double+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+
+      ax_save_FLAGS=$CFLAGS
+      CFLAGS="-malign-double"
+      cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (ac_try="$ac_compile"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_compile") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest.$ac_objext; then
+  ax_cv_c_flags__malign_double=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ax_cv_c_flags__malign_double=no
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+      CFLAGS=$ax_save_FLAGS
+fi
+
+eval ax_check_compiler_flags=$ax_cv_c_flags__malign_double
+{ echo "$as_me:$LINENO: result: $ax_check_compiler_flags" >&5
+echo "${ECHO_T}$ax_check_compiler_flags" >&6; }
+if test "x$ax_check_compiler_flags" = xyes; then
+	CFLAGS="$CFLAGS -malign-double"
+else
+	:
+fi
+
 	if test "x$acx_maxopt_portable" = xno; then
 	  icc_archflag=unknown
 	  icc_flags=""
+	  # -xN etcetera are for older versions of icc:
 	  case $host_cpu in
 	    i686*|x86_64*)
               # icc accepts gcc assembly syntax, so these should work:
@@ -4179,6 +4251,8 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
                   esac ;;
               esac ;;
           esac
+          # newer icc versions should support -xHost
+	  icc_flags="-xHost $icc_flags"
           if test "x$icc_flags" != x; then
             for flag in $icc_flags; do
                { echo "$as_me:$LINENO: checking whether C compiler accepts $flag" >&5
@@ -4244,69 +4318,6 @@ echo $ECHO_N "checking for icc architecture flag... $ECHO_C" >&6; }
 echo "${ECHO_T}$icc_archflag" >&6; }
           if test "x$icc_archflag" != xunknown; then
             CFLAGS="$CFLAGS $icc_archflag"
-		  else
-		    # Test -xHOST for icc11 if we have not found anything else...
-			 { echo "$as_me:$LINENO: checking whether C compiler accepts -xHOST" >&5
-echo $ECHO_N "checking whether C compiler accepts -xHOST... $ECHO_C" >&6; }
-if test "${ax_cv_c_flags__xHOST+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-
-      ax_save_FLAGS=$CFLAGS
-      CFLAGS="-xHOST"
-      cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-int
-main ()
-{
-
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext
-if { (ac_try="$ac_compile"
-case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
-  (eval "$ac_compile") 2>conftest.er1
-  ac_status=$?
-  grep -v '^ *+' conftest.er1 >conftest.err
-  rm -f conftest.er1
-  cat conftest.err >&5
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } && {
-	 test -z "$ac_c_werror_flag" ||
-	 test ! -s conftest.err
-       } && test -s conftest.$ac_objext; then
-  ax_cv_c_flags__xHOST=yes
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-	ax_cv_c_flags__xHOST=no
-fi
-
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-      CFLAGS=$ax_save_FLAGS
-fi
-
-eval ax_check_compiler_flags=$ax_cv_c_flags__xHOST
-{ echo "$as_me:$LINENO: result: $ax_check_compiler_flags" >&5
-echo "${ECHO_T}$ax_check_compiler_flags" >&6; }
-if test "x$ax_check_compiler_flags" = xyes; then
-	CFLAGS="$CFLAGS -xHOST"
-else
-	:
-fi
-
           fi
         fi
 	;;
@@ -4532,7 +4543,7 @@ if test "x$ax_gcc_arch" = xyes; then
 ax_gcc_arch=""
 if test "$cross_compiling" = no; then
 case $host_cpu in
-  i[3456]86*|x86_64*) # use cpuid codes, in part from x86info-1.7 by D. Jones
+  i[3456]86*|x86_64*|amd64*) # use cpuid codes, in part from x86info-1.21 by D. Jones
 
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
@@ -4707,21 +4718,23 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 	    *6[3456]?:*:*:*) ax_gcc_arch="pentium2 pentiumpro" ;;
 	    *6a?:*[01]:*:*) ax_gcc_arch="pentium2 pentiumpro" ;;
 	    *6a?:*[234]:*:*) ax_gcc_arch="pentium3 pentiumpro" ;;
-	    *6[9d]?:*:*:*) ax_gcc_arch="pentium-m pentium3 pentiumpro" ;;
 	    *6[78b]?:*:*:*) ax_gcc_arch="pentium3 pentiumpro" ;;
-	    *6??:*:*:*) ax_gcc_arch=pentiumpro ;;
-            *f3[347]:*:*:*|*f41347:*:*:*)
+	    *6[9d]?:*:*:*) ax_gcc_arch="pentium-m pentium3 pentiumpro" ;;
+	    *6[e]?:*:*:*) ax_gcc_arch="native pentium-m pentium3 pentiumpro" ;; # Core Duo
+	    *6f?:*:*:*) ax_gcc_arch="core2 native pentium-m pentium3 pentiumpro" ;;
+	    *6??:*:*:*) ax_gcc_arch="native pentiumpro" ;;
+            *f3[347]:*:*:*|*f4[1347]:*:*:*)
 		case $host_cpu in
-                  x86_64*) ax_gcc_arch="nocona pentium4 pentiumpro" ;;
+                  x86_64*|amd64*) ax_gcc_arch="nocona pentium4 pentiumpro" ;;
                   *) ax_gcc_arch="prescott pentium4 pentiumpro" ;;
                 esac ;;
-            *f??:*:*:*) ax_gcc_arch="pentium4 pentiumpro";;
+            *f??:*:*:*) ax_gcc_arch="native pentium4 pentiumpro";;
           esac ;;
        *:68747541:*:*) # AMD
           case $ax_cv_gcc_x86_cpuid_1 in
 	    *5[67]?:*:*:*) ax_gcc_arch=k6 ;;
-	    *5[8d]?:*:*:*) ax_gcc_arch="k6-2 k6" ;;
-	    *5[9]?:*:*:*) ax_gcc_arch="k6-3 k6" ;;
+	    *5[8c]?:*:*:*) ax_gcc_arch="k6-2 k6" ;;
+	    *5[9d]?:*:*:*) ax_gcc_arch="k6-3 k6" ;;
 	    *60?:*:*:*) ax_gcc_arch=k7 ;;
 	    *6[12]?:*:*:*) ax_gcc_arch="athlon k7" ;;
 	    *6[34]?:*:*:*) ax_gcc_arch="athlon-tbird k7" ;;
@@ -4818,7 +4831,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 	    *f[4cef8b]?:*:*:*) ax_gcc_arch="athlon64 k8" ;;
 	    *f5?:*:*:*) ax_gcc_arch="opteron k8" ;;
 	    *f7?:*:*:*) ax_gcc_arch="athlon-fx opteron k8" ;;
-	    *f??:*:*:*) ax_gcc_arch="k8" ;;
+	    *f??:*:*:*) ax_gcc_arch="native k8" ;;
           esac ;;
 	*:746e6543:*:*) # IDT
 	   case $ax_cv_gcc_x86_cpuid_1 in
@@ -4830,8 +4843,9 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
      esac
      if test x"$ax_gcc_arch" = x; then # fallback
 	case $host_cpu in
-	  i586*) ax_gcc_arch=pentium ;;
-	  i686*) ax_gcc_arch=pentiumpro ;;
+	  i586*) ax_gcc_arch="native pentium" ;;
+	  i686*) ax_gcc_arch="native pentiumpro" ;;
+          x86_64*|amd64*) ax_gcc_arch="native" ;;
         esac
      fi
      ;;
@@ -4913,7 +4927,8 @@ fi
        *POWER4*|*power4*|*gq*) ax_gcc_arch="power4 970";;
        *POWER5*|*power5*|*gr*|*gs*) ax_gcc_arch="power5 power4 970";;
        603ev|8240) ax_gcc_arch="$cputype 603e 603";;
-       *) ax_gcc_arch=$cputype ;;
+       *Cell*) ax_gcc_arch="cellppu cell";;
+       *) ax_gcc_arch="$cputype native" ;;
      esac
      ax_gcc_arch="$ax_gcc_arch powerpc"
      ;;
@@ -4927,7 +4942,7 @@ for arch in $ax_gcc_arch; do
     flags="-mtune=$arch"
     # -mcpu=$arch and m$arch generate nonportable code on every arch except
     # x86.  And some other arches (e.g. Alpha) don't accept -mtune.  Grrr.
-    case $host_cpu in i*86|x86_64*) flags="$flags -mcpu=$arch -m$arch";; esac
+    case $host_cpu in i*86|x86_64*|amd64*) flags="$flags -mcpu=$arch -m$arch";; esac
   else
     flags="-march=$arch -mcpu=$arch -m$arch"
   fi

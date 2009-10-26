@@ -39,10 +39,26 @@
 	Including Shear and rotation if required.
 	It can run on parallel machine using MPI OpenMP or Both at the same time. The ffts are based on FFTW3, using a custom MPI parallelisation,
 	or using the alpha version of the MPI implementation included in fftw 3.3
-	\subsection snoop Why Snoopy?
+	\section snoop Why Snoopy?
 	Why not? I felt that since Zeus, Athena and Ramses were already used, a bit of modern history would sound good (and cool). Snoopy actually means nothing (appart from a dog), 
 	although one might say that S stands for Spectral, and noopy stands for... (I still don't know).
-	\subsection lic License
+	\section news What's new?
+	\subsection jude Jude (v5.0)
+		- Free slip boundary conditions to replace the standard periodic BCs are allowed. See boundary.c for details.
+		- 2D (x,y) large scale noise implemented
+		- Spatially varying Brunt-Vaisala frequency, for non homogeneous stratification.
+		- User can ask for vorticity output in the VTK files
+		- MRI problem consistant with Hawley, Gammie, Balbus (1995) in terms of time units
+		- Added more spectra in spectrum.dat, including transfer spectra and fix a binning problem
+		- Possible to add "hard" object in the flow (this is an alpha feature)
+		- Subcritical baroclinic instability setup provided (with-problem=sbi)
+		- Several improvement in the I/O routine
+		- fixed a bug with some intel compilers concerning the optimisation (-ansi-alias)
+		
+	\subsection igor Igor (v4.0)
+		Initial release
+	
+	\section lic License
 	The Snoopy code is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -98,6 +114,7 @@
 	- mri
 	- convection
 	- couette
+	- sbi (Subcritical baroclinic instability)
 	
 	\section interface Code interface
 	While the code is running, it's possible to know what's happening in real time using the so-called interface (located in interface.c). Typically, one creates a file with a filename
@@ -131,11 +148,23 @@
 #define	 BOUSSINESQ                    // Uncomment to activate Boussinesq
 #define	 VERTSTRAT                     // Vertical stratification. Otherwise,
                                       // Boussinesq stratification is in X
+									  
+#define		N2PROFILE                  // Assumes N2 depends on spatial coordinates. 
+                                       // The profile has to be set up by hand in 
+                                       // common.c/init_N2_profile(). 
+                                       // NOTA: This feature in alpha version.
 
 #define	 WITH_ROTATION                 // Uncomment to add rotation around the z axis.
 
 #define	 WITH_SHEAR                    // Uncomment to activate shear (U_y(x))
 #define	 TIME_DEPENDANT_SHEAR          // Enable Time dependant shear
+
+#define		BOUNDARY_C                 // Enforce NON-PERIODIC boundary conditions on 
+                                       // the flow using Fourier space symmetries. The 
+                                       // precise boundary condition has to be set up 
+                                       // in boundary.c/boundary_c(...). 
+                                       // NOTA: This feature is in alpha version.
+
 
 #define	 FORCING                       // Uncomment to use internal forcing of the 
                                       // velocity field (see forcing in timestep.c)
@@ -149,8 +178,8 @@
 	\section configsnoopy File snoopy.cfg
 	The file snoopy.cfg is located where the executable is located and is read at run time. Snoopy uses a variation of the 
 	library <A HREF=http://www.hyperrealm.com/libconfig/>libconfig</A> to read these files. A standard snoopy file is divided into
-	3 blocks: physics, code and init corresponding to physical parameters, code parameters and initial conditions. If any of the described 
-	parameter (or even block) is ommited, the default value (given below) will be used. This is a commented example of snoopy.cfg
+	4 blocks: physics, code, output and init corresponding to physical parameters, code parameters, input/output and initial conditions. If any of the described 
+	parameter (or even block) is ommited, the default value (as given below) will be used. This is a commented example of snoopy.cfg
 	containing all the possible parameters assigned to their default value (an updated version of this file may be found in src/problem/defaut/snoopy.cfg):
 	\verbatim
 	# Example of a Snoopy configuration file
@@ -204,8 +233,13 @@ output:	                             // output parameters
 	dump_step = 1.0;                 // Time between two restart dump outputs (restart dump are erased)
 	
 	vtk_output = true;               // Use VTK legacy files for output instead of raw binaries (useful with paraview)
-	fortran_output_order = false;    // If vtk_output is disabled, the code will output binary in C-major order. Uncomment this to get outputs in FORTRAN-major order (doesn't work with MPI)
-	pressure = false;				 // Output the pressure field in the 3D snapshots
+                                     // NB: the support of raw binaries is depreciated. Please use vtk instead.
+									 
+	fortran_output_order = false;    // If vtk_output is disabled, the code will output binary in C-major order. 
+                                     // Uncomment this to get outputs in FORTRAN-major order (doesn't work with MPI)
+	
+	pressure = false;                // Output the pressure field in the 3D snapshots
+	vorticity = false;               // Output the vorticity field in the 3D snapshots
 };
 
 //-------------------------------------------------------------------------------------------------------------------------
@@ -221,6 +255,12 @@ init:                                // Initial conditions parameters
 	large_scale_noise:               // Init a large scale random noise down to cut_length
 	{
 		enable = false;	             // set this to true to enable large scale noise
+		amplitude = 0.0;             // noise amplitude
+		cut_length = 0.0;            // Wavelength over which the noise is applied
+	};
+	large_scale_2D_noise:            // Init a large scale random 2D (x,y) noise down to cut_length
+	{
+		enable = false;              // set this to true to enable large scale 2D noise
 		amplitude = 0.0;             // noise amplitude
 		cut_length = 0.0;            // Wavelength over which the noise is applied
 	};
@@ -247,14 +287,56 @@ init:                                // Initial conditions parameters
 
 
 /*!	\page outputs Code outputs
-	\section timevar The timevar File
-	A text file containing several averaged quantities (see output.c for more details).
+	\section timevar Averaged quantities (timevar)
+	A text file containing several averaged quantities in a column style file. Each line corespond to a given instant in the simulation. Each column reads as follow:
+	
+		- 1st column: time of the simulation
+		- 2nd column: Box averaged kinetic energy
+		- 3rd column: Box averaged magnetic energy
+		- 4th column: x velocity maximum
+		- 5th column: x velocity minimum
+		- 6th column: y velocity maximum
+		- 7th column: y velocity minimum
+		- 8th column: z velocity maximum
+		- 9th column: z velocity minimum
+		- 10th column: xy component of the Reynolds stress (box averaged)
+		- 11th column: x magnetic field maximum
+		- 12th column: x magnetic field minimum
+		- 13th column: y magnetic field maximum
+		- 14th column: y magnetic field minimum
+		- 15th column: z magnetic field maximum
+		- 16th column: z magnetic field minimum
+		- 17th column: xy component of the Maxwell stress (box averaged)
+		- 18th column: maximum of the potential temperature
+		- 19th column: minimum of the potential temperature
+		- 20th column: Box averaged enstrophy (omega^2/2)
+		- 21st column: Box averaged current squared (J^2/2)
+		- 22nd column: Box averaged magnetic helicity
+		- 23rd column: Total shear (when time dependant shear is activated)
+		
+	The average time between two lines in the timevar file is set by output.timevar_step (snoopy.cfg)
+	
+	\section spectrum Shell integrated spectra (spectrum.dat)
+	This text file contains shell integrated spectra computed on-the-fly by the code. It includes kinetic and magnetic spectra plus transfer spectra relevant to MHD turbulence. For a complete description,
+	see output.c.
+	
+	The average time between two outputs in spectrum.dat is set by output.timevar_step (snoopy.cfg)
+	
+	NOTA: the spectrum output routines are still in developement.
+	
 	\section snap Snapshots
 	Snapshots can be written in raw binary files (.raw) or in vtk legacy format (.vtk, default) in the data directory. The output format is set in snoopy.cfg (default is VTK). VTK files can are read natively
-	by Paraview 2-3 or Visit, available for free on the web. Several Matlab script are under developpment to read these files.
+	by Paraview 2-3 or Visit, available for free on the web. Several Matlab script are also under developpment to read these files (please ask). The fields written in the VTK files are by default vx,vy and vz
+	plus bx,by,bz when MHD is on, th (potential temperature) when BOUSSINESQ is on, p (pressure) when output.pressure is true (see snoopy.cfg) and wx,wy,wz (vorticity) when output.vorticity is true (see snoopy.cfg).
+	
+	The average time between two snapshot outputs is set by output.snapshot_step (snoopy.cfg)
+	
+	NOTA: Raw binary files are depreciated and will be removed in the next release of the Snoopy code.
 	
 	\section dump Restart dump files
 	Binary restart file. A maximum of two restart dumps can be found in the running directory: dump.dmp and dump_sav.dmp. The former is the more recent dump whereas the latter is the preceeding dump. 
 	Older dumps are deleted during the execution. It is possible to restart the code from a restart dump setting the restart option in snoopy.cfg to true. See output.c for a complete description.
+	
+	The average time between two dump file outputs is set by output.dump_step (snoopy.cfg)
 */
 

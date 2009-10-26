@@ -31,7 +31,7 @@ PROJECT_NAME           = Snoopy
 # This could be handy for archiving the generated documentation or 
 # if some version control system is used.
 
-PROJECT_NUMBER         = "Version 4.0 (Igor)"
+PROJECT_NUMBER         = "Version 5.0 (Jude)"
 
 # The OUTPUT_DIRECTORY tag is used to specify the (relative or absolute) 
 # base path where the generated documentation will be put. 

@@ -27,11 +27,14 @@
 
 //#define		BOUSSINESQ				/**< Uncomment to activate Boussinesq */
 //#define		VERTSTRAT				/**< Vertical stratification. Otherwise, Boussinesq stratification is in X */
+//#define		N2PROFILE				/**< Assumes N2 depends on spatial coordinates. The profile has to be set up by hand in common.c/init_N2_profile(). This feature in in alpha version. */
 
-//#define		WITH_ROTATION
+//#define		WITH_ROTATION			/**< Enable a Coriolis force, assuming the rotation axis is z. The rotation speed is set up in snoopy.cfg */
 
 //#define		WITH_SHEAR				/**< Uncomment to activate mean SHEAR */
 //#define		TIME_DEPENDANT_SHEAR	/**< Enable Time dependant shear */
+
+//#define		BOUNDARY_C				/**< Enforce NON-PERIODIC boundary conditions to the flow using Fourier space symmetries. The precise boundary condition has to be set up in boundary.c/boundary_c(); This feature is in alpha version. */
 
 //#define		FORCING					/**< Uncomment to use internal forcing of the velocity field (see forcing in timestep.c) */
 
