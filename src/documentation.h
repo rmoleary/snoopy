@@ -53,6 +53,7 @@
 		- Possible to add "hard" object in the flow (this is an alpha feature)
 		- Subcritical baroclinic instability setup provided (with-problem=sbi)
 		- Several improvement in the I/O routine
+		- Include example Matlab scripts in the distribution
 		- fixed a bug with some intel compilers concerning the optimisation (-ansi-alias)
 		
 	\subsection igor Igor (v4.0)
@@ -311,14 +312,14 @@ init:                                // Initial conditions parameters
 		- 19th column: minimum of the potential temperature
 		- 20th column: Box averaged enstrophy (omega^2/2)
 		- 21st column: Box averaged current squared (J^2/2)
-		- 22nd column: Box averaged magnetic helicity
+		- 22nd column: Box averaged magnetic helicity (makes sense only when no mean field is present)
 		- 23rd column: Total shear (when time dependant shear is activated)
 		
-	The average time between two lines in the timevar file is set by output.timevar_step (snoopy.cfg)
+	The average time between two lines in the timevar file is set by output.timevar_step (snoopy.cfg). This file can be read using a Matlab script provided in the Snoopy distribution (see \ref timevol)
 	
 	\section spectrum Shell integrated spectra (spectrum.dat)
 	This text file contains shell integrated spectra computed on-the-fly by the code. It includes kinetic and magnetic spectra plus transfer spectra relevant to MHD turbulence. For a complete description,
-	see output.c.
+	see output.c. These files can be read using a Matlab script provided in the Snoopy distribution (see \ref readspectrum)
 	
 	The average time between two outputs in spectrum.dat is set by output.timevar_step (snoopy.cfg)
 	
@@ -326,7 +327,7 @@ init:                                // Initial conditions parameters
 	
 	\section snap Snapshots
 	Snapshots can be written in raw binary files (.raw) or in vtk legacy format (.vtk, default) in the data directory. The output format is set in snoopy.cfg (default is VTK). VTK files can are read natively
-	by Paraview 2-3 or Visit, available for free on the web. Several Matlab script are also under developpment to read these files (please ask). The fields written in the VTK files are by default vx,vy and vz
+	by Paraview 2-3 or Visit, available for free on the web. Several Matlab script are also provided in the Snoopy distribution to read VTK files (see \ref get_frame). The fields written in the VTK files are by default vx,vy and vz
 	plus bx,by,bz when MHD is on, th (potential temperature) when BOUSSINESQ is on, p (pressure) when output.pressure is true (see snoopy.cfg) and wx,wy,wz (vorticity) when output.vorticity is true (see snoopy.cfg).
 	
 	The average time between two snapshot outputs is set by output.snapshot_step (snoopy.cfg)
@@ -340,3 +341,18 @@ init:                                // Initial conditions parameters
 	The average time between two dump file outputs is set by output.dump_step (snoopy.cfg)
 */
 
+/*! \page matlab Matlab scripts
+	Several Matlab scripts are now provided with Snoopy (in the matlab directory). These are basic scripts which can be a useful start for a specific project.
+	
+	\section timevol Timevol script
+	The file timevol.m reads the timevar file produced by snoopy and display several time history plots for various quantity (energy, transport, helicity, etc... see \ref timevar).
+	
+	\section get_frame Get_frame script
+	The file get_frame.m reads one VTK file created by snoopy and display several cuts of the flow in the xy, xz and yz plane. This script can be easely modified to display other cuts. 
+	The velocity/magnetic fields are stored in a Matlab structure
+	which can then be used for specific post-treatment tasks (FFTs, filtering, correlations). The same VTK files can also be analyzed using Paraview.
+	
+	\section readspectrum ReadSpectrum script
+	The file ReadSpectrum.m reads the spectrum.dat file produced by Snoopy and display time-averaged spectra of the simulation. NB: this output is still in beta version.
+
+*/
