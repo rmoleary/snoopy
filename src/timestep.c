@@ -22,38 +22,7 @@
 #include "common.h"
 #include "gfft.h"
 #include "debug.h"
-
-#ifdef FORCING
-/*************************************************
-** Forcing (if required) *************************
-**************************************************/
-void forcing(struct Field fldi,
-			 double dt) {
-			 
-// Force random velocity field
-	const double kf = 2.0 * M_PI * 5.0;
-	const double deltakf = kf * 0.2;
-	const double amplitude_forcing = 5.0;
-	int found_k = 0;
-	int i;
-// Find a valid k vector
-	while(found_k==0) {
-		i = (int) (randm() * NTOTAL_COMPLEX);
-		if( (k2t[i]>(kf-deltakf)*(kf-deltakf)) && (k2t[i]<(kf+deltakf)*(kf+deltakf))) {
-			found_k=1;
-		}
-	}
-	
-// Init V vector
-	fldi.vx[i] += amplitude_forcing * randm_normal() * NTOTAL * cexp( I * 2.0*M_PI*randm() ) *dt;
-	fldi.vy[i] += amplitude_forcing * randm_normal() * NTOTAL * cexp( I * 2.0*M_PI*randm() ) *dt;
-	fldi.vz[i] += amplitude_forcing * randm_normal() * NTOTAL * cexp( I * 2.0*M_PI*randm() ) *dt;
-	
-	projector(fldi.vx,fldi.vy,fldi.vz);
-	
-	return;
-}
-#endif
+#include "forcing.h"
 
 
 /**************************************************

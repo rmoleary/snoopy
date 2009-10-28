@@ -989,6 +989,8 @@ void output_timevar(const struct Field fldi,
 	
 	reduce(&helicity,1);
 #endif
+	vort2=0.0;
+	curr2=0.0;
 	
 // Compute vorticity and currents
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {

@@ -1,4 +1,4 @@
-OBJ= error.o snoopy.o mainloop.o initflow.o timestep.o common.o output.o interface.o gfft.o transpose.o debug.o shear.o read_config.o symmetries.o boundary.o libconfig/libconfig.o libconfig/scanner.o libconfig/grammar.o
+OBJ= error.o snoopy.o mainloop.o initflow.o timestep.o common.o output.o interface.o gfft.o transpose.o debug.o shear.o read_config.o symmetries.o boundary.o forcing.o libconfig/libconfig.o libconfig/scanner.o libconfig/grammar.o
 
 all: snoopy
 
