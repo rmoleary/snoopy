@@ -409,6 +409,7 @@ void init_MeanField() {
 /** Init the flow arrays... */	
 void init_flow() {
 	int i;
+	double dummy_var;
 	
 	DEBUG_START_FUNC;
 	// Initialise vectors to 0
@@ -442,9 +443,8 @@ void init_flow() {
 	if(param.init_mean_field) init_MeanField();
 	
 	if(param.init_dump) {
-		if(read_dump(fld,NULL)) {
-			ERROR_HANDLER(ERROR_CRITICAL,"No dump found for the initial conditions.");
-		}
+		read_dump(fld, &dummy_var);
+		MPI_Printf("Initial conditions read successfully from the restart dump\n");
 	}
 
 #ifdef BOUNDARY_C

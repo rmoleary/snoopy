@@ -1133,6 +1133,34 @@ void read_field(FILE *handler, double complex *fldread) {
 
 /**************************************************************************************/
 /** 
+	Check if a file exists
+	@param filename string containing the filename (including path) to be tested.
+*/
+/**************************************************************************************/
+int file_exist(char filename[]) {
+	FILE* ht;
+	int file_status;
+	
+	ht=NULL;
+	
+	if(rank==0) {
+		ht=fopen(filename,"r");
+		if(ht==NULL) file_status = 0;
+		else {
+			file_status = 1;
+			fclose(ht);
+		}
+	}
+	
+#ifdef MPI_SUPPORT
+	MPI_Bcast(&file_status, 1, MPI_INT, 0, MPI_COMM_WORLD);
+#endif
+
+	return(file_status);
+}
+
+/**************************************************************************************/
+/** 
 	write a full restart dump
 	@param fldi Field structure pointing to the field needed to be savec
 	@param t current time of the simulation (will be stored in the dump file)
@@ -1236,45 +1264,32 @@ void output_dump( const struct Field fldi,
 	@param t time of the simulation, overwritten by this with the dump information.
 */
 /**************************************************************************************/
-int read_dump(   struct Field fldo,
+void read_dump(   struct Field fldo,
 				  double *t) {	
 				  
 	FILE *ht;
 	int dump_version;
 	int size_x,	size_y, size_z, included_field;
 	int marker;
-	int file_status;
 
 	DEBUG_START_FUNC;
-
-	ht=NULL;
 	
-	if(rank==0) {
-		ht=fopen(OUTPUT_DUMP,"r");
-		if(ht==NULL) file_status = 0;
-		else		 file_status = 1;
-	}
-	
-#ifdef MPI_SUPPORT
-	MPI_Bcast(&file_status, 1, MPI_INT, 0, MPI_COMM_WORLD);
-#endif
-	
-	if(file_status==0) {
+	if( !file_exist(OUTPUT_DUMP) ) {
 		// The file can't be openend
-		ERROR_HANDLER(ERROR_WARNING, "Cannot open dump file.");
-		return(1);
+		ERROR_HANDLER(ERROR_CRITICAL, "Cannot open dump file.");
 	}
 	
+	ht=fopen(OUTPUT_DUMP,"r");
 	// The file has been opened by process 0
 	
 	if(rank==0) {
 		fread(&dump_version, sizeof(int), 1, ht);
 		if( dump_version != OUTPUT_DUMP_VERSION) ERROR_HANDLER( ERROR_CRITICAL, "Incorrect dump file version.");
-	
+		
 		fread(&size_x		, sizeof(int), 1, ht);
 		fread(&size_y		, sizeof(int), 1, ht);
 		fread(&size_z		, sizeof(int), 1, ht);
-	
+		
 		if(size_x != NX) ERROR_HANDLER( ERROR_CRITICAL, "Incorrect X grid size in dump file.");
 		if(size_y != NY) ERROR_HANDLER( ERROR_CRITICAL, "Incorrect Y grid size in dump file.");
 		if(size_z != NZ) ERROR_HANDLER( ERROR_CRITICAL, "Incorrect Y grid size in dump file.");
@@ -1284,7 +1299,7 @@ int read_dump(   struct Field fldo,
 #ifdef MPI_SUPPORT
 	MPI_Bcast( &included_field,		1, MPI_INT,		0, MPI_COMM_WORLD);
 #endif
-
+	
 	MPI_Printf("Reading velocity field\n");
 	read_field(ht, fldo.vx);
 	read_field(ht, fldo.vy);
@@ -1329,7 +1344,7 @@ int read_dump(   struct Field fldo,
 			fread(&marker , sizeof(int)			   , 1, ht);
 	
 			if(marker != DUMP_MARKER) ERROR_HANDLER( ERROR_CRITICAL, "Incorrect marker. Probably an incorrect dump file!");	
-			fclose(ht);
+			
 		}
 	
 	// Transmit the values to all processes
@@ -1344,11 +1359,32 @@ int read_dump(   struct Field fldo,
 		MPI_Printf("Restarting at t=%e...\n",*t);
 	}
 
+	fclose(ht);
+	
 	DEBUG_END_FUNC;
 	
-	return(0);
+	return;
 }
+
+/**************************************************************************************/
+/** 
+	Remove the timevar file (if exists) to start from a fresh one.
+*/
+/**************************************************************************************/
+void clear_timevar() {
+	FILE* ht;
+
+	DEBUG_START_FUNC;
 	
+	if(rank==0) {
+	ht=fopen("timevar","w");
+	fclose(ht);
+	}
+
+	DEBUG_END_FUNC;
+	return;
+}
+
 /*********************************************************
 *** General routine, callable from outside ***************
 **********************************************************/
@@ -1384,15 +1420,23 @@ void init_output() {
 	if (fft_1d_backward == NULL) ERROR_HANDLER( ERROR_CRITICAL, "FFTW 1D backward plan creation failed");
 	
 #endif	
-
-	if(!param.restart) {
+	// Check that the file restart exists
 	
+	if(param.restart) {
+		if( !file_exist(OUTPUT_DUMP) ) {
+			ERROR_HANDLER( ERROR_WARNING, "No restart dump found. I will set restart=false for this run.");
+			param.restart = 0;
+		}
+	}
+	
+	if(!param.restart) {
 		noutput_flow=0;
 		lastoutput_time = param.t_initial - param.toutput_time;
 		lastoutput_flow = param.t_initial - param.toutput_flow;
 		lastoutput_dump = param.t_initial - param.toutput_dump;
 	
 		init1Dspectrum();
+		clear_timevar();
 	}
 	
 	DEBUG_END_FUNC;
@@ -1504,23 +1548,3 @@ void dump_immediate(const double t) {
 	output_dump(fld,t);
 	return;
 }
-/**************************************************************************************/
-/** 
-	Remove the timevar file (if exists) to start from a fresh one.
-*/
-/**************************************************************************************/
-void clear_timevar() {
-	FILE* ht;
-
-	DEBUG_START_FUNC;
-	
-	if(rank==0) {
-	ht=fopen("timevar","w");
-	fclose(ht);
-	}
-
-	DEBUG_END_FUNC;
-	return;
-}
-	
-	
