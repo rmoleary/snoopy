@@ -359,6 +359,11 @@ void output1Dspectrum(const struct Field fldi, const double ti) {
 	write_spectrum(fldi.bz, w3, ti);
 	
 #else
+	// The zero array is to be used for dummy spectrums
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		w1[i] = 0.0;
+	}
+	
 	write_spectrum(w1, w1, ti);
 	write_spectrum(w1, w1, ti);
 	write_spectrum(w1, w1, ti);
