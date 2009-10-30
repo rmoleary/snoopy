@@ -51,10 +51,12 @@
 		- MRI problem consistant with Hawley, Gammie, Balbus (1995) in terms of time units
 		- Added more spectra in spectrum.dat, including transfer spectra and fix a binning problem
 		- Possible to add "hard" object in the flow (this is an alpha feature)
-		- Subcritical baroclinic instability setup provided (with-problem=sbi)
+		- Subcritical baroclinic instability setup provided (--with-problem=sbi when using the configure script)
 		- Several improvement in the I/O routine
 		- Include example Matlab scripts in the distribution
 		- fixed a bug with some intel compilers concerning the optimisation (-ansi-alias)
+		- added ABC forcing (see forcing.c), thanks to E. Rempel
+		- fixed a bug in the restart routine when no dump file was found
 		
 	\subsection igor Igor (v4.0)
 		Initial release
