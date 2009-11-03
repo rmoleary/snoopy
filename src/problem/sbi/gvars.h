@@ -19,8 +19,8 @@
 #ifndef _GVARS_
 #define _GVARS_
 
-#define		NX				256			/**< X Dimension in real space. Must be multiples of NPROC when using MPI.*/
-#define		NY				256			/**< Y Dimension in real space. Must be multiples of NPROC when using MPI.*/
+#define		NX				512			/**< X Dimension in real space. Must be multiples of NPROC when using MPI.*/
+#define		NY				512			/**< Y Dimension in real space. Must be multiples of NPROC when using MPI.*/
 #define		NZ				2			/**< Z Dimension in real space. */
 
 //#define		MHD						/**< Uncomment to activate MHD*/
