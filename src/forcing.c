@@ -38,9 +38,9 @@ void forcing(struct Field fldi,
 			 double dt) {
 			 
 // Force random velocity field
-	const double kf = 2.0 * M_PI * 2.0;
+	const double kf = 3.0 * M_PI * 2.0;
 	const double deltakf = kf * 0.2;
-	const double amplitude_forcing = 0.05;
+	const double amplitude_forcing = 1.0;
 
 	// Force all the vector
 	
