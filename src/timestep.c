@@ -102,16 +102,6 @@ void timestep( struct Field dfldo,
 	}
 	
 	
-	/*
-	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
-		dfldo.vx[i] = 0.0;
-		dfldo.vy[i] = 0.0;
-		dfldo.vz[i] = 0.0;
-		
-	}
-	*/
-
-
 /**********************************************
 ** BOUSSINESQ TERMS (if needed) ***************
 ***********************************************/
