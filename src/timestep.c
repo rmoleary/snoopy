@@ -68,6 +68,7 @@ void timestep( struct Field dfldo,
 	gfft_c2r_t(w3);
 	
 		/* Compute the convolution for the advection process */
+	
 #ifdef _OPENMP
 	#pragma omp parallel for private(i) schedule(static)	
 #endif
@@ -99,6 +100,16 @@ void timestep( struct Field dfldo,
 					kxt[i] * w8[i] + ky[i] * w9[i] + kz[i] * w6[i] );
 		
 	}
+	
+	
+	/*
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		dfldo.vx[i] = 0.0;
+		dfldo.vy[i] = 0.0;
+		dfldo.vz[i] = 0.0;
+		
+	}
+	*/
 
 
 /**********************************************
