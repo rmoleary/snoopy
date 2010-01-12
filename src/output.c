@@ -443,105 +443,7 @@ void init1Dspectrum() {
 }
 
 
-/***********************************************************/
-/** 
-	Output a plain binary file (.raw file) from a complex array.
-	The option FORTRAN_OUTPUT_ORDER can be used to emulate the output
-	from a fortran code (row major order).
-	This routine (contrarily to vtk routines) don't need extra memory
-	for outputs. It should therefore been considered when memory is an issue
-	for large resolution runs.
-	
-	@param t Current time of the simulation
-	@param filename Filename of the output file
-	@param wi Complex array containing the field to be written. This array is transformed into real space
-	and remapped (if SHEAR is present) before being written
-	
-	\bug the FORTRAN_OUTPUT_ORDER option doesn't work when MPI is used
-	
-*/
-/***********************************************************/
-void write_snap(const double t, const char filename[], const double complex wi[]) {
-	// Write the complex field wi[] in file filename. We need t for the remap thing.
-	FILE *ht;
-	int i,j,k;
-#ifdef MPI_SUPPORT
-	int current_rank;
-	MPI_Status status;
-#endif
 
-	DEBUG_START_FUNC;
-	
-	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
-		w1[i] = wi[i];
-	}
-	
-	gfft_c2r(w1);
-	
-	for( i = 0 ; i < 2 * NTOTAL_COMPLEX ; i++) {
-		wr1[i] = wr1[i] / ((double) NTOTAL );
-	}
-	
-#ifdef WITH_SHEAR
-	remap_output(wr1,t);
-#endif
-	
-#ifdef MPI_SUPPORT
-	if(rank==0) {
-#endif
-	
-	ht=fopen(filename,"w");
-	
-#ifdef MPI_SUPPORT
-		for(current_rank=0; current_rank<NPROC; current_rank++) {
-			if(current_rank!=0) {
-				// We're not writing the array of the local_process...
-				MPI_Recv( wr1, NTOTAL_COMPLEX * 2, MPI_DOUBLE, current_rank, 1, MPI_COMM_WORLD, &status);
-			}
-#endif	
-
-	if(param.fortran_output_order) {
-		for( k = 0 ; k < NZ; k++) {
-			for( j = 0; j < NY; j++) {
-				for( i = 0; i < NX/NPROC; i++) {
-					fwrite(&wr1[k + j * (NZ + 2) + i * NY * (NZ + 2) ], sizeof(double), 1, ht);
-				}
-			}
-		}
-	}
-	else {
-		for( i = 0; i < NX/NPROC; i++) {
-			for( j = 0; j < NY; j++) {
-				for( k = 0 ; k < NZ; k++) {
-					fwrite(&wr1[k + j * (NZ + 2) + i * NY * (NZ + 2) ], sizeof(double), 1, ht);
-				}
-			}
-		}
-	}
-				
-#ifdef MPI_SUPPORT
-	}	// Close the for loop
-#endif
-	fclose(ht);
-
-#ifdef MPI_SUPPORT
-		// Wait for synchronization once everything is done...
-		MPI_Barrier(MPI_COMM_WORLD);
-	}  // Close the if on the rank
-	else {
-		// Send my array to process 0, and then synchronize
-		MPI_Send( wr1, NTOTAL_COMPLEX * 2, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
-		MPI_Barrier(MPI_COMM_WORLD);
-	}
-#endif
-
-	DEBUG_END_FUNC;
-	
-	return;
-
-}
-
-// VTK output using the visit_writer code.
 /*************************************************
 ** VTK For HD*************************************
 **************************************************/
@@ -686,6 +588,7 @@ void output_vtk(const int n, double t) {
 #else
 	array_size=NX*NY*NZ;
 #endif
+
 	if(rank==0) {
 		ht=fopen(filename,"w");
 	
@@ -703,18 +606,12 @@ void output_vtk(const int n, double t) {
 	
 		// Write the primary scalar (f***ing VTK legacy format...)
 		fprintf(ht, "POINT_DATA %d\n",array_size);
-		fprintf(ht, "SCALARS vx float\n");
+		fprintf(ht, "SCALARS %s float\n",fld.fname[0]);
 		fprintf(ht, "LOOKUP_TABLE default\n");
 	}
-	write_vtk(ht,fld.vx,t);
-
-	num_remain_field = 2;		// Number of remaining field to be written
-#ifdef MHD
-	num_remain_field += 3;
-#endif
-#ifdef BOUSSINESQ
-	num_remain_field += 1;
-#endif
+	write_vtk(ht,fld.farray[0],t);
+	
+	num_remain_field = fld.nfield - 1;		// we have already written the first one
 	
 	if(param.output_pressure)
 		num_remain_field +=1;
@@ -726,26 +623,11 @@ void output_vtk(const int n, double t) {
 	
 	// Write all the remaining fields
 	
-	if(rank==0) fprintf(ht, "vy 1 %d float\n",array_size);
-	write_vtk(ht,fld.vy,t);
+	for(i = 1 ; i < fld.nfield ; i++) {
+		if(rank==0) fprintf(ht, "%s 1 %d float\n",fld.fname[i],array_size);
+		write_vtk(ht,fld.farray[i],t);
+	}
 	
-	if(rank==0) fprintf(ht, "vz 1 %d float\n",array_size);
-	write_vtk(ht,fld.vz,t);
-
-#ifdef MHD
-	if(rank==0) fprintf(ht, "bx 1 %d float\n",array_size);
-	write_vtk(ht,fld.bx,t);
-
-	if(rank==0) fprintf(ht, "by 1 %d float\n",array_size);
-	write_vtk(ht,fld.by,t);
-
-	if(rank==0) fprintf(ht, "bz 1 %d float\n",array_size);
-	write_vtk(ht,fld.bz,t);
-#endif
-#ifdef BOUSSINESQ
-	if(rank==0) fprintf(ht, "th 1 %d float\n",array_size);
-	write_vtk(ht,fld.th,t);
-#endif	  
 	if(param.output_pressure) {
 		if(rank==0) fprintf(ht, "p 1 %d float\n",array_size);	// Output the pressure field when needed.
 		write_vtk(ht,pressure,t);
@@ -773,54 +655,6 @@ void output_vtk(const int n, double t) {
 	
 }
 	
-/***********************************************************/
-/** 
-	Output plain binary snaphsost (raw files) readable by any
-	descent software. This routine calls the relevant
-	write subroutine for each field.
-	@param n Number of the file in which the output will done.
-	@param t Current time of the simulation
-*/
-/***********************************************************/
-	
-void output_flow(const int n, const double t) {
-	char filename[50];
-	
-	DEBUG_START_FUNC;
-	
-	sprintf(filename,"data/vx%04i.raw",n);
-	write_snap(t, filename, fld.vx);
-	
-	sprintf(filename,"data/vy%04i.raw",n);
-	write_snap(t, filename, fld.vy);
-	
-	sprintf(filename,"data/vz%04i.raw",n);
-	write_snap(t, filename, fld.vz);
-	
-#ifdef BOUSSINESQ
-	sprintf(filename,"data/th%04i.raw",n);
-	write_snap(t, filename, fld.th);
-#endif
-
-#ifdef MHD
-	sprintf(filename,"data/bx%04i.raw",n);
-	write_snap(t, filename, fld.bx);
-	
-	sprintf(filename,"data/by%04i.raw",n);
-	write_snap(t, filename, fld.by);
-	
-	sprintf(filename,"data/bz%04i.raw",n);
-	write_snap(t, filename, fld.bz);
-#endif
-
-	if(param.output_pressure) {
-		sprintf(filename,"data/p%04i.raw",n);
-		write_snap(t, filename, pressure);
-	}
-	DEBUG_END_FUNC;
-	
-	return;
-}
 
 /***********************************************************/
 /** 
@@ -1490,10 +1324,7 @@ void output(const double t) {
 	}
 	
 	if( (t-lastoutput_flow)>=param.toutput_flow) {
-		if(param.vtk_output) 
-			output_vtk(noutput_flow,t);
-		else
-			output_flow(noutput_flow,t);
+		output_vtk(noutput_flow,t);
 		noutput_flow++;
 		lastoutput_flow = lastoutput_flow + param.toutput_flow;
 	}
@@ -1532,10 +1363,7 @@ void output_immediate(const double t) {
 	// Very rough output function
 	// Immediate output
 	output_timevar(fld,t);
-	if(param.vtk_output) 
-		output_vtk(noutput_flow,t);
-	else
-		output_flow(noutput_flow,t);
+	output_vtk(noutput_flow,t);
 	noutput_flow++;
 	output_dump(fld,t);
 	return;

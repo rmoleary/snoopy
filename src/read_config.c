@@ -133,13 +133,6 @@ read_config() {
 		if(!config_lookup_float(&config, "output.dump_step",&param.toutput_dump)) {
 			param.toutput_dump = 1.0;
 		}
-		if(!config_lookup_bool(&config, "output.vtk_output",&param.vtk_output)) {
-			param.vtk_output = 1;
-		}
-		if(!config_lookup_bool(&config, "output.fortran_output_order",&param.fortran_output_order)) {
-			param.fortran_output_order = 0;
-		}
-	
 		if(!config_lookup_bool(&config, "output.pressure",&param.output_pressure)) {
 			param.output_pressure = 0;
 		}

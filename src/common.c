@@ -84,6 +84,8 @@ int		nthreads;								/**< Number of OpenMP threads */
 
 
 /* Function prototypes */
+void allocate_field(struct Field *fldi);
+void deallocate_field(struct Field *fldi);
 void init_N2_profile();
 void init_real_mask();
 
@@ -195,29 +197,7 @@ void init_common(void) {
 // Allocate fields
 // Complex fields
 	
-	fld.vx = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
-	if (fld.vx == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld.vx allocation");
-	
-	fld.vy = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
-	if (fld.vy == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld.vy allocation");
-	
-	fld.vz = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
-	if (fld.vz == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld.vz allocation");
-	
-#ifdef BOUSSINESQ
-	fld.th = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
-	if (fld.th == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld.th allocation");
-#endif
-#ifdef MHD
-	fld.bx = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
-	if (fld.bx == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld.vx allocation");
-	
-	fld.by = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
-	if (fld.by == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld.vy allocation");
-	
-	fld.bz = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
-	if (fld.bz == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld.vz allocation");
-#endif
+	allocate_field(&fld);
 
 	w1 = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (w1 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w1 allocation");
@@ -297,17 +277,9 @@ void finish_common(void) {
 	free(k2t);
 	free(ik2t);
 	free(mask);
-	free(fld.vx);
-	free(fld.vy);
-	free(fld.vz);
-#ifdef BOUSSINESQ
-	free(fld.th);
-#endif
-#ifdef MHD
-	free(fld.bx);
-	free(fld.by);
-	free(fld.bz);
-#endif
+
+	deallocate_field(&fld);
+	
 	free(w1);
 	free(w2);
 	free(w3);
@@ -320,6 +292,137 @@ void finish_common(void) {
 
 	return;
 }
+
+
+/*********************************************/
+/**
+Allocate a field structure according to the code
+current configuration
+This routine allows one to add extra fields
+to the code very easily.
+**/
+/*********************************************/
+void allocate_field(struct Field *fldi) {
+	int current_field, i;
+	
+	DEBUG_START_FUNC;
+	
+	// We want to allocate a field structure
+	fldi->nfield = 3;	
+		
+#ifdef BOUSSINESQ
+	fldi->nfield++;
+#endif
+
+#ifdef MHD
+	fldi->nfield=fldi->nfield+3;
+#endif
+
+	// Now we want to initialize the pointers of the field structure
+	
+	// farray will point to each of the array previously allocated
+	fldi->farray = (double complex **) fftw_malloc( sizeof(double complex *) * fldi->nfield);
+	if (fldi->farray == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fldi->farray allocation");
+	
+	// fname will point to the name of each field
+	fldi->fname = (char **) fftw_malloc(sizeof(char *) * fldi->nfield);
+	if (fldi->fname == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fldi->fname allocation");
+	
+	// Initialise the pointers
+	for(i=0 ; i < fldi->nfield ; i++) {
+		fldi->fname[i] = (char *) fftw_malloc(sizeof(char) * 10); // 10 character to describe each field
+		if (fldi->fname[i] == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fldi->fname[i] allocation");
+	}
+	
+	// Allocate the arrays and put the right value in each pointer
+	
+	current_field = 0;
+
+	fldi->vx = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
+	if (fldi->vx == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fldi->vx allocation");
+	fldi->farray[current_field] = fldi->vx;
+	sprintf(fldi->fname[current_field],"vx");
+	current_field++;
+	
+	fldi->vy = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
+	if (fldi->vy == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fldi->vy allocation");
+	fldi->farray[current_field] = fldi->vy;
+	sprintf(fldi->fname[current_field],"vy");
+	current_field++;
+	
+	fldi->vz = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
+	if (fldi->vz == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fldi->vz allocation");
+	fldi->farray[current_field] = fldi->vz;
+	sprintf(fldi->fname[current_field],"vz");
+	current_field++;
+	
+#ifdef BOUSSINESQ
+	fldi->th = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
+	if (fldi->th == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fldi->th allocation");
+	fldi->farray[current_field] = fldi->th;
+	sprintf(fldi->fname[current_field],"th");
+	current_field++;
+#endif
+#ifdef MHD
+	fldi->bx = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
+	if (fldi->bx == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fldi->bx allocation");
+	fldi->farray[current_field] = fldi->bx;
+	sprintf(fldi->fname[current_field],"bx");
+	current_field++;
+	
+	fldi->by = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
+	if (fldi->by == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fldi->by allocation");
+	fldi->farray[current_field] = fldi->by;
+	sprintf(fldi->fname[current_field],"by");
+	current_field++;
+	
+	fldi->bz = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
+	if (fldi->bz == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fldi->bz allocation");
+	fldi->farray[current_field] = fldi->bz;
+	sprintf(fldi->fname[current_field],"bz");
+	current_field++;
+#endif
+
+	// Add a field here if you need one... (don't forget to ajust fldi.nfield accordingly)
+	// *
+	
+	// Ok, all done...
+	
+	DEBUG_END_FUNC;
+	
+	return;
+}
+/*********************************************/
+/**
+Deallocate a field structure created by
+allocate_field
+**/
+/*********************************************/
+void deallocate_field(struct Field *fldi) {
+	int i;
+	// Free a field structure
+	
+	DEBUG_START_FUNC;
+	
+	for(i=0 ; i < fldi->nfield ; i++) {
+		fftw_free(fldi->fname[i]);
+		fftw_free(fldi->farray[i]);
+	}
+	
+	fftw_free(fldi->farray);
+	fftw_free(fldi->fname);
+	
+	// Done
+	
+	DEBUG_END_FUNC;
+	
+	return;
+}
+	
+	
+	
+	
+
 /*********************************************/
 /**
 Customized random number generator

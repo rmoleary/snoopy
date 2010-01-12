@@ -71,6 +71,8 @@ extern int	nthreads;
 
 void init_common ( void );
 void finish_common ( void );
+void allocate_field(struct Field *fldi);
+void deallocate_field(struct Field *fldi);
 double get_c_time(void);
 
 // Useful only if MPI is active. Can be called without though...

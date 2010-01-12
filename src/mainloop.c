@@ -157,52 +157,11 @@ void init_mainloop() {
 
 	DEBUG_START_FUNC;
 	
-	dfld.vx = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
-	if (dfld.vx == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for dfld.vx allocation");
-	
-	dfld.vy = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
-	if (dfld.vy == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for dfld.vy allocation");
-	
-	dfld.vz = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
-	if (dfld.vz == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for dfld.vz allocation");
-	
-	fld1.vx = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
-	if (fld1.vx == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld1.vx allocation");
-	
-	fld1.vy = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
-	if (fld1.vy == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld1.vy allocation");
-	
-	fld1.vz = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
-	if (fld1.vz == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld1.vz allocation");
-
-#ifdef BOUSSINESQ
-	dfld.th = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
-	if (dfld.th == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for dfld.th allocation");
-	
-	fld1.th = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
-	if (fld1.th == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld1.th allocation");
-#endif
-#ifdef MHD
-	dfld.bx = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
-	if (dfld.bx == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for dfld.bx allocation");
-	
-	dfld.by = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
-	if (dfld.by == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for dfld.by allocation");
-	
-	dfld.bz = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
-	if (dfld.bz == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for dfld.bz allocation");
-	
-	fld1.bx = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
-	if (fld1.bx == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld1.bx allocation");
-	
-	fld1.by = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
-	if (fld1.by == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld1.by allocation");
-	
-	fld1.bz = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
-	if (fld1.bz == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fld1.bz allocation");
-#endif
+	allocate_field(&dfld);
+	allocate_field(&fld1);
 	
 // Init the Runge-Kutta timestepping
+// Values coming from Brandenburg (2001) page 8
 
 	gammaRK[0] = 8.0 / 15.0;
 	gammaRK[1] = 5.0 / 12.0;
@@ -217,27 +176,8 @@ void init_mainloop() {
 }
 
 void finish_mainloop() {
-	free(fld1.vx);
-	free(fld1.vy);
-	free(fld1.vz);
-	
-	free(dfld.vx);
-	free(dfld.vy);
-	free(dfld.vz);
-	
-#ifdef BOUSSINESQ
-	free(fld1.th);
-	free(dfld.th);
-#endif
-#ifdef MHD
-	free(fld1.bx);
-	free(fld1.by);
-	free(fld1.bz);
-	
-	free(dfld.bx);
-	free(dfld.by);
-	free(dfld.bz);
-#endif
+	deallocate_field(&fld1);
+	deallocate_field(&dfld);
 	return;
 }
 
@@ -256,7 +196,7 @@ void mainloop(double t_start, double t_end) {
 	double		tremap = 0.0;
 	
 	double timer_end, timer_start;
-	int i,nloop;
+	int i,n,nloop;
 	
 	DEBUG_START_FUNC;
 	
@@ -312,32 +252,21 @@ void mainloop(double t_start, double t_end) {
 		timestep(dfld, fld, pressure, t, dt );
 		
 #ifdef _OPENMP
-		#pragma omp parallel for private(i) schedule(static)	
+		#pragma omp parallel private(i,n) 
+		{
 #endif
-		for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
-			fld.vx[i]  = fld.vx[i] + gammaRK[0] * dfld.vx[i] * dt;
-			fld.vy[i]  = fld.vy[i] + gammaRK[0] * dfld.vy[i] * dt;
-			fld.vz[i]  = fld.vz[i] + gammaRK[0] * dfld.vz[i] * dt;
-
-			fld1.vx[i] = fld.vx[i] + xiRK[0] * dfld.vx[i] * dt;
-			fld1.vy[i] = fld.vy[i] + xiRK[0] * dfld.vy[i] * dt;
-			fld1.vz[i] = fld.vz[i] + xiRK[0] * dfld.vz[i] * dt;
-			
-#ifdef BOUSSINESQ
-			fld.th[i]  = fld.th[i] + gammaRK[0] * dfld.th[i] * dt;
-
-			fld1.th[i] = fld.th[i] + xiRK[0] * dfld.th[i] * dt;
+		for( n = 0 ; n < fld.nfield ; n++) {
+#ifdef _OPENMP
+		#pragma omp for schedule(static)	
 #endif
-#ifdef MHD
-			fld.bx[i]  = fld.bx[i] + gammaRK[0] * dfld.bx[i] * dt;
-			fld.by[i]  = fld.by[i] + gammaRK[0] * dfld.by[i] * dt;
-			fld.bz[i]  = fld.bz[i] + gammaRK[0] * dfld.bz[i] * dt;
-
-			fld1.bx[i] = fld.bx[i] + xiRK[0] * dfld.bx[i] * dt;
-			fld1.by[i] = fld.by[i] + xiRK[0] * dfld.by[i] * dt;
-			fld1.bz[i] = fld.bz[i] + xiRK[0] * dfld.bz[i] * dt;
-#endif			
+			for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+				fld.farray[n][i] = fld.farray[n][i] + gammaRK[0] * dfld.farray[n][i] * dt;
+				fld1.farray[n][i] = fld.farray[n][i] + xiRK[0] * dfld.farray[n][i] * dt;
+			}
 		}
+#ifdef _OPENMP
+		}
+#endif
 		
 #ifdef DEBUG
 		MPI_Printf("RK, 1st Step:\n");
@@ -361,31 +290,21 @@ void mainloop(double t_start, double t_end) {
 		timestep(dfld, fld, NULL, t+gammaRK[0]*dt, dt);
 
 #ifdef _OPENMP
-		#pragma omp parallel for private(i) schedule(static)	
+		#pragma omp parallel private(i,n) 
+		{
 #endif
-		for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
-			fld.vx[i]  = fld1.vx[i] + gammaRK[1] * dfld.vx[i] * dt;
-			fld.vy[i]  = fld1.vy[i] + gammaRK[1] * dfld.vy[i] * dt;
-			fld.vz[i]  = fld1.vz[i] + gammaRK[1] * dfld.vz[i] * dt;
-			
-			fld1.vx[i] = fld.vx[i] + xiRK[1] * dfld.vx[i] * dt;
-			fld1.vy[i] = fld.vy[i] + xiRK[1] * dfld.vy[i] * dt;
-			fld1.vz[i] = fld.vz[i] + xiRK[1] * dfld.vz[i] * dt;
-			
-#ifdef BOUSSINESQ
-			fld.th[i]  = fld1.th[i] + gammaRK[1] * dfld.th[i] * dt;
-			fld1.th[i] = fld.th[i] + xiRK[1] * dfld.th[i] * dt;
+		for( n = 0 ; n < fld.nfield ; n++) {
+#ifdef _OPENMP
+		#pragma omp for schedule(static)	
 #endif
-#ifdef MHD
-			fld.bx[i]  = fld1.bx[i] + gammaRK[1] * dfld.bx[i] * dt;
-			fld.by[i]  = fld1.by[i] + gammaRK[1] * dfld.by[i] * dt;
-			fld.bz[i]  = fld1.bz[i] + gammaRK[1] * dfld.bz[i] * dt;
-			
-			fld1.bx[i] = fld.bx[i] + xiRK[1] * dfld.bx[i] * dt;
-			fld1.by[i] = fld.by[i] + xiRK[1] * dfld.by[i] * dt;
-			fld1.bz[i] = fld.bz[i] + xiRK[1] * dfld.bz[i] * dt;
-#endif
+			for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+				fld.farray[n][i] = fld1.farray[n][i] + gammaRK[1] * dfld.farray[n][i] * dt;
+				fld1.farray[n][i] = fld.farray[n][i] + xiRK[1] * dfld.farray[n][i] * dt;
+			}
 		}
+#ifdef _OPENMP
+		}
+#endif
 
 #ifdef DEBUG
 		MPI_Printf("RK, 2nd Step:\n");
@@ -410,21 +329,20 @@ void mainloop(double t_start, double t_end) {
 		timestep(dfld, fld, NULL, t + (gammaRK[0] + xiRK[0] + gammaRK[1]) * dt, dt);
 
 #ifdef _OPENMP
-		#pragma omp parallel for private(i) schedule(static)	
-#endif			
-		for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
-			fld.vx[i]  = fld1.vx[i] + gammaRK[2] * dfld.vx[i] * dt;
-			fld.vy[i]  = fld1.vy[i] + gammaRK[2] * dfld.vy[i] * dt;
-			fld.vz[i]  = fld1.vz[i] + gammaRK[2] * dfld.vz[i] * dt;
-#ifdef BOUSSINESQ
-			fld.th[i]  = fld1.th[i] + gammaRK[2] * dfld.th[i] * dt;
+		#pragma omp parallel private(i,n) 
+		{
 #endif
-#ifdef MHD
-			fld.bx[i]  = fld1.bx[i] + gammaRK[2] * dfld.bx[i] * dt;
-			fld.by[i]  = fld1.by[i] + gammaRK[2] * dfld.by[i] * dt;
-			fld.bz[i]  = fld1.bz[i] + gammaRK[2] * dfld.bz[i] * dt;
+		for( n = 0 ; n < fld.nfield ; n++) {
+#ifdef _OPENMP
+		#pragma omp for schedule(static)	
 #endif
+			for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+				fld.farray[n][i] = fld1.farray[n][i] + gammaRK[2] * dfld.farray[n][i] * dt;
+			}
 		}
+#ifdef _OPENMP
+		}
+#endif
 
 #ifdef DEBUG
 		MPI_Printf("RK, 3rd Step:\n");
@@ -453,19 +371,11 @@ void mainloop(double t_start, double t_end) {
 		// Check if a remap is needed
 		if(tremap > param.ly / (2.0 * param.shear * param.lx)) {
 			tremap = time_shift(t);    // Recompute tremap from current time, assuming all the remaps have been done
-			remap(fld.vx);
-			remap(fld.vy);
-			remap(fld.vz);
+			for( n = 0 ; n < fld.nfield ; n++) {
+				remap(fld.farray[n]);
+			}
 			if(param.output_pressure)
 				remap(pressure);
-#ifdef BOUSSINESQ
-			remap(fld.th);
-#endif
-#ifdef MHD
-			remap(fld.bx);
-			remap(fld.by);
-			remap(fld.bz);
-#endif
 		}
 #endif
 		kvolve(tremap);

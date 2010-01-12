@@ -66,6 +66,11 @@
 // Structures
 
 struct Field {
+	int	   nfield;
+	double complex **farray;
+	char   **fname;
+	
+	 // This are the actual fields. 
 	double complex *vx;
 	double complex *vy;
 	double complex *vz;
@@ -120,10 +125,6 @@ struct Parameters {
 	double toutput_time;		/**< Time between two outputs in the timevar file */
 	double toutput_flow;		/**< Time between two snapshot outputs */
 	double toutput_dump;		/**< Time between two restart dump outputs (restart dump are erased) */
-	
-	int    fortran_output_order;	/**< If vtk_output is off, the code will output binary in C-major order. Set this option to get output in FORTRAN-major order (doesn't work with MPI) */
-
-	int    vtk_output;			/**< Use VTK legacy files for output instead of raw binaries (useful with paraview) */
 	
 	int		output_pressure;	/**< Output the pressure field in the 3D snapshots */
 	int		output_vorticity;	/**< Output the vorticity field in the 3D snapshots */

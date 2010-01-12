@@ -35,11 +35,11 @@ void error_h (const int ErrorType,
 	if ( ErrorType == ERROR_CRITICAL )
 		MPI_Printf("Critical Error in ");
 	MPI_Printf("File: ");
-	MPI_Printf(Filename);
+	MPI_Printf("%s",Filename);
 	MPI_Printf(" Routine: ");
-	MPI_Printf(ErrorRoutine);
-		MPI_Printf(" Line: %d \n",line);
-	MPI_Printf(ErrorMessage);
+	MPI_Printf("%s",ErrorRoutine);
+	MPI_Printf(" Line: %d \n",line);
+	MPI_Printf("%s",ErrorMessage);
 	
 	if(ErrorType == ERROR_CRITICAL) {
 		MPI_Printf("\n Terminating.\n");
