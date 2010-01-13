@@ -414,18 +414,10 @@ void init_flow() {
 	DEBUG_START_FUNC;
 	// Initialise vectors to 0
 	
-	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
-		fld.vx[ i ] = 0.0;
-		fld.vy[ i ] = 0.0;
-		fld.vz[ i ] = 0.0;
-#ifdef BOUSSINESQ
-		fld.th[ i ] = 0.0;
-#endif
-#ifdef MHD
-		fld.bx[ i ] = 0.0;
-		fld.by[ i ] = 0.0;
-		fld.bz[ i ] = 0.0;
-#endif
+	for( n = 0 ; n < fld.nfield ; n++) {
+		for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+			fld.farray[n][i] = 0.0;
+		}
 	}
 	
 	if(param.init_large_scale_noise) init_LargeScaleNoise();
