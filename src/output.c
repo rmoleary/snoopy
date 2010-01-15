@@ -862,7 +862,7 @@ void output_timevar(const struct Field fldi,
 		fprintf(ht,"%08e\t%08e\t",thmax,thmin);
 		fprintf(ht,"%08e\t%08e\t%08e",vort2,curr2,helicity);
 #ifdef TIME_DEPENDANT_SHEAR
-		fprintf(ht,"\t%08e",param.shear * param.omega_shear * cos(param.omega_shear * t));
+		fprintf(ht,"\t%08e", cos(param.omega_shear * t) / param.shear );		// This parameter times the Reynolds stress leads to the instantenous "turbulent" viscosity
 #endif
 		fprintf(ht,"\n");
 		fclose(ht);

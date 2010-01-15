@@ -43,7 +43,7 @@ void timestep( struct Field dfldo,
 	// Find the shear at time t
 #ifdef WITH_SHEAR
 #ifdef TIME_DEPENDANT_SHEAR
-	S = param.shear * param.omega_shear * cos(param.omega_shear * t);
+	S = param.shear * cos(param.omega_shear * t);	// This is the real shear: -dvy/dx
 #else
 	S = param.shear;
 #endif

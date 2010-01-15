@@ -28,7 +28,7 @@
 double time_shift(double t) {
 	double tremap;
 #ifdef TIME_DEPENDANT_SHEAR
-	tremap = sin(param.omega_shear * t);
+	tremap = sin(param.omega_shear * t) / param.omega_shear;	// This is formally the angular displacement divded by param.shear= int dt S(t) /<S>
 #else
 	tremap = fmod(t + param.ly / (2.0 * param.shear * param.lx) , param.ly / (param.shear * param.lx)) - param.ly / (2.0 * param.shear * param.lx);
 #endif
