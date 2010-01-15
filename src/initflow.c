@@ -72,7 +72,8 @@ void init_SpatialStructure() {
 	for(i = 0 ; i < NX/NPROC ; i++) {
 		for(j = 0 ; j < NY ; j++) {
 			for(k = 0 ; k < NZ + 2 ; k++) {
-				wr1[k + (NZ + 2) * j + (NZ + 2) * NY * i] = 0.0;
+				wr1[k + (NZ + 2) * j + (NZ + 2)[nx,ny]=size(x2d);
+psi=zeros(nx,ny); * NY * i] = 0.0;
 				wr2[k + (NZ + 2) * j + (NZ + 2) * NY * i] = 0.0;
 				wr3[k + (NZ + 2) * j + (NZ + 2) * NY * i] = 0.0;
 				wr4[k + (NZ + 2) * j + (NZ + 2) * NY * i] = 0.0;
@@ -408,7 +409,7 @@ void init_MeanField() {
 }
 /** Init the flow arrays... */	
 void init_flow() {
-	int i;
+  int i,n;
 	double dummy_var;
 	
 	DEBUG_START_FUNC;
