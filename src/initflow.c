@@ -408,7 +408,7 @@ void init_MeanField() {
 }
 /** Init the flow arrays... */	
 void init_flow() {
-	int i;
+  int i,n;
 	double dummy_var;
 	
 	DEBUG_START_FUNC;
