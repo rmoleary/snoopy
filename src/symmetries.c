@@ -63,6 +63,7 @@ void symmetrize_complex(double complex wi[]) {
 	}
 #endif
 
+#ifndef WITH_2D
 	// put kz=0 plane in w1
 	k=0;
 	index=0;
@@ -72,6 +73,17 @@ void symmetrize_complex(double complex wi[]) {
 			index++;
 		}
 	}
+#else
+// put ky=0 line in w1
+	j=0;
+	k=0;
+	index=0;
+	for(i=0 ; i< NX_COMPLEX/NPROC ; i++) {
+		w1[index] = wi[ IDX3D ];
+		index++;
+	}
+#endif
+
 
 #ifdef MPI_SUPPORT
 	// construct the full kz=0 plane in zplane on rank=0 process
@@ -82,6 +94,7 @@ void symmetrize_complex(double complex wi[]) {
 	zplane = w1;
 #endif
 
+#ifndef WITH_2D
 	// Now let's do the nasty symmetrization bit
 	if(rank==0) {
 		// kz=0, ky!=0
@@ -111,6 +124,24 @@ void symmetrize_complex(double complex wi[]) {
 			zplane[ idx2dconj ] = conj(q0);
 		}
 	}
+
+#else
+
+	if(rank==0) {
+
+		// ky=0
+		
+		for (i=1 ; i < NX_COMPLEX / 2 ; i++) {
+			idx2d     = NY_COMPLEX * i; // That's actually IDX3D
+			idx2dconj = NY_COMPLEX * (NX_COMPLEX - i); // where the complex conjugate should be
+			
+			q0=0.5*( zplane[ idx2d ] + conj(zplane[ idx2dconj ]) );
+				
+			zplane[ idx2d ] = q0;
+			zplane[ idx2dconj ] = conj(q0);
+		}
+	}
+#endif
 	
 	// Wait until the symmetrization is finished.
 #ifdef MPI_SUPPORT	
@@ -124,6 +155,7 @@ void symmetrize_complex(double complex wi[]) {
 	// No need to translate that back when no MPI is available since zplane=w1
 
 	// Put it back in the array
+#ifndef WITH_2D
 	k=0;
 	index=0;
 	for(i=0 ; i< NX_COMPLEX/NPROC ; i++) {
@@ -132,6 +164,15 @@ void symmetrize_complex(double complex wi[]) {
 			index++;
 		}
 	}
+#else
+	j=0;
+	k=0;
+	index=0;
+	for(i=0 ; i< NX_COMPLEX/NPROC ; i++) {
+		wi[IDX3D] = w1[index];
+		index++;
+	}
+#endif
 	// that's all folks...
 	
 #ifdef MPI_SUPPORT

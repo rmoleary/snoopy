@@ -228,11 +228,19 @@ void init_gfft() {
 	fftw_plan_with_nthreads( nthreads );
 #endif
 	
+#ifdef WITH_2D
+	r2cfft = fftw_plan_dft_r2c_2d( NX, NY, wr1, w1,  FFT_PLANNING);
+	if (r2cfft == NULL) ERROR_HANDLER( ERROR_CRITICAL, "FFTW R2C plan creation failed");
+
+	c2rfft = fftw_plan_dft_c2r_2d( NX, NY, w1,  wr1, FFT_PLANNING);
+	if (c2rfft == NULL) ERROR_HANDLER( ERROR_CRITICAL, "FFTW C2R plan creation failed");
+#else
 	r2cfft = fftw_plan_dft_r2c_3d( NX, NY, NZ, wr1, w1,  FFT_PLANNING);
 	if (r2cfft == NULL) ERROR_HANDLER( ERROR_CRITICAL, "FFTW R2C plan creation failed");
 
 	c2rfft = fftw_plan_dft_c2r_3d( NX, NY, NZ, w1,  wr1, FFT_PLANNING);
 	if (c2rfft == NULL) ERROR_HANDLER( ERROR_CRITICAL, "FFTW C2R plan creation failed");
+#endif
 
 	
 	fftw_free(wi1);

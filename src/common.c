@@ -131,10 +131,16 @@ void init_common(void) {
 				kx[ IDX3D ] = (2.0 * M_PI) / param.lx *
 						(fmod( NX_COMPLEX * rank / NPROC  + i + (NX_COMPLEX / 2) ,  NX_COMPLEX ) - NX_COMPLEX / 2 );
 					 
+#ifdef WITH_2D
+				ky[ IDX3D ] = (2.0 * M_PI) / param.ly * j;
+					 
+				kz[ IDX3D ] = 0.0;
+#else
 				ky[ IDX3D ] = (2.0 * M_PI) / param.ly *
 						(fmod( j + (NY_COMPLEX / 2) ,  NY_COMPLEX ) - NY_COMPLEX / 2 );
 					 
 				kz[ IDX3D ] = (2.0 * M_PI) / param.lz * k;
+#endif
 
 				kxt[ IDX3D ]= kx[IDX3D];
 			
@@ -151,6 +157,9 @@ void init_common(void) {
 	kxmax = 2.0 * M_PI/ param.lx * ( (NX / 2) - 1);
 	kymax = 2.0 * M_PI/ param.ly * ( (NY / 2) - 1);
 	kzmax = 2.0 * M_PI/ param.lz * ( (NZ / 2) - 1);
+#ifdef WITH_2D
+	kzmax = 0.0;
+#endif
 	
 	kmax=pow(kxmax*kxmax+kymax*kymax+kzmax*kzmax,0.5);
 	
@@ -170,17 +179,20 @@ void init_common(void) {
 				
 					if( fabs( ky[ IDX3D ] ) > 2.0/3.0 * kymax)
 						mask[ IDX3D ] = 0.0;
-					
+#ifndef WITH_2D
 					if( fabs( kz[ IDX3D ] ) > 2.0/3.0 * kzmax)
 						mask[ IDX3D ] = 0.0;
+#endif
 				}
 				else {			
 					if (  NX_COMPLEX / NPROC * rank + i == NX_COMPLEX / 2 ) 
 						mask[ IDX3D ] = 0.0;
 					if ( j == NY_COMPLEX / 2 )  
 						mask[ IDX3D ] = 0.0;
+#ifndef WITH_2D
 					if ( k == NZ_COMPLEX ) 
 						mask[ IDX3D ] = 0.0;
+#endif
 				}
 			}
 		}
@@ -515,7 +527,11 @@ double energy(const double complex q[]) {
 	for( i = 0; i < NX_COMPLEX/NPROC; i++) {
 		for( j = 0; j < NY_COMPLEX; j++) {
 			for( k=0; k < NZ_COMPLEX; k++) {
-				if( k == 0) 
+#ifdef WITH_2D
+				if( j == 0)
+#else
+				if( k == 0)
+#endif
 					// k=0, we have all the modes.
 					energ_tot = energ_tot + creal( 0.5 * q[ IDX3D ] * conj( q[ IDX3D ] ) ) / ((double) NTOTAL*NTOTAL);
 				else

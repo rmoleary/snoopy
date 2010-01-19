@@ -36,6 +36,12 @@
 #endif
 
 #include "gvars.h"
+
+#ifdef WITH_2D
+#undef NZ
+#define NZ		1		// enforce NZ when in 2D
+#endif
+
 #include "error.h"
 
 
@@ -55,9 +61,15 @@
 
 #define		NTOTAL			NX * NY * NZ	/**< Total number of grid points over all the processors */
 
+#ifdef WITH_2D
+#define		NX_COMPLEX		NX				/**< Number of complex point in X over all the processes (Fourier space) */
+#define		NY_COMPLEX		(NY / 2 + 1)	/**< Number of complex point in Y over all the processes (Fourier space) */
+#define		NZ_COMPLEX		1				/**< Number of complex point in Z over all the processes (Fourier space) */
+#else
 #define		NX_COMPLEX		NX				/**< Number of complex point in X over all the processes (Fourier space) */
 #define		NY_COMPLEX		NY				/**< Number of complex point in Y over all the processes (Fourier space) */
 #define		NZ_COMPLEX		(NZ / 2 + 1)	/**< Number of complex point in Z over all the processes (Fourier space) */
+#endif
 
 #define		NTOTAL_COMPLEX	(NX_COMPLEX * NY_COMPLEX * NZ_COMPLEX / NPROC)	/**< Number of complex points in one MPI process */
 

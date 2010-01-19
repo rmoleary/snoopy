@@ -155,12 +155,15 @@ int main(int argc, char *argv[]) {
 	if(NX/NPROC < 1) ERROR_HANDLER( ERROR_CRITICAL, "NX should be a multiple of the number of process.");
 	if(NY/NPROC < 1) ERROR_HANDLER( ERROR_CRITICAL, "NY should be a multiple of the number of process.");
 	if(NZ < 2) ERROR_HANDLER( ERROR_CRITICAL, "You need NZ > 1, even if you want to do 2D simulations!.");
+#ifdef WITH_2D
+	ERROR_HANDLER( ERROR_CRITICAL,"MPI is not supported in 2D for the moment.");
+#endif
 #else
 	rank=0;
 #endif
 	print_logo();
 	MPI_Printf("The Snoopy code v5.0\n");
-	MPI_Printf("Copyright (c) 2004-2009 Geoffroy Lesur (University of Cambridge, UK)\n");
+	MPI_Printf("Copyright (c) 2004-2010 Geoffroy Lesur (University of Cambridge, UK)\n");
 	MPI_Printf("This program comes with ABSOLUTELY NO WARRANTY;\n");
 	MPI_Printf("This is free software, and you are welcome to\n");
     MPI_Printf("redistribute it under certain conditions.\n");

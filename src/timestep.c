@@ -75,7 +75,9 @@ void timestep( struct Field dfldo,
 	for( i = 0 ; i < 2*NTOTAL_COMPLEX ; i++) {
 		wr4[i] = wr1[i] * wr1[i] / ((double) NTOTAL*NTOTAL);
 		wr5[i] = wr2[i] * wr2[i] / ((double) NTOTAL*NTOTAL);
+#ifndef WITH_2D
 		wr6[i] = wr3[i] * wr3[i] / ((double) NTOTAL*NTOTAL);
+#endif
 		wr7[i] = wr1[i] * wr2[i] / ((double) NTOTAL*NTOTAL);
 		wr8[i] = wr1[i] * wr3[i] / ((double) NTOTAL*NTOTAL);
 		wr9[i] = wr2[i] * wr3[i] / ((double) NTOTAL*NTOTAL);
@@ -83,7 +85,9 @@ void timestep( struct Field dfldo,
 	
 	gfft_r2c_t(wr4);
 	gfft_r2c_t(wr5);
+#ifndef WITH_2D
 	gfft_r2c_t(wr6);
+#endif
 	gfft_r2c_t(wr7);
 	gfft_r2c_t(wr8);
 	gfft_r2c_t(wr9);
@@ -97,8 +101,7 @@ void timestep( struct Field dfldo,
 		dfldo.vy[i] = - I * mask[i] * (
 					kxt[i] * w7[i] + ky[i] * w5[i] + kz[i] * w9[i] );
 		dfldo.vz[i] = - I * mask[i] * (
-					kxt[i] * w8[i] + ky[i] * w9[i] + kz[i] * w6[i] );
-		
+					kxt[i] * w8[i] + ky[i] * w9[i] + kz[i] * w6[i] );	// since kz=0 in 2D, kz*w6 gives 0, even if w6 is some random array
 	}
 	
 	
@@ -122,7 +125,9 @@ void timestep( struct Field dfldo,
 	for( i = 0 ; i < 2*NTOTAL_COMPLEX ; i++) {		
 		wr5[i] = wr1[i] * wr4[i] / ((double) NTOTAL*NTOTAL);
 		wr6[i] = wr2[i] * wr4[i] / ((double) NTOTAL*NTOTAL);
+#ifndef WITH_2D
 		wr7[i] = wr3[i] * wr4[i] / ((double) NTOTAL*NTOTAL);
+#endif
 #ifdef N2PROFILE
 		wr8[i] = N2_profile[i] * wr4[i] / ((double) NTOTAL);
 #endif
@@ -130,7 +135,9 @@ void timestep( struct Field dfldo,
 
 	gfft_r2c_t(wr5);
 	gfft_r2c_t(wr6);
+#ifdef WITH_2D
 	gfft_r2c_t(wr7);
+#endif
 #ifdef N2PROFILE
 	gfft_r2c_t(wr8);
 #endif

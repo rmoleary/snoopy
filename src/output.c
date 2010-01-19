@@ -84,7 +84,11 @@ void remap_output(	double wri[],
 	for( i = 0 ; i < NX / NPROC ; i++) {
 		for( k = 0 ; k < NZ ; k++) {
 			for( j = 0 ; j < NY ; j++) {
+#ifdef WITH_2D
+				w1d[j] = wri[j + (NY + 2) * i];
+#else
 				w1d[j] = wri[k + j * (NZ + 2) + NY * (NZ + 2) * i];
+#endif
 			}
 		
 			// Transform w1d, which will be stored in w2d
@@ -108,7 +112,11 @@ void remap_output(	double wri[],
 			fftw_execute(fft_1d_backward);
 		
 			for( j = 0 ; j < NY ; j++) {
+#ifdef WITH_2D
+				wri[j + (NY + 2) * i] = w1d[j] / NY;
+#else
 				wri[k + j * (NZ + 2) + NY * (NZ + 2) * i] = w1d[j] / NY;
+#endif
 			}
 		}
 	}
@@ -149,7 +157,11 @@ void write_spectrum(const double complex wi[], const double complex wj[], const 
 			for( k = 0; k < NZ_COMPLEX; k++) {
 				m = (int) floor( pow( k2t[ IDX3D ], 0.5 ) / OUTPUT_SPECTRUM_K_BIN + 0.5 );
 				if ( m < nbin) {
+#ifdef WITH_2D
+					if( j == 0)
+#else
 					if( k == 0) 
+#endif
 						// k=0, we have all the modes.
 						spectrum[ m ] = spectrum[ m ] + creal( wi[ IDX3D ] * conj( wj[ IDX3D ] ) ) / ((double) NTOTAL*NTOTAL);
 					else
@@ -544,7 +556,11 @@ void write_vtk(FILE * ht, double complex wi[], const double t) {
 					fwrite(&q0, sizeof(float), 1, ht);
 				}
 #else
+#ifdef WITH_2D
+				q0 = big_endian( (float) wr1[j + i * (NY + 2)] );
+#else
 				q0 = big_endian( (float) wr1[k + j * (NZ + 2) + i * NY * (NZ + 2) ] );
+#endif
 				fwrite(&q0, sizeof(float), 1, ht);
 #endif
 			}
