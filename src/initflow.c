@@ -435,7 +435,7 @@ void init_flow() {
 	if(param.init_mean_field) init_MeanField();
 	
 	if(param.init_dump) {
-		read_dump(fld, &dummy_var);
+		read_dump(fld, &dummy_var,"init.dmp");
 		MPI_Printf("Initial conditions read successfully from the restart dump\n");
 	}
 

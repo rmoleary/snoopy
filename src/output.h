@@ -20,7 +20,9 @@ void output(const double t);
 void init_output();
 void finish_output();
 void read_dump(   struct Field fldo,
-				  double *t);
+				  double *t,
+				  char dump_file[]);
+				  
 void output_status(FILE * iostream);
 void output_immediate(const double t);
 void dump_immediate(const double t);

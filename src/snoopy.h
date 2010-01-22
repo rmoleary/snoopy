@@ -75,6 +75,13 @@
 
 #define		IDX3D			(k + j * NZ_COMPLEX + NZ_COMPLEX * NY_COMPLEX * i)  /**< General wrapper for 3D Arrays */
 
+// Filenames
+
+#define	OUTPUT_DUMP					"dump.dmp"			/**< Dump files filename. */
+#define OUTPUT_DUMP_SAV				"dump_sav.dmp"      /**< Previous (saved) output dump. */
+#define OUTPUT_DUMP_WRITE			"dump_write.dmp"	/**< dump currently written. */
+
+
 // Structures
 
 struct Field {

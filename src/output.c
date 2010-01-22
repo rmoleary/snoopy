@@ -28,10 +28,6 @@
 #define OUTPUT_SPECTRUM_K_BIN		(2.0 * M_PI)
 #define	OUTPUT_SPECTRUM_FILENAME	"spectrum.dat"
 
-#define	OUTPUT_DUMP					"dump.dmp"			/**< Dump files filename. */
-#define OUTPUT_DUMP_SAV				"dump_sav.dmp"      /**< Previous (saved) output dump. */
-#define OUTPUT_DUMP_WRITE			"dump_write.dmp"	/**< dump currently written. */
-
 #define	OUTPUT_DUMP_VERSION			04					/**< Version of the dump files read and written by this code. */
 
 #define	DUMP_MARKER					1981				/**< Marker used to signify the end of a dump file (it is also an excellent year...).*/
@@ -1120,7 +1116,8 @@ void output_dump( const struct Field fldi,
 */
 /**************************************************************************************/
 void read_dump(   struct Field fldo,
-				  double *t) {	
+				  double *t,
+				  char dump_file[]) {	
 				  
 	FILE *ht;
 	int dump_version;
@@ -1129,12 +1126,13 @@ void read_dump(   struct Field fldo,
 
 	DEBUG_START_FUNC;
 	
-	if( !file_exist(OUTPUT_DUMP) ) {
-		// The file can't be openend
+	if( !file_exist(dump_file) ) {
+		// The file cannot be opened
+		MPI_Printf("File %s not found\n",dump_file);
 		ERROR_HANDLER(ERROR_CRITICAL, "Cannot open dump file.");
 	}
 	
-	ht=fopen(OUTPUT_DUMP,"r");
+	ht=fopen(dump_file,"r");
 	// The file has been opened by process 0
 	
 	if(rank==0) {

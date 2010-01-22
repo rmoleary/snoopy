@@ -207,7 +207,7 @@ void mainloop(double t_start, double t_end) {
 #ifdef DEBUG
 		MPI_Printf("Reading dump file\n");
 #endif
-		read_dump(fld,&t);
+		read_dump(fld,&t,OUTPUT_DUMP);
 	}
 	else {
 		t = t_start;
