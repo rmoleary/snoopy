@@ -135,7 +135,7 @@ void timestep( struct Field dfldo,
 
 	gfft_r2c_t(wr5);
 	gfft_r2c_t(wr6);
-#ifdef WITH_2D
+#ifndef WITH_2D
 	gfft_r2c_t(wr7);
 #endif
 #ifdef N2PROFILE
