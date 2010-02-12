@@ -21,6 +21,7 @@
 #include "debug.h"
 
 #ifdef MPI_SUPPORT
+#ifndef FFTW3_MPI_SUPPORT
 // That's a long MPI if def...
 
 #include "transpose.h"
@@ -174,6 +175,86 @@ void finish_gfft() {
 	
 	return;
 }
+
+#else
+
+#include <fftw3-mpi.h>
+
+fftw_plan	r2cfft_mpi_t, r2cfft_mpi, c2rfft_mpi, c2rfft_mpi_t;
+
+double complex *wi1;
+double *wir1;
+
+void gfft_r2c_t(double *wrin) {
+	double complex *win = (double complex *) wrin;
+	fftw_execute_dft_r2c(r2cfft_mpi_t, wrin, win);
+	return;
+}
+
+void gfft_c2r_t(double complex *win){
+	double *wrin = (double *) win;
+	fftw_execute_dft_c2r(c2rfft_mpi_t, win, wrin);
+	return;
+}
+
+void gfft_r2c(double *wrin) {
+	double complex *win = (double complex *) wrin;
+	fftw_execute_dft_r2c(r2cfft_mpi, wrin, win);
+	return;
+}
+
+void gfft_c2r(double complex *win){
+	double *wrin = (double *) win;
+	fftw_execute_dft_c2r(c2rfft_mpi, win, wrin);
+	return;
+}
+
+
+void init_gfft() {
+	
+	DEBUG_START_FUNC;
+	
+	
+#ifdef _OPENMP
+	fftw_plan_with_nthreads( nthreads );
+#endif
+	
+	r2cfft_mpi_t = fftw_mpi_plan_dft_r2c_3d( NY, NX, NZ, wr1, w1,  MPI_COMM_WORLD, FFT_PLANNING | FFTW_MPI_TRANSPOSED_OUT);	
+	if (r2cfft_mpi_t == NULL) ERROR_HANDLER( ERROR_CRITICAL, "FFTW R2C_T plan creation failed");
+	
+	r2cfft_mpi = fftw_mpi_plan_dft_r2c_3d( NX, NY, NZ, wr1, w1,  MPI_COMM_WORLD, FFT_PLANNING);
+	if (r2cfft_mpi == NULL) ERROR_HANDLER( ERROR_CRITICAL, "FFTW R2C plan creation failed");
+
+	c2rfft_mpi_t = fftw_mpi_plan_dft_c2r_3d( NY, NX, NZ, w1, wr1,  MPI_COMM_WORLD, FFT_PLANNING | FFTW_MPI_TRANSPOSED_IN);
+	if (c2rfft_mpi_t == NULL) ERROR_HANDLER( ERROR_CRITICAL, "FFTW C2R_T plan creation failed");
+	
+	c2rfft_mpi = fftw_mpi_plan_dft_c2r_3d( NX, NY, NZ, w1, wr1,  MPI_COMM_WORLD, FFT_PLANNING);
+	if (c2rfft_mpi == NULL) ERROR_HANDLER( ERROR_CRITICAL, "FFTW C2R plan creation failed");
+	 
+	// init transpose routines (These are used by remap routines)
+	init_transpose();
+	
+	DEBUG_END_FUNC;
+	
+	return;
+}
+
+void finish_gfft() {
+	DEBUG_START_FUNC;
+	
+	fftw_destroy_plan(r2cfft_mpi_t);
+	fftw_destroy_plan(r2cfft_mpi);
+	fftw_destroy_plan(c2rfft_mpi_t);
+	fftw_destroy_plan(c2rfft_mpi);
+	
+	finish_transpose();
+	DEBUG_END_FUNC;
+	
+	return;
+}
+
+
+#endif
 
 /**********************************************************************
 ***********************************************************************
