@@ -383,6 +383,8 @@ void output1Dspectrum(const struct Field fldi, const double ti) {
 	write_spectrum(w1, w1, ti);
 #endif
 
+// pressure
+	write_spectrum(pressure, pressure, ti);
 	
 	DEBUG_END_FUNC;
 	

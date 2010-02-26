@@ -305,13 +305,83 @@ void implicitstep(
 			   const double t,
 			   const double dt ) {
 			   
-	double q0;
-	int i;
+	double q0, q1;
+	int i,j,k;
+	
+#ifdef SGS		// Subgrid model
+		// This is the Chollet-Lesieur Model (1981)
+		// We have nu(k)=nu_i(k)*(E(kc)/kc)^(1/2)
+		// nu_i(k)=0.267+9.21*exp(-3.03 kc/k)
+		
+		// Compute E(kc)
+	double kc, dk;
+	
+	kc = 2.0 * M_PI * 50;
+	dk = 2.5;
+	
+	q0 = 0.0;
+	
+	for( i = 0; i < NX_COMPLEX/NPROC; i++) {
+		for( j = 0; j < NY_COMPLEX; j++) {
+			for( k = 0; k < NZ_COMPLEX; k++) {
+				if( (k2t[ IDX3D ] < (kc+dk) * (kc+dk)) & (k2t[ IDX3D ] > (kc-dk) * (kc-dk) )) {
+#ifdef WITH_2D
+					if( j == 0)
+#else
+					if( k == 0)
+#endif
+						q0 = q0 + creal( fldi.vx[ IDX3D ] * conj( fldi.vx[ IDX3D ] ) +
+										 fldi.vy[ IDX3D ] * conj( fldi.vy[ IDX3D ] ) +
+										 fldi.vz[ IDX3D ] * conj( fldi.vz[ IDX3D ] ) ) / ((double) NTOTAL*NTOTAL);
+					else 
+						// k>0, only half of the complex plane is represented.
+						q0 = q0 + 2.0 * creal( fldi.vx[ IDX3D ] * conj( fldi.vx[ IDX3D ] ) +
+											   fldi.vy[ IDX3D ] * conj( fldi.vy[ IDX3D ] ) +
+											   fldi.vz[ IDX3D ] * conj( fldi.vz[ IDX3D ] ) ) / ((double) NTOTAL*NTOTAL);
+				}
+			}
+		}
+	}
+	
+#ifdef MPI_SUPPORT
+	reduce(&q0, 1);
+#endif
+
+	q0 = q0 / (2.0*dk);
+	
+	// q0 is E(kc)
+	
+	q0 = pow(q0/kc, 0.5);
+	
+#ifdef _OPENMP
+	#pragma omp parallel for private(i) schedule(static)
+#endif
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		w1[i] = (double complex) q0 * ( 0.267 + 9.21 * exp(-3.03 * kc * pow(ik2t[i],0.5) ) );	// Original Chollet-Lesieur
+//		w1[i] = 0.1 * (1.0 + 5.0*pow(k2t[i]/(kc*kc), 4.0)) * q0;		// Ponty el al 2003
+		pressure[i] = w1[i];
+	}
+#ifdef DEBUG
+	MPI_Printf("w1:\n");
+	D_show_field(w1);
+	
+	printf("nu_t=%g\n",pow(q0/kc, 0.5));
+	
+#endif
+	
+	//printf("nu_t=%g\n",pow(q0/kc, 0.5));
+#endif
+
+
 #ifdef _OPENMP
 	#pragma omp parallel for private(i,q0) schedule(static)
 #endif
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+#ifdef SGS
+		q0 = exp( - w1[i] * dt* k2t[i] );
+#else
 		q0 = exp( - nu * dt* k2t[i] );
+#endif
 		fldi.vx[i] = fldi.vx[i] * q0;
 		fldi.vy[i] = fldi.vy[i] * q0;
 		fldi.vz[i] = fldi.vz[i] * q0;
