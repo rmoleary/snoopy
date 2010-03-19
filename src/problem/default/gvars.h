@@ -34,6 +34,12 @@
 //#define		WITH_SHEAR				/**< Uncomment to activate mean SHEAR */
 //#define		TIME_DEPENDANT_SHEAR	/**< Enable Time dependant shear */
 
+//#define		ANELASTIC				/**< Anelastic approximation in the x direction, assuming an exponential density profile. This work only for the moment with pure hydro (no MHD/BOUSSINESQ).
+
+//#define		WITH_2D					/**< 2D (x,y) reduction. Enforce NZ=1 and optimise the Fourier transform routines accordingly. Using this option should lead to a speedup>4 compared to the old NZ=2 method.
+
+//#define		SGS						/**< Chollet-Lesieur Subgrid scale model for Hydro. This is in alpha version (see timestep.c).
+
 //#define		BOUNDARY_C				/**< Enforce NON-PERIODIC boundary conditions to the flow using Fourier space symmetries. The precise boundary condition has to be set up in boundary.c/boundary_c(); This feature is in alpha version. */
 
 //#define		FORCING					/**< Uncomment to use internal forcing of the velocity field (see forcing in timestep.c) */

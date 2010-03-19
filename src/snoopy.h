@@ -121,6 +121,7 @@ struct Parameters {
 	
 	double omega_shear;		/**< Pulsation of the time dependant shear (only when WITH_SHEAR and TIME_DEPENDANT_SHEAR is on) */
 	
+	double anelastic_lambda;/**< Stratification length when using the anelastic approximation, assuming an exponential density profile */
 	// Code parameters
 	
 	double cfl;				/**< CFL safety factor. Should be smaller than sqrt(3) for RK3 to be stable.*/

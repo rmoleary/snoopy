@@ -151,6 +151,15 @@ void init_KidaVortex() {
 		x = - param.lx / 2 + (param.lx * (i + rank * NX / NPROC)) / NX;
 		for(j = 0 ; j < NY ; j++) {
 			y = - param.ly / 2 + (param.ly * j) / NY;
+#ifdef WITH_2D
+			if(x * x / (a * a) + y * y / (b * b) < 1) {
+					// we are in the vortex
+					wr1[j + (NY+2) * i] = -w0;
+			}
+			else {
+				wr1[j + (NY+2) * i] = 0.0;
+			}
+#else
 			for(k = 0 ; k < NZ ; k++) {
 				if(x * x / (a * a) + y * y / (b * b) < 1) {
 					// we are in the vortex
@@ -160,6 +169,7 @@ void init_KidaVortex() {
 					wr1[k + j*(NZ+2) + (NZ+2) * NY * i] = 0.0;
 				}
 			}
+#endif
 		}
 	}
 	
@@ -442,10 +452,16 @@ void init_flow() {
 #ifdef BOUNDARY_C
 	boundary_c(fld);
 #endif
-	projector(fld.vx,fld.vy,fld.vz);
+
+#ifdef ANELASTIC
+		projector_anelastic(fld.vx,fld.vy,fld.vz);
+#else
+		projector(fld.vx,fld.vy,fld.vz);
+#endif
+
 #ifdef MHD
-	projector(fld.bx,fld.by,fld.bz);
-#endif	
+		projector(fld.bx,fld.by,fld.bz);
+#endif
 
 	
 

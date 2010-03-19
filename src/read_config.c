@@ -80,6 +80,10 @@ read_config() {
 		if(!config_lookup_float(&config, "physics.omega_shear",&param.omega_shear)) {
 			param.omega_shear = 0.0;
 		}
+		
+		if(!config_lookup_float(&config, "physics.anelastic_lambda",&param.anelastic_lambda)) {
+			param.anelastic_lambda = 1.0;
+		}
 	
 		// Code parameters-------------------------------------------------------------------------------------
 	

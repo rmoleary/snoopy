@@ -36,7 +36,7 @@ void timestep( struct Field dfldo,
 			   const double dt) {
 			   
 	int i;
-	double complex q0;
+	double complex q0,q1;
 	double S;
 	// This is the timesteping algorithm, solving the physics.
 
@@ -278,9 +278,32 @@ void timestep( struct Field dfldo,
 ************************************/
 
 #ifdef _OPENMP
-	#pragma omp parallel for private(i,q0) schedule(static)
+	#pragma omp parallel for private(i,q0,q1) schedule(static)
 #endif
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+	
+#ifdef ANELASTIC
+		// We have to use a different prescription here since we don't have div v = 0 but div rho v = 0
+#ifdef WITH_SHEAR
+		q0 = S * ky[i] * fldi.vx[i] + kxt[i] * dfldo.vx[i] + ky[i] * dfldo.vy[i] + kz[i] * dfldo.vz[i] - I * dfldo.vx[i] / param.anelastic_lambda;
+#else
+		q0 = kxt[i] * dfldo.vx[i] + ky[i] * dfldo.vy[i] + kz[i] * dfldo.vz[i] - I * dfldo.vx[i] / param.anelastic_lambda;
+#endif
+		
+		// inverse Poisson equation in anelastic
+		q1 = 1.0 / (param.anelastic_lambda * param.anelastic_lambda) + 2.0 * I * kxt[i] / param.anelastic_lambda - k2t[i];
+		
+		if(q1 != 0)
+			q0 = q0 / q1;
+		else
+			q0=0.0;		// That means the Poisson equation has a singularity (only expected if lambda=infinity)
+			
+		dfldo.vx[i] += (kxt[i] - I / param.anelastic_lambda) * q0;
+		dfldo.vy[i] += ky[i] * q0;
+		dfldo.vz[i] += kz[i] * q0;
+	
+#else
+		
 #ifdef WITH_SHEAR
 		q0= S * ky[i] * fldi.vx[i] + kxt[i] * dfldo.vx[i] + ky[i] * dfldo.vy[i] + kz[i] * dfldo.vz[i];
 #else
@@ -292,6 +315,7 @@ void timestep( struct Field dfldo,
 		dfldo.vx[i] += -kxt[i]* q0 * ik2t[i];
 		dfldo.vy[i] += -ky[i] * q0 * ik2t[i];
 		dfldo.vz[i] += -kz[i] * q0 * ik2t[i];
+#endif
 	}
 		
 	return;

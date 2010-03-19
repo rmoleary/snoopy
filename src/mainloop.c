@@ -386,7 +386,12 @@ void mainloop(double t_start, double t_end) {
 		}
 		
 		// Divergence cleaning
+#ifdef ANELASTIC
+		projector_anelastic(fld.vx,fld.vy,fld.vz);
+#else
 		projector(fld.vx,fld.vy,fld.vz);
+#endif
+
 #ifdef MHD
 		projector(fld.bx,fld.by,fld.bz);
 #endif

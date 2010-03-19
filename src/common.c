@@ -510,6 +510,53 @@ void projector( double complex qx[],
 	return;
 }
 
+#ifdef ANELASTIC
+/****************************************************/
+/**
+	Remove the divergence from a 3D field using
+	the projector operator from the anelastic equations
+	
+	@param qx: x component of the field
+	@param qy: y component of the field
+	@param qz: z component of the field
+*/
+/****************************************************/
+	
+void projector_anelastic( double complex qx[],
+			    double complex qy[],
+			    double complex qz[]) {
+				
+	int i;
+	double complex q0, q1;
+	
+	DEBUG_START_FUNC;
+	
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		// We have to use a different prescription here since we don't have div v = 0 but div rho v = 0
+
+		q0 = kxt[i] * qx[i] + ky[i] * qy[i] + kz[i] * qz[i] - I * qx[i] / param.anelastic_lambda;
+		
+		// inverse Poisson equation in anelastic
+		q1 = 1.0 / (param.anelastic_lambda * param.anelastic_lambda) + 2.0 * I * kxt[i] / param.anelastic_lambda - k2t[i];
+		
+		if(q1 != 0.0)
+			q0 = q0 / q1;
+		else
+			q0=0.0;		// That means the Poisson equation has a singularity (only expected if lambda=infinity)
+			
+		qx[i] += (kxt[i] - I / param.anelastic_lambda) * q0;
+		qy[i] += ky[i] * q0;
+		qz[i] += kz[i] * q0;
+
+	}
+	
+	DEBUG_END_FUNC;
+	
+	return;
+}
+#endif
+
+
 /*********************************************/
 /** Compute the energy of a given field.
 	@param q complex array containing the field for which
