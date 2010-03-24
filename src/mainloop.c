@@ -264,6 +264,29 @@ void mainloop(double t_start, double t_end) {
 				fld1.farray[n][i] = fld.farray[n][i] + xiRK[0] * dfld.farray[n][i] * dt;
 			}
 		}
+#ifdef WITH_PARTICLES
+#ifdef _OPENMP
+		#pragma omp for schedule(static)	
+#endif
+		for( i = 0 ; i < NPARTICLES ; i++) {
+			fld.part[i].x = fld.part[i].x + gammaRK[0] * dfld.part[i].x * dt;
+			fld.part[i].y = fld.part[i].y + gammaRK[0] * dfld.part[i].y * dt;
+			fld.part[i].z = fld.part[i].z + gammaRK[0] * dfld.part[i].z * dt;
+			
+			fld.part[i].vx = fld.part[i].vx + gammaRK[0] * dfld.part[i].vx * dt;
+			fld.part[i].vy = fld.part[i].vy + gammaRK[0] * dfld.part[i].vy * dt;
+			fld.part[i].vz = fld.part[i].vz + gammaRK[0] * dfld.part[i].vz * dt;
+			
+			fld1.part[i].x = fld.part[i].x + xiRK[0] * dfld.part[i].x * dt;
+			fld1.part[i].y = fld.part[i].y + xiRK[0] * dfld.part[i].y * dt;
+			fld1.part[i].z = fld.part[i].z + xiRK[0] * dfld.part[i].z * dt;
+			
+			fld1.part[i].vx = fld.part[i].vx + xiRK[0] * dfld.part[i].vx * dt;
+			fld1.part[i].vy = fld.part[i].vy + xiRK[0] * dfld.part[i].vy * dt;
+			fld1.part[i].vz = fld.part[i].vz + xiRK[0] * dfld.part[i].vz * dt;
+
+		}
+#endif
 #ifdef _OPENMP
 		}
 #endif
@@ -302,6 +325,28 @@ void mainloop(double t_start, double t_end) {
 				fld1.farray[n][i] = fld.farray[n][i] + xiRK[1] * dfld.farray[n][i] * dt;
 			}
 		}
+#ifdef WITH_PARTICLES
+#ifdef _OPENMP
+		#pragma omp for schedule(static)	
+#endif
+		for( i = 0 ; i < NPARTICLES ; i++) {
+			fld.part[i].x = fld1.part[i].x + gammaRK[1] * dfld.part[i].x * dt;
+			fld.part[i].y = fld1.part[i].y + gammaRK[1] * dfld.part[i].y * dt;
+			fld.part[i].z = fld1.part[i].z + gammaRK[1] * dfld.part[i].z * dt;
+			
+			fld.part[i].vx = fld1.part[i].vx + gammaRK[1] * dfld.part[i].vx * dt;
+			fld.part[i].vy = fld1.part[i].vy + gammaRK[1] * dfld.part[i].vy * dt;
+			fld.part[i].vz = fld1.part[i].vz + gammaRK[1] * dfld.part[i].vz * dt;
+			
+			fld1.part[i].x = fld.part[i].x + xiRK[1] * dfld.part[i].x * dt;
+			fld1.part[i].y = fld.part[i].y + xiRK[1] * dfld.part[i].y * dt;
+			fld1.part[i].z = fld.part[i].z + xiRK[1] * dfld.part[i].z * dt;
+			
+			fld1.part[i].vx = fld.part[i].vx + xiRK[1] * dfld.part[i].vx * dt;
+			fld1.part[i].vy = fld.part[i].vy + xiRK[1] * dfld.part[i].vy * dt;
+			fld1.part[i].vz = fld.part[i].vz + xiRK[1] * dfld.part[i].vz * dt;
+		}
+#endif
 #ifdef _OPENMP
 		}
 #endif
@@ -340,6 +385,21 @@ void mainloop(double t_start, double t_end) {
 				fld.farray[n][i] = fld1.farray[n][i] + gammaRK[2] * dfld.farray[n][i] * dt;
 			}
 		}
+#ifdef WITH_PARTICLES
+#ifdef _OPENMP
+		#pragma omp for schedule(static)	
+#endif
+		for( i = 0 ; i < NPARTICLES ; i++) {
+			fld.part[i].x = fld1.part[i].x + gammaRK[2] * dfld.part[i].x * dt;
+			fld.part[i].y = fld1.part[i].y + gammaRK[2] * dfld.part[i].y * dt;
+			fld.part[i].z = fld1.part[i].z + gammaRK[2] * dfld.part[i].z * dt;
+			
+			fld.part[i].vx = fld1.part[i].vx + gammaRK[2] * dfld.part[i].vx * dt;
+			fld.part[i].vy = fld1.part[i].vy + gammaRK[2] * dfld.part[i].vy * dt;
+			fld.part[i].vz = fld1.part[i].vz + gammaRK[2] * dfld.part[i].vz * dt;
+		}
+#endif
+
 #ifdef _OPENMP
 		}
 #endif

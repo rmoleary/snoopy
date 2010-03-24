@@ -26,13 +26,7 @@
 
 #include "transpose.h"
 
-const int n_size2D[2] = {NX, NZ};
-const int n_size1D[1] = {NY_COMPLEX};
-
 fftw_plan	r2c_2d, c2r_2d, r2c_1d, c2r_1d;
-
-double complex *wi1;
-double *wir1;
 
 /* GFFT (Like Geo's FFT as you might have guessed...) is an FFT wrapper for FFTW>=3.2
 It takes care of the MPI part of the FFT while FFTW deals with the FFT themselves
@@ -110,9 +104,14 @@ void init_gfft() {
 	// The physical size is [NX, NZ+2]
 	// We use in-place transforms
 	int i;
+	double complex *wi1;
+	double *wir1;
+	
+	const int n_size2D[2] = {NX, NZ};
+	const int n_size1D[1] = {NY_COMPLEX};
 	
 	DEBUG_START_FUNC;
-	
+
 	wi1 = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (wi1 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for wi1 allocation");
 
@@ -181,9 +180,6 @@ void finish_gfft() {
 #include <fftw3-mpi.h>
 
 fftw_plan	r2cfft_mpi_t, r2cfft_mpi, c2rfft_mpi, c2rfft_mpi_t;
-
-double complex *wi1;
-double *wir1;
 
 void gfft_r2c_t(double *wrin) {
 	double complex *win = (double complex *) wrin;
@@ -269,9 +265,6 @@ void finish_gfft() {
 
 fftw_plan	r2cfft, c2rfft;
 
-double complex *wi1;
-double *wir1;
-
 void gfft_r2c_t(double *wrin) {
 	double complex *win = (double complex *) wrin;
 	fftw_execute_dft_r2c(r2cfft, wrin, win);
@@ -297,6 +290,8 @@ void gfft_c2r(double complex *win){
 }
 
 void init_gfft() {
+	double complex *wi1;
+	double *wir1;
 	
 	DEBUG_START_FUNC;
 	

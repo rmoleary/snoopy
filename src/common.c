@@ -398,6 +398,12 @@ void allocate_field(struct Field *fldi) {
 	// Add a field here if you need one... (don't forget to ajust fldi.nfield accordingly)
 	// *
 	
+
+#ifdef WITH_PARTICLES	
+	// Init space for particle storage
+	fldi->part = (struct Particle *) malloc(sizeof(struct Particle) * NPARTICLES);
+	
+#endif
 	// Ok, all done...
 	
 	DEBUG_END_FUNC;
@@ -423,6 +429,10 @@ void deallocate_field(struct Field *fldi) {
 	
 	fftw_free(fldi->farray);
 	fftw_free(fldi->fname);
+	
+#ifdef WITH_PARTICLES
+	free(fldi->part);
+#endif
 	
 	// Done
 	
@@ -653,6 +663,38 @@ void reduce(double *var, const int op) {
 	return;
 }
 
+/* ****************************************************************************/
+/** Determines if the machine is little-endian.  If so, 
+    it will force the data to be big-endian. 
+	@param in_number floating point number to be converted in big endian */
+/* *************************************************************************** */
+
+float big_endian(float in_number)
+{
+    static int doneTest = 0;
+    static int shouldSwap = 0;
+	
+    if (!doneTest)
+    {
+        int tmp1 = 1;
+        unsigned char *tmp2 = (unsigned char *) &tmp1;
+        if (*tmp2 != 0)
+            shouldSwap = 1;
+        doneTest = 1;
+    }
+
+    if (shouldSwap)
+    {
+		unsigned char *bytes = (unsigned char*) &in_number;
+        unsigned char tmp = bytes[0];
+        bytes[0] = bytes[3];
+        bytes[3] = tmp;
+        tmp = bytes[1];
+        bytes[1] = bytes[2];
+        bytes[2] = tmp;
+    }
+	return(in_number);
+}
 
 
 /******************************************

@@ -78,6 +78,8 @@ double get_c_time(void);
 // Useful only if MPI is active. Can be called without though...
 void reduce(double *var, const int op);
 
+float big_endian(float in_number);
+
 double randm_normal(void);
 double randm (void);
 

@@ -38,7 +38,6 @@ double lastoutput_flow;								/**< Time when the las snapshot output was done *
 double lastoutput_dump;								/**< Time when the last dump output was done */
 
 #ifdef WITH_SHEAR
-double complex		*w1d, *w2d;						/** 1D arrays used by the remap methods */
 
 fftw_plan	fft_1d_forward;								/**< 1D FFT transforms. Used by remap routines.*/
 fftw_plan	fft_1d_backward;							/**< 1D FFT transforms. Used by remap routines.*/
@@ -65,8 +64,12 @@ void remap_output(	double wri[],
 	double tremap;
 	complex double wexp;
 	complex double phase;
+	double complex		*w2d;
 	
 	DEBUG_START_FUNC;
+	
+	w2d = (double complex *) fftw_malloc( sizeof(double complex) * (NY/2+1) * NZ );
+	if (w2d == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w2d allocation");
 	
 #ifdef TIME_DEPENDANT_SHEAR
 	tremap = time_shift(t);
@@ -76,46 +79,34 @@ void remap_output(	double wri[],
 	tvelocity = fmod(t, 2.0 * param.ly / (param.shear * param.lx));
 #endif	
 	
-	
-	for( i = 0 ; i < NX / NPROC ; i++) {
-		for( k = 0 ; k < NZ ; k++) {
-			for( j = 0 ; j < NY ; j++) {
+	for( i = 0 ; i < NX/NPROC ; i++) {
 #ifdef WITH_2D
-				w1d[j] = wri[j + (NY + 2) * i];
+		fftw_execute_dft_r2c(fft_1d_forward, wri + i*(NY+2), w2d);
 #else
-				w1d[j] = wri[k + j * (NZ + 2) + NY * (NZ + 2) * i];
+		fftw_execute_dft_r2c(fft_1d_forward, wri + i*(NZ+2)*NY, w2d);
 #endif
-			}
-		
-			// Transform w1d, which will be stored in w2d
-			fftw_execute(fft_1d_forward);
-					
-			for( j = 0 ; j < NY ; j++) {
-			// advection phase = ky*
-#ifdef TIME_DEPENDANT_SHEAR
-				// There is no proper remap in this case
-				phase = (double complex) ((2.0 * M_PI) / param.ly * (fmod( j + (NY / 2) ,  NY ) - NY / 2 ) * 
-											( ((double) (i + rank * (NX/NPROC)) / (double) NX - 0.5 ) * tremap ) * param.lx * param.shear );
-#else
-				phase = (double complex) ((2.0 * M_PI) / param.ly * (fmod( j + (NY / 2) ,  NY ) - NY / 2 ) * 
-											( ((double) (i + rank * (NX/NPROC)) / (double) NX ) * tremap - tvelocity / 2.0 ) * param.lx * param.shear);
-#endif
-				wexp = cexp( I * phase);
-									
-				w2d[ j ] = w2d[ j ] * wexp;
-			}
+		for( j = 0 ; j < NY/2+1 ; j++) {
+			phase = (double complex) ((2.0 * M_PI) / param.ly *  ((double) j )  * 
+									( ((double) (i + rank * (NX/NPROC)) / (double) NX ) * tremap - tvelocity / 2.0 ) * param.lx * param.shear);
 			
-			fftw_execute(fft_1d_backward);
-		
-			for( j = 0 ; j < NY ; j++) {
-#ifdef WITH_2D
-				wri[j + (NY + 2) * i] = w1d[j] / NY;
-#else
-				wri[k + j * (NZ + 2) + NY * (NZ + 2) * i] = w1d[j] / NY;
-#endif
+			//printf("phase=%g + I %g\n",creal(phase), cimag(phase));
+			
+			wexp = cexp( I * phase)/NY;
+			
+			//printf("wexp=%g + I %g\n",creal(wexp), cimag(wexp));
+
+			for( k = 0 ; k < NZ; k++) {
+				w2d[ k + j * NZ ] = wexp * w2d[ k + j * NZ ];
 			}
 		}
+#ifdef WITH_2D
+		fftw_execute_dft_c2r(fft_1d_backward, w2d, wri + i*(NY+2));
+#else
+		fftw_execute_dft_c2r(fft_1d_backward, w2d, wri + i*(NZ+2)*NY);
+#endif
 	}
+	
+	fftw_free(w2d);
 	
 	DEBUG_END_FUNC;
 	
@@ -455,38 +446,6 @@ void init1Dspectrum() {
 ** VTK For HD*************************************
 **************************************************/
 
-/* ****************************************************************************/
-/** Determines if the machine is little-endian.  If so, 
-    it will force the data to be big-endian. 
-	@param in_number floating point number to be converted in big endian */
-/* *************************************************************************** */
-
-float big_endian(float in_number)
-{
-    static int doneTest = 0;
-    static int shouldSwap = 0;
-	
-    if (!doneTest)
-    {
-        int tmp1 = 1;
-        unsigned char *tmp2 = (unsigned char *) &tmp1;
-        if (*tmp2 != 0)
-            shouldSwap = 1;
-        doneTest = 1;
-    }
-
-    if (shouldSwap)
-    {
-		unsigned char *bytes = (unsigned char*) &in_number;
-        unsigned char tmp = bytes[0];
-        bytes[0] = bytes[3];
-        bytes[3] = tmp;
-        tmp = bytes[1];
-        bytes[1] = bytes[2];
-        bytes[2] = tmp;
-    }
-	return(in_number);
-}
 
 /***********************************************************/
 /** 
@@ -630,6 +589,10 @@ void output_vtk(const int n, double t) {
 	if(param.output_vorticity)
 		num_remain_field +=3;
 		
+#ifdef WITH_PARTICLES
+	num_remain_field++;
+#endif
+		
 	if(rank==0) fprintf(ht, "FIELD FieldData %d\n",num_remain_field);
 	
 	// Write all the remaining fields
@@ -657,6 +620,11 @@ void output_vtk(const int n, double t) {
 		if(rank==0) fprintf(ht, "wz 1 %d float\n",array_size);
 		write_vtk(ht,w6,t);
 	}
+		
+#ifdef WITH_PARTICLES
+	if(rank==0) fprintf(ht, "particules 1 %d float\n",array_size);
+	write_vtk_particles(ht, t);
+#endif
 		
 	if(rank==0) fclose(ht);
 	
@@ -1247,31 +1215,60 @@ void clear_timevar() {
 /**************************************************************************************/
 
 void init_output() {
-
+	double complex *w2d;
+	
+	const int n_size1D[1] = {NY};
+	
 	DEBUG_START_FUNC;
 	
 #ifdef WITH_SHEAR
-// Initialize 1D arrays for remaps
-	w1d = (double complex *) fftw_malloc( sizeof(double complex) * NY);
-	if (w1d == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w1d allocation");
 	
-	w2d = (double complex *) fftw_malloc( sizeof(double complex) * NY);
+	w2d = (double complex *) fftw_malloc( sizeof(double complex) * (NY/2+1) * NZ );
 	if (w2d == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w2d allocation");
-
+	
 // FFT plans (we use dummy arrays since we use the "guru" interface of fft3 in the code)
 // The in place/ out of place will be set automatically at this stage
+
+// The Following Fourier transforms takes an array of size ( NX+1, NY+1, NZ+1) but consider only the "included" array
+// of size ( NX+1, NY, NZ+1) and transforms it in y, in an array of size (NX+1, NY/2+1, NZ+1). The j=NY plane is therefore 
+// not modified by these calls
 
 #ifdef _OPENMP
 	fftw_plan_with_nthreads( 1 );
 #endif
 
-	fft_1d_forward = fftw_plan_dft_1d(NY, w1d, w2d, FFTW_FORWARD, FFT_PLANNING);
+#ifdef WITH_2D
+	fft_1d_forward = fftw_plan_many_dft_r2c(1, n_size1D, 1,
+											wr1, NULL, 1, 1,
+											w2d, NULL, 1, 1,
+											FFT_PLANNING || FFTW_UNALIGNED);
+#else
+	fft_1d_forward = fftw_plan_many_dft_r2c(1, n_size1D, NZ,
+											wr1, NULL, NZ+2, 1,
+											w2d, NULL, NZ, 1,
+											FFT_PLANNING || FFTW_UNALIGNED);
+#endif
+											
 	if (fft_1d_forward == NULL) ERROR_HANDLER( ERROR_CRITICAL, "FFTW 1D forward plan creation failed");
 	
-	fft_1d_backward = fftw_plan_dft_1d(NY, w2d, w1d, FFTW_BACKWARD, FFT_PLANNING);
+#ifdef WITH_2D
+	fft_1d_backward = fftw_plan_many_dft_c2r(1, n_size1D, 1,
+											w2d, NULL, 1, 1,
+											wr1, NULL, 1, 1,
+											FFT_PLANNING || FFTW_UNALIGNED);
+#else
+	fft_1d_backward = fftw_plan_many_dft_c2r(1, n_size1D, NZ,
+											w2d, NULL, NZ, 1,
+											wr1, NULL, NZ+2, 1,
+											FFT_PLANNING || FFTW_UNALIGNED);
+#endif
+											
 	if (fft_1d_backward == NULL) ERROR_HANDLER( ERROR_CRITICAL, "FFTW 1D backward plan creation failed");
 	
+	fftw_free(w2d);
+	
 #endif	
+
 	// Check that the file restart exists
 	
 	if(param.restart) {
@@ -1305,8 +1302,6 @@ void finish_output() {
 	DEBUG_START_FUNC;
 	
 #ifdef WITH_SHEAR
-	fftw_free(w1d);
-	fftw_free(w2d);
 	
 	fftw_destroy_plan(fft_1d_forward);
 	fftw_destroy_plan(fft_1d_backward);	
@@ -1338,6 +1333,9 @@ void output(const double t) {
 	
 	if( (t-lastoutput_flow)>=param.toutput_flow) {
 		output_vtk(noutput_flow,t);
+#ifdef WITH_PARTICLES
+		output_particles(noutput_flow,t);
+#endif
 		noutput_flow++;
 		lastoutput_flow = lastoutput_flow + param.toutput_flow;
 	}

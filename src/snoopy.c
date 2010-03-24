@@ -29,6 +29,7 @@
 #include "initflow.h"
 #include "gfft.h"
 #include "read_config.h"
+#include "particles.h"
 
 void please_wait(void)
 {
@@ -172,6 +173,9 @@ int main(int argc, char *argv[]) {
 	print_information();
 	MPI_Printf("Initializing...\n");
 	init_common();
+#ifdef WITH_PARTICLES
+	init_particles();
+#endif
 	init_gfft();
 	init_output();
 		
@@ -183,6 +187,9 @@ int main(int argc, char *argv[]) {
 	
 	finish_output();
 	finish_gfft();
+#ifdef WITH_PARTICLES
+	finish_particles();
+#endif
 	finish_common();
 	
 	MPI_Printf("Terminated.\n");

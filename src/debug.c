@@ -69,6 +69,16 @@ void D_show_field(double complex * field) {
 	fftw_free(df);
 }
 
+#ifdef WITH_PARTICLES
+void D_show_part(struct Field fldi) {
+	int i;
+	for( i = 0 ; i < NPARTICLES ; i++) {
+		MPI_Printf("   Particule %d: x= %12e, y= %12e, z= %12e, vx= %12e, vy= %12e, vz= %12e\n", i, fldi.part[i].x, fldi.part[i].y, fldi.part[i].z, fldi.part[i].vx, fldi.part[i].vy, fldi.part[i].vz);
+	}
+	return;
+}
+#endif
+
 void D_show_all(struct Field fldi) {
 	MPI_Printf("   vx:");
 	D_show_field(fldi.vx);
@@ -87,6 +97,10 @@ void D_show_all(struct Field fldi) {
 	D_show_field(fldi.vy);
 	MPI_Printf("   bz:");
 	D_show_field(fldi.vz);
+#endif
+#ifdef WITH_PARTICLES
+	MPI_Printf("   Particles:\n");
+	D_show_part(fldi);
 #endif
 	return;
 }

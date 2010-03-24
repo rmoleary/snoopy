@@ -84,6 +84,18 @@
 
 // Structures
 
+#ifdef WITH_PARTICLES
+struct Particle	{
+	double x;
+	double y;
+	double z;
+	double vx;
+	double vy;
+	double vz;
+	double mass; // unused for the moment
+};
+#endif
+
 struct Field {
 	int	   nfield;
 	double complex **farray;
@@ -100,6 +112,9 @@ struct Field {
 	double complex *bx;
 	double complex *by;
 	double complex *bz;
+#endif
+#ifdef WITH_PARTICLES
+	struct Particle *part;
 #endif
 };
 

@@ -23,6 +23,7 @@
 #include "gfft.h"
 #include "debug.h"
 #include "forcing.h"
+#include "particles.h"
 
 
 /**************************************************
@@ -103,7 +104,14 @@ void timestep( struct Field dfldo,
 		dfldo.vz[i] = - I * mask[i] * (
 					kxt[i] * w8[i] + ky[i] * w9[i] + kz[i] * w6[i] );	// since kz=0 in 2D, kz*w6 gives 0, even if w6 is some random array
 	}
-	
+/**********************************************
+** Particles (if needed) **********************
+***********************************************/
+
+#ifdef WITH_PARTICLES
+	particle_step(dfldo, fldi, wr1, wr2, wr3, t, dt);
+#endif
+
 	
 /**********************************************
 ** BOUSSINESQ TERMS (if needed) ***************
@@ -427,6 +435,9 @@ void implicitstep(
 	forcing(fldi, dt);
 #endif
 
+#ifdef WITH_PARTICLES
+	particle_implicit_step( fldi, t, dt);
+#endif
 	return;
 }
 	
