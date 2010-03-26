@@ -589,8 +589,10 @@ void output_vtk(const int n, double t) {
 	if(param.output_vorticity)
 		num_remain_field +=3;
 		
+#ifndef MPI_SUPPORT
 #ifdef WITH_PARTICLES
 	num_remain_field++;
+#endif
 #endif
 		
 	if(rank==0) fprintf(ht, "FIELD FieldData %d\n",num_remain_field);
@@ -621,9 +623,11 @@ void output_vtk(const int n, double t) {
 		write_vtk(ht,w6,t);
 	}
 		
+#ifndef MPI_SUPPORT
 #ifdef WITH_PARTICLES
 	if(rank==0) fprintf(ht, "particules 1 %d float\n",array_size);
 	write_vtk_particles(ht, t);
+#endif
 #endif
 		
 	if(rank==0) fclose(ht);

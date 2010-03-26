@@ -298,9 +298,9 @@ void transpose_real(const int nxin, const int nyin, const int nzin, const int np
 //	for(i=0 ; i < NTOTAL_COMPLEX ; i++) {
 //		qout[i]=w1[i];
 //	}
-
-	for(n=0 ; n < nproc ; n++) {
-		for(i=0 ; i < local_nyin ; i++) {
+	
+	for(i=0 ; i < local_nyin ; i++) {
+		for(n=0 ; n < nproc ; n++) {
 			for(j=0 ; j < local_nxin ; j++) {
 				for(k=0 ; k < nzin ; k++) {
 					qout[i*nxin*nzin + (j+n*local_nxin)*nzin + k] = tempc2[n*local_nyin*local_nxin*nzin + i*local_nxin*nzin + j*nzin + k];
