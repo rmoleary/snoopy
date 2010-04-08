@@ -253,6 +253,92 @@ void write_vtk_particles(FILE * ht, const double t) {
 	return;
 }
 
+void read_particle_dump(FILE *ht, struct Particle *part) {
+
+	int q0;
+	
+	#ifdef MPI_SUPPORT
+	MPI_Status status;
+	int current_rank;
+	struct Particle * part_chunk;
+
+	if(rank==0) {
+		part_chunk = (struct Particle *) malloc( NPARTICLES/NPROC * sizeof(struct Particle) );
+
+		for(current_rank=0; current_rank < NPROC; current_rank++) {
+			if(current_rank==0) {
+				// read the rank=0 process dump
+				fread(&q0, sizeof(int), 1, ht);
+				if(q0 != NPARTICLES) ERROR_HANDLER( ERROR_CRITICAL, "A different number of particles was saved in the dump.");
+				fread(part, sizeof(struct Particle), NPARTICLES/NPROC, ht);
+			}
+			
+			else {
+				fread(part_chunk, sizeof(struct Particle), NPARTICLES/NPROC, ht);
+				MPI_Send( part_chunk, NPARTICLES/NPROC*sizeof(struct Particle), MPI_BYTE, current_rank, 2, MPI_COMM_WORLD);
+			}
+
+		}
+		MPI_Barrier(MPI_COMM_WORLD);
+		
+		free(part_chunk);
+	}
+	else {
+		MPI_Recv(part, NPARTICLES/NPROC*sizeof(struct Particle), MPI_BYTE, 0, 2, MPI_COMM_WORLD, &status);
+		MPI_Barrier(MPI_COMM_WORLD);
+	}
+
+#else
+	fread(&q0, sizeof(int), 1, ht);
+	if(q0 != NPARTICLES) ERROR_HANDLER( ERROR_CRITICAL, "A different number of particles was saved in the dump.");
+	fread(part, sizeof(struct Particle), NPARTICLES/NPROC, ht);
+#endif
+}
+
+void write_particle_dump(FILE *ht, struct Particle *part) {
+
+	int q0;
+	
+#ifdef MPI_SUPPORT
+	MPI_Status status;
+	int current_rank;
+	struct Particle * part_chunk;
+
+	if(rank==0) {
+		part_chunk = (struct Particle *) malloc( NPARTICLES/NPROC * sizeof(struct Particle) );
+
+		for(current_rank=0; current_rank < NPROC; current_rank++) {
+			if(current_rank==0) {
+				// write the rank=0 process dump
+				q0=NPARTICLES;
+				fwrite(&q0, sizeof(int), 1, ht);
+				
+				fwrite(part, sizeof(struct Particle), NPARTICLES/NPROC, ht);
+			}
+			
+			else {
+				MPI_Recv( part_chunk, NPARTICLES/NPROC*sizeof(struct Particle), MPI_BYTE, current_rank, 2, MPI_COMM_WORLD, &status);
+				fwrite(part_chunk, sizeof(struct Particle), NPARTICLES/NPROC, ht);
+			}
+
+		}
+		MPI_Barrier(MPI_COMM_WORLD);
+		
+		free(part_chunk);
+	}
+	else {
+		MPI_Send(part, NPARTICLES/NPROC*sizeof(struct Particle), MPI_BYTE, 0, 2, MPI_COMM_WORLD);
+		MPI_Barrier(MPI_COMM_WORLD);
+	}
+
+#else
+	q0=NPARTICLES;
+	fwrite(&q0, sizeof(int), 1, ht);
+	fwrite(part, sizeof(struct Particle), NPARTICLES/NPROC, ht);
+#endif
+
+
+}
 /***********************************************************/
 /** 
 	Init the particle module. This routine has 3 main purposes:

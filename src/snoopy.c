@@ -130,6 +130,10 @@ void print_information(void) {
 #else
 	MPI_Printf("No Shear\n");
 #endif
+#ifdef WITH_PARTICLES
+	MPI_Printf("\nHave particles\n");
+	MPI_Printf("Nparticles=\t%d\n",NPARTICLES);
+#endif
 	MPI_Printf("\nT_initial=\t%f\n",param.t_initial);
 	MPI_Printf("T_final=\t%f\n",param.t_final);
 	MPI_Printf("Toutput_time=\t%f\n",param.toutput_time);
@@ -163,7 +167,7 @@ int main(int argc, char *argv[]) {
 	rank=0;
 #endif
 	print_logo();
-	MPI_Printf("The Snoopy code v5.0\n");
+	MPI_Printf("The Snoopy code v6.0\n");
 	MPI_Printf("Copyright (c) 2004-2010 Geoffroy Lesur (University of Cambridge, UK)\n");
 	MPI_Printf("This program comes with ABSOLUTELY NO WARRANTY;\n");
 	MPI_Printf("This is free software, and you are welcome to\n");

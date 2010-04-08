@@ -1030,6 +1030,9 @@ void output_dump( const struct Field fldi,
 #ifdef MHD
 		included_field+=2;
 #endif
+#ifdef WITH_PARTICLES
+		included_field+=4;
+#endif
 		fwrite(&included_field, sizeof(int), 1, ht);
 	}
 	
@@ -1044,6 +1047,9 @@ void output_dump( const struct Field fldi,
 	write_field(ht, fldi.bx);
 	write_field(ht, fldi.by);
 	write_field(ht, fldi.bz);
+#endif
+#ifdef WITH_PARTICLES
+	write_particle_dump(ht, fldi.part);
 #endif
 
 	if(rank==0) {
@@ -1153,6 +1159,18 @@ void read_dump(   struct Field fldo,
 	else {
 		//No
 		ERROR_HANDLER( ERROR_WARNING, "No MHD field in the dump, using initial conditions.");
+	}
+#endif
+#ifdef WITH_PARTICLES
+	// Do we have particles data in the dump?
+	if(included_field & 4) {
+		// Yes
+		MPI_Printf("Reading particles\n");
+		read_particle_dump(ht, fldo.part);
+	}
+	else {
+		// No
+		ERROR_HANDLER( ERROR_WARNING, "No Particles in the dump, using initial conditions.");
 	}
 #endif
 	
