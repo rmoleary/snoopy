@@ -176,8 +176,10 @@ void symmetrize_complex(double complex wi[]) {
 	// that's all folks...
 	
 #ifdef MPI_SUPPORT
-	if(NZ_COMPLEX < NPROC)
-		fftw_free(zplane);
+	if(rank==0) {
+		if(NZ_COMPLEX < NPROC)
+			fftw_free(zplane);
+	}
 #endif
 	
 	DEBUG_END_FUNC;
