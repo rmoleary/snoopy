@@ -401,7 +401,7 @@ void allocate_field(struct Field *fldi) {
 
 #ifdef WITH_PARTICLES	
 	// Init space for particle storage
-	fldi->part = (struct Particle *) malloc(sizeof(struct Particle) * NPARTICLES);
+	fldi->part = (struct Particle *) malloc(sizeof(struct Particle) * param.particles_n);
 	
 #endif
 	// Ok, all done...

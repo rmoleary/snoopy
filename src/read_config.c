@@ -85,6 +85,22 @@ read_config() {
 			param.anelastic_lambda = 1.0;
 		}
 	
+		// Particles parameters-------------------------------------------------------------------------------------
+		if(!config_lookup_int(&config, "particles.n",&tmp_v)) {
+			param.particles_n = 1000;
+		}
+		else {
+			param.particles_n = (int) tmp_v;
+		}
+		
+		if(!config_lookup_float(&config, "particles.mass",&param.particles_mass)) {
+			param.particles_mass = 1.0;
+		}
+		
+		if(!config_lookup_float(&config, "particles.stime",&param.particles_stime)) {
+			param.particles_stime = 1.0;
+		}
+		
 		// Code parameters-------------------------------------------------------------------------------------
 	
 		if(!config_lookup_float(&config, "code.cfl",&param.cfl)) {

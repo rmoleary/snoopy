@@ -77,7 +77,7 @@ void write_particles_mass(FILE *ht, struct Particle *part) {
 	int i;
 	float q0;
 	
-	for(i = 0 ; i < NPARTICLES/NPROC ; i++) {
+	for(i = 0 ; i < param.particles_n/NPROC ; i++) {
 		q0 = big_endian( (float) part[i].mass);
 		fwrite( &q0, sizeof(float), 1, ht);
 	}
@@ -89,7 +89,7 @@ void write_particles_position(FILE *ht, struct Particle *part) {
 	int i;
 	float q0;
 	
-	for(i = 0 ; i < NPARTICLES/NPROC ; i++) {
+	for(i = 0 ; i < param.particles_n/NPROC ; i++) {
 		q0 = big_endian( (float) part[i].x);
 		fwrite( &q0, sizeof(float), 1, ht);
 		
@@ -128,7 +128,7 @@ void output_particles(const int n, double t) {
 
 #ifdef MPI_SUPPORT
 	if(rank==0)
-		part_chunk = (struct Particle *) malloc( NPARTICLES/NPROC * sizeof(struct Particle) );
+		part_chunk = (struct Particle *) malloc( param.particles_n/NPROC * sizeof(struct Particle) );
 #endif
 	
 	sprintf(filename,"data/p%04i.vtk",n);
@@ -140,7 +140,7 @@ void output_particles(const int n, double t) {
 		fprintf(ht, "t= %015.15e Snoopy Code v5.0\n",t);
 		fprintf(ht, "BINARY\n");
 		fprintf(ht, "DATASET POLYDATA\n");
-		fprintf(ht, "POINTS %d float\n",NPARTICLES);
+		fprintf(ht, "POINTS %d float\n",param.particles_n);
 	}
 	// Write Particle position...
 	
@@ -153,13 +153,13 @@ void output_particles(const int n, double t) {
 			}
 			else {
 				// Then gather the other processes
-				MPI_Recv( part_chunk, sizeof(struct Particle) * NPARTICLES/NPROC, MPI_BYTE, i, 2, MPI_COMM_WORLD, &status);
+				MPI_Recv( part_chunk, sizeof(struct Particle) * param.particles_n/NPROC, MPI_BYTE, i, 2, MPI_COMM_WORLD, &status);
 				write_particles_position(ht, part_chunk);
 			}
 		}
 	}
 	else {
-		MPI_Send( fld.part, sizeof(struct Particle) * NPARTICLES/NPROC, MPI_BYTE, 0, 2, MPI_COMM_WORLD);
+		MPI_Send( fld.part, sizeof(struct Particle) * param.particles_n/NPROC, MPI_BYTE, 0, 2, MPI_COMM_WORLD);
 	}
 	
 #else
@@ -169,7 +169,7 @@ void output_particles(const int n, double t) {
 #endif
 	
 	if(rank==0) {
-		fprintf(ht, "POINT_DATA %d\n",NPARTICLES);
+		fprintf(ht, "POINT_DATA %d\n",param.particles_n);
 		fprintf(ht, "SCALARS %s float\n","mass");
 		fprintf(ht, "LOOKUP_TABLE default\n");
 	}
@@ -183,13 +183,13 @@ void output_particles(const int n, double t) {
 			}
 			else {
 				// Then gather the other processes
-				MPI_Recv( part_chunk, sizeof(struct Particle) * NPARTICLES/NPROC, MPI_BYTE, i, 2, MPI_COMM_WORLD, &status);
+				MPI_Recv( part_chunk, sizeof(struct Particle) * param.particles_n/NPROC, MPI_BYTE, i, 2, MPI_COMM_WORLD, &status);
 				write_particles_mass(ht, part_chunk);
 			}
 		}
 	}
 	else {
-		MPI_Send( fld.part, sizeof(struct Particle) * NPARTICLES/NPROC, MPI_BYTE, 0, 2, MPI_COMM_WORLD);
+		MPI_Send( fld.part, sizeof(struct Particle) * param.particles_n/NPROC, MPI_BYTE, 0, 2, MPI_COMM_WORLD);
 	}
 	
 #else
@@ -232,7 +232,7 @@ void write_vtk_particles(FILE * ht, const double t) {
 		wr1[i] = 0.0;
 	}
 	
-	for(i = 0 ; i < NPARTICLES ; i++) {
+	for(i = 0 ; i < param.particles_n ; i++) {
 		m = floor( (fld.part[i].x / param.lx + 0.5) * NX );
 		n = floor( (fld.part[i].y / param.ly + 0.5) * NY );
 		p = floor( (fld.part[i].z / param.lz + 0.5) * NZ );
@@ -263,19 +263,19 @@ void read_particle_dump(FILE *ht, struct Particle *part) {
 	struct Particle * part_chunk;
 
 	if(rank==0) {
-		part_chunk = (struct Particle *) malloc( NPARTICLES/NPROC * sizeof(struct Particle) );
+		part_chunk = (struct Particle *) malloc( param.particles_n/NPROC * sizeof(struct Particle) );
 
 		for(current_rank=0; current_rank < NPROC; current_rank++) {
 			if(current_rank==0) {
 				// read the rank=0 process dump
 				fread(&q0, sizeof(int), 1, ht);
-				if(q0 != NPARTICLES) ERROR_HANDLER( ERROR_CRITICAL, "A different number of particles was saved in the dump.");
-				fread(part, sizeof(struct Particle), NPARTICLES/NPROC, ht);
+				if(q0 != param.particles_n) ERROR_HANDLER( ERROR_CRITICAL, "A different number of particles was saved in the dump.");
+				fread(part, sizeof(struct Particle), param.particles_n/NPROC, ht);
 			}
 			
 			else {
-				fread(part_chunk, sizeof(struct Particle), NPARTICLES/NPROC, ht);
-				MPI_Send( part_chunk, NPARTICLES/NPROC*sizeof(struct Particle), MPI_BYTE, current_rank, 2, MPI_COMM_WORLD);
+				fread(part_chunk, sizeof(struct Particle), param.particles_n/NPROC, ht);
+				MPI_Send( part_chunk, param.particles_n/NPROC*sizeof(struct Particle), MPI_BYTE, current_rank, 2, MPI_COMM_WORLD);
 			}
 
 		}
@@ -284,14 +284,14 @@ void read_particle_dump(FILE *ht, struct Particle *part) {
 		free(part_chunk);
 	}
 	else {
-		MPI_Recv(part, NPARTICLES/NPROC*sizeof(struct Particle), MPI_BYTE, 0, 2, MPI_COMM_WORLD, &status);
+		MPI_Recv(part, param.particles_n/NPROC*sizeof(struct Particle), MPI_BYTE, 0, 2, MPI_COMM_WORLD, &status);
 		MPI_Barrier(MPI_COMM_WORLD);
 	}
 
 #else
 	fread(&q0, sizeof(int), 1, ht);
-	if(q0 != NPARTICLES) ERROR_HANDLER( ERROR_CRITICAL, "A different number of particles was saved in the dump.");
-	fread(part, sizeof(struct Particle), NPARTICLES/NPROC, ht);
+	if(q0 != param.particles_n) ERROR_HANDLER( ERROR_CRITICAL, "A different number of particles was saved in the dump.");
+	fread(part, sizeof(struct Particle), param.particles_n/NPROC, ht);
 #endif
 }
 
@@ -305,20 +305,20 @@ void write_particle_dump(FILE *ht, struct Particle *part) {
 	struct Particle * part_chunk;
 
 	if(rank==0) {
-		part_chunk = (struct Particle *) malloc( NPARTICLES/NPROC * sizeof(struct Particle) );
+		part_chunk = (struct Particle *) malloc( param.particles_n/NPROC * sizeof(struct Particle) );
 
 		for(current_rank=0; current_rank < NPROC; current_rank++) {
 			if(current_rank==0) {
 				// write the rank=0 process dump
-				q0=NPARTICLES;
+				q0=param.particles_n;
 				fwrite(&q0, sizeof(int), 1, ht);
 				
-				fwrite(part, sizeof(struct Particle), NPARTICLES/NPROC, ht);
+				fwrite(part, sizeof(struct Particle), param.particles_n/NPROC, ht);
 			}
 			
 			else {
-				MPI_Recv( part_chunk, NPARTICLES/NPROC*sizeof(struct Particle), MPI_BYTE, current_rank, 2, MPI_COMM_WORLD, &status);
-				fwrite(part_chunk, sizeof(struct Particle), NPARTICLES/NPROC, ht);
+				MPI_Recv( part_chunk, param.particles_n/NPROC*sizeof(struct Particle), MPI_BYTE, current_rank, 2, MPI_COMM_WORLD, &status);
+				fwrite(part_chunk, sizeof(struct Particle), param.particles_n/NPROC, ht);
 			}
 
 		}
@@ -327,14 +327,14 @@ void write_particle_dump(FILE *ht, struct Particle *part) {
 		free(part_chunk);
 	}
 	else {
-		MPI_Send(part, NPARTICLES/NPROC*sizeof(struct Particle), MPI_BYTE, 0, 2, MPI_COMM_WORLD);
+		MPI_Send(part, param.particles_n/NPROC*sizeof(struct Particle), MPI_BYTE, 0, 2, MPI_COMM_WORLD);
 		MPI_Barrier(MPI_COMM_WORLD);
 	}
 
 #else
-	q0=NPARTICLES;
+	q0=param.particles_n;
 	fwrite(&q0, sizeof(int), 1, ht);
-	fwrite(part, sizeof(struct Particle), NPARTICLES/NPROC, ht);
+	fwrite(part, sizeof(struct Particle), param.particles_n/NPROC, ht);
 #endif
 
 
@@ -363,7 +363,7 @@ void init_particles() {
 	
 	// In case NPARTICLE % NPROC /= 0
 #ifdef MPI_SUPPORT
-	if( NPARTICLES % NPROC ) ERROR_HANDLER( ERROR_CRITICAL, "NPARTICLES have to be a multiple of NPROC");
+	if( param.particles_n % NPROC ) ERROR_HANDLER( ERROR_CRITICAL, "param.particles_n have to be a multiple of NPROC");
 #endif
 #ifdef WITH_2D
 	ERROR_HANDLER( ERROR_CRITICAL, "Particles module incompatible with the 2D optimization");
@@ -395,7 +395,7 @@ void init_particles() {
 	}
 	
 			
-	for(i = 0 ; i < NPARTICLES/NPROC ; i++) {
+	for(i = 0 ; i < param.particles_n/NPROC ; i++) {
 		//fld.part[i].x = 0.4-0.1*i;
 		//fld.part[i].y = 0.0;
 		//fld.part[i].z = 0.0;
@@ -406,7 +406,8 @@ void init_particles() {
 		fld.part[i].vx = 0.0;//0.1*randm()-0.5;
 		fld.part[i].vy = 0.0;//*randm()-0.5;
 		fld.part[i].vz = 0.0;
-		fld.part[i].mass = 1.0;
+		fld.part[i].mass = param.particles_mass;
+		fld.part[i].stime = param.particles_stime;
 	}
 	
 	// Init velocity vectors
@@ -662,19 +663,19 @@ void get_flow_velocity(int *indexArray, double *vin, double *Varray) {
 	// Allocate memory if it is the first time this function is called
 	
 	if(indexSend == NULL) {
-		indexSend = (int *) malloc( 3 * sizeof(int) * NPARTICLES/NPROC );
+		indexSend = (int *) malloc( 3 * sizeof(int) * param.particles_n/NPROC );
 		if(indexSend == NULL) ERROR_HANDLER(ERROR_CRITICAL, "No memory for indexSend allocation");
 		
-		indexRecv = (int *) malloc( 3 * sizeof(int) * NPARTICLES/NPROC );
+		indexRecv = (int *) malloc( 3 * sizeof(int) * param.particles_n/NPROC );
 		if(indexRecv == NULL) ERROR_HANDLER(ERROR_CRITICAL, "No memory for indexRecv allocation");
 		
-		indexPos = (int *) malloc(      sizeof(int) * NPARTICLES/NPROC );
+		indexPos = (int *) malloc(      sizeof(int) * param.particles_n/NPROC );
 		if(indexPos == NULL) ERROR_HANDLER(ERROR_CRITICAL, "No memory for indexPos allocation");
 		
-		Vsend = (double *) malloc( 8 * sizeof(double) * NPARTICLES/NPROC );
+		Vsend = (double *) malloc( 8 * sizeof(double) * param.particles_n/NPROC );
 		if(Vsend == NULL) ERROR_HANDLER(ERROR_CRITICAL, "No memory for Vsend allocation");
 		
-		Vrecv = (double *) malloc( 8 * sizeof(double) * NPARTICLES/NPROC );
+		Vrecv = (double *) malloc( 8 * sizeof(double) * param.particles_n/NPROC );
 		if(Vrecv == NULL) ERROR_HANDLER(ERROR_CRITICAL, "No memory for Vrecv allocation");
 	}
 	
@@ -685,7 +686,7 @@ void get_flow_velocity(int *indexArray, double *vin, double *Varray) {
 		
 		nsend = 0;
 		// Find the information we need from target processor
-		for( i = 0 ; i < NPARTICLES/NPROC ; i++) {
+		for( i = 0 ; i < param.particles_n/NPROC ; i++) {
 			if( (indexArray[ 3*i ] / (NX/NPROC) ) == target ) {
 				//particle i belongs to the flow in processor target
 				
@@ -826,10 +827,10 @@ void compute_drag_step(struct Field dfldo,
 	if (vz == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for vz allocation");
 	
 #ifdef MPI_SUPPORT
-	indexArray = (int *) malloc( NPARTICLES/NPROC * 3 * sizeof(int) );	//3 spatial coordinates per particle
-	VxArray = (double *) malloc( NPARTICLES/NPROC * 8 * sizeof(double) ); // 8 values around the particle (that's a cube)
-	VyArray = (double *) malloc( NPARTICLES/NPROC * 8 * sizeof(double) ); // 8 values around the particle (that's a cube)
-	VzArray = (double *) malloc( NPARTICLES/NPROC * 8 * sizeof(double) ); // 8 values around the particle (that's a cube)
+	indexArray = (int *) malloc( param.particles_n/NPROC * 3 * sizeof(int) );	//3 spatial coordinates per particle
+	VxArray = (double *) malloc( param.particles_n/NPROC * 8 * sizeof(double) ); // 8 values around the particle (that's a cube)
+	VyArray = (double *) malloc( param.particles_n/NPROC * 8 * sizeof(double) ); // 8 values around the particle (that's a cube)
+	VzArray = (double *) malloc( param.particles_n/NPROC * 8 * sizeof(double) ); // 8 values around the particle (that's a cube)
 #endif
 	
 	// Create a velocity field we can use
@@ -838,7 +839,7 @@ void compute_drag_step(struct Field dfldo,
 #ifdef _OPENMP
 	#pragma omp parallel for private(i, x, y, z, m, n, p, dx, dy ,dz, q000, q001, q010, q011, q100, q101, q110, q111, partvx, partvy, partvz) schedule(static)	
 #endif
-	for( i = 0 ; i < NPARTICLES/NPROC ; i++) {
+	for( i = 0 ; i < param.particles_n/NPROC ; i++) {
 		// Add drag forces
 		// Compute particle position in the box
 		x = fldi.part[i].x - param.lx * floor( fld.part[i].x / param.lx + 0.5 );
@@ -864,7 +865,7 @@ void compute_drag_step(struct Field dfldo,
 	get_flow_velocity(indexArray, vy, VyArray);
 	get_flow_velocity(indexArray, vz, VzArray);
 	
-	for( i = 0 ; i < NPARTICLES/NPROC ; i++) {
+	for( i = 0 ; i < param.particles_n/NPROC ; i++) {
 		
 		// Compute particle position in the box
 		x = fldi.part[i].x - param.lx * floor( fld.part[i].x / param.lx + 0.5 );
@@ -993,9 +994,9 @@ void compute_drag_step(struct Field dfldo,
 		// Apply forces
 		
 		//printf("m=%d, n=%d, p=%d, velocity on location is (%g, %g, %g)\n",m,n,p, vx[p + (NZ+1)*n + (NZ+1)*(NY+1)*m],vy[p + (NZ+1)*n + (NZ+1)*(NY+1)*m],vz[p + (NZ+1)*n + (NZ+1)*(NY+1)*m]);
-		dfldo.part[i].vx += - (fldi.part[i].vx - partvx);
-		dfldo.part[i].vy += - (fldi.part[i].vy - partvy);
-		dfldo.part[i].vz += - (fldi.part[i].vz - partvz);
+		dfldo.part[i].vx += - (fldi.part[i].vx - partvx)/fldi.part[i].stime;
+		dfldo.part[i].vy += - (fldi.part[i].vy - partvy)/fldi.part[i].stime;
+		dfldo.part[i].vz += - (fldi.part[i].vz - partvz)/fldi.part[i].stime;
 	}
 
 	fftw_free(vx);
@@ -1059,7 +1060,7 @@ void particle_step(struct Field dfldo,
 #ifdef _OPENMP
 	#pragma omp parallel for private(i) schedule(static)	
 #endif
-	for( i = 0 ; i < NPARTICLES/NPROC ; i++) {
+	for( i = 0 ; i < param.particles_n/NPROC ; i++) {
 		dfldo.part[i].vx =   2.0 * param.omega * fldi.part[i].vy;
 #ifdef WITH_SHEAR
 		dfldo.part[i].vy = - (2.0 * param.omega - param.shear) * fldi.part[i].vx;
@@ -1102,7 +1103,7 @@ void particle_implicit_step(struct Field fldi,
 	DEBUG_START_FUNC;
 	// Implicit step for particles, actually just a routine to keep the particles in the simulation "box"
 	
-	for(i = 0 ; i < NPARTICLES/NPROC ; i++) {
+	for(i = 0 ; i < param.particles_n/NPROC ; i++) {
 		x0 = fld.part[i].x;
 		fld.part[i].x = fld.part[i].x - param.lx * floor( fld.part[i].x / param.lx + 0.5 );
 		

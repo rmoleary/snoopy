@@ -132,7 +132,9 @@ void print_information(void) {
 #endif
 #ifdef WITH_PARTICLES
 	MPI_Printf("\nHave particles\n");
-	MPI_Printf("Nparticles=\t%d\n",NPARTICLES);
+	MPI_Printf("Nparticles=\t%d\n",param.particles_n);
+	MPI_Printf("Part' mass=\t%f\n",param.particles_mass);
+	MPI_Printf("Part' s-time=\t%f\n",param.particles_stime);
 #endif
 	MPI_Printf("\nT_initial=\t%f\n",param.t_initial);
 	MPI_Printf("T_final=\t%f\n",param.t_final);

@@ -92,7 +92,8 @@ struct Particle	{
 	double vx;
 	double vy;
 	double vz;
-	double mass; // unused for the moment
+	double mass;	// unused for the moment
+	double stime;	// Stopping time
 };
 #endif
 
@@ -137,6 +138,12 @@ struct Parameters {
 	double omega_shear;		/**< Pulsation of the time dependant shear (only when WITH_SHEAR and TIME_DEPENDANT_SHEAR is on) */
 	
 	double anelastic_lambda;/**< Stratification length when using the anelastic approximation, assuming an exponential density profile */
+	
+	// Particles parameters
+	int    particles_n;		/**< Number of particles */
+	double particles_mass;  /**< Mass of the particles */
+	double particles_stime;	/**< Stopping time of the particles */
+	
 	// Code parameters
 	
 	double cfl;				/**< CFL safety factor. Should be smaller than sqrt(3) for RK3 to be stable.*/

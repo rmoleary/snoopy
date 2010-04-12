@@ -268,7 +268,7 @@ void mainloop(double t_start, double t_end) {
 #ifdef _OPENMP
 		#pragma omp for schedule(static)	
 #endif
-		for( i = 0 ; i < NPARTICLES ; i++) {
+		for( i = 0 ; i < param.particles_n ; i++) {
 			fld.part[i].x = fld.part[i].x + gammaRK[0] * dfld.part[i].x * dt;
 			fld.part[i].y = fld.part[i].y + gammaRK[0] * dfld.part[i].y * dt;
 			fld.part[i].z = fld.part[i].z + gammaRK[0] * dfld.part[i].z * dt;
@@ -329,7 +329,7 @@ void mainloop(double t_start, double t_end) {
 #ifdef _OPENMP
 		#pragma omp for schedule(static)	
 #endif
-		for( i = 0 ; i < NPARTICLES ; i++) {
+		for( i = 0 ; i < param.particles_n ; i++) {
 			fld.part[i].x = fld1.part[i].x + gammaRK[1] * dfld.part[i].x * dt;
 			fld.part[i].y = fld1.part[i].y + gammaRK[1] * dfld.part[i].y * dt;
 			fld.part[i].z = fld1.part[i].z + gammaRK[1] * dfld.part[i].z * dt;
@@ -389,7 +389,7 @@ void mainloop(double t_start, double t_end) {
 #ifdef _OPENMP
 		#pragma omp for schedule(static)	
 #endif
-		for( i = 0 ; i < NPARTICLES ; i++) {
+		for( i = 0 ; i < param.particles_n ; i++) {
 			fld.part[i].x = fld1.part[i].x + gammaRK[2] * dfld.part[i].x * dt;
 			fld.part[i].y = fld1.part[i].y + gammaRK[2] * dfld.part[i].y * dt;
 			fld.part[i].z = fld1.part[i].z + gammaRK[2] * dfld.part[i].z * dt;
