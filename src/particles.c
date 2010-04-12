@@ -73,6 +73,100 @@ void remap_flow(	double wri[],
 
 #endif
 
+void output_partvar(struct Particle *part, double t) {
+	int i;
+	double vxmax,vxmin,vymax,vymin,vzmax,vzmin;
+	double vxm,vym,vzm,vx2,vy2,vz2;
+	FILE *ht;
+	
+	DEBUG_START_FUNC;
+	
+	vxm=0.0;
+	vym=0.0;
+	vzm=0.0;
+	vx2=0.0;
+	vy2=0.0;
+	vz2=0.0;
+	
+	vxmax=part[0].vx;
+	vymax=part[0].vy;
+	vzmax=part[0].vz;
+	
+	vxmin=part[0].vx;
+	vymin=part[0].vy;
+	vzmin=part[0].vz;
+	
+	// Compute average velocity and max/min
+	for(i = 0 ; i < param.particles_n/NPROC ; i++) {
+		vxm += part[i].vx;
+		vym += part[i].vy;
+		vzm += part[i].vz;
+		
+		if(vxmax<part[i].vx) vxmax = part[i].vx;
+		if(vymax<part[i].vy) vymax = part[i].vy;
+		if(vzmax<part[i].vz) vzmax = part[i].vz;
+		if(vxmin>part[i].vx) vxmin = part[i].vx;
+		if(vymin>part[i].vy) vymin = part[i].vy;
+		if(vzmin>part[i].vz) vzmin = part[i].vz;
+	}
+	
+	reduce(&vxm, 1);
+	reduce(&vym, 1);
+	reduce(&vzm, 1);
+	
+	vxm=vxm/param.particles_n;
+	vym=vym/param.particles_n;
+	vzm=vzm/param.particles_n;
+	
+	reduce(&vxmax, 2);
+	reduce(&vymax, 2);
+	reduce(&vzmax, 2);
+	
+	reduce(&vxmin, 3);
+	reduce(&vymin, 3);
+	reduce(&vzmin, 3);
+	
+	// Compute mean deviation
+	for(i = 0 ; i < param.particles_n/NPROC ; i++) {
+		vx2 += (part[i].vx-vxm)*(part[i].vx-vxm);
+		vy2 += (part[i].vy-vym)*(part[i].vy-vym);
+		vz2 += (part[i].vz-vzm)*(part[i].vz-vzm);
+	}
+	
+	reduce(&vx2,1);
+	reduce(&vy2,1);
+	reduce(&vz2,1);
+	
+	vx2=vx2/param.particles_n;
+	vy2=vy2/param.particles_n;
+	vz2=vz2/param.particles_n;
+	
+	// Root mean square
+	pow(vx2,0.5);
+	pow(vy2,0.5);
+	pow(vz2,0.5);
+	
+	if(rank==0) {
+		ht=fopen("partvar","a");
+		fprintf(ht,"%08e\t",t);
+		fprintf(ht,"%08e\t%08e\t%08e\t%08e\t%08e\t%08e\t",vxmax,vxmin,vymax,vymin,vzmax,vzmin);
+		fprintf(ht,"%08e\t%08e\t%08e\t",vxm,vym,vzm);
+		fprintf(ht,"%08e\t%08e\t%08e",vx2,vy2,vz2);
+		fprintf(ht,"\n");
+		fclose(ht);
+#ifdef MPI_SUPPORT
+		MPI_Barrier(MPI_COMM_WORLD);
+	}
+	else	MPI_Barrier(MPI_COMM_WORLD);
+#else
+	}
+#endif
+	
+	DEBUG_END_FUNC;
+	
+	return;
+}
+	
 void write_particles_mass(FILE *ht, struct Particle *part) {
 	int i;
 	float q0;
@@ -385,7 +479,7 @@ void init_particles() {
 	}
 	
 	// init particle positions and velocity
-	
+	/*
 	for(i = 0 ; i < 100/NPROC ; i++) {
 		for(j = 0 ; j < 100 ; j++) {
 			fld.part[ j + 100 * i ].x = -param.lx / 2.0 + param.lx * (i+rank*100/NPROC) / 100;
@@ -393,15 +487,16 @@ void init_particles() {
 			fld.part[ j + 100 * i ].z = 0.0;
 		}
 	}
+	*/
 	
 			
 	for(i = 0 ; i < param.particles_n/NPROC ; i++) {
 		//fld.part[i].x = 0.4-0.1*i;
 		//fld.part[i].y = 0.0;
 		//fld.part[i].z = 0.0;
-		//fld.part[i].x = -param.lx/2.0 +param.lx*randm();
-		//fld.part[i].y = -param.ly/2.0 +param.ly*randm();
-		//fld.part[i].z = 0.0;
+		fld.part[i].x = -param.lx/2.0 +param.lx*randm();
+		fld.part[i].y = -param.ly/2.0 +param.ly*randm();
+		fld.part[i].z = 0.0;
 		
 		fld.part[i].vx = 0.0;//0.1*randm()-0.5;
 		fld.part[i].vy = 0.0;//*randm()-0.5;

@@ -1,6 +1,7 @@
 #ifndef __PARTICLES_H
 #define __PARTICLES_H
 
+void output_partvart(struct Particle *part, double t);
 void output_particles(const int n, double t);
 void write_vtk_particles(FILE * ht, const double t);
 void read_particle_dump(FILE *ht, struct Particle *part);

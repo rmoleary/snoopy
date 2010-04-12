@@ -1219,8 +1219,12 @@ void clear_timevar() {
 	DEBUG_START_FUNC;
 	
 	if(rank==0) {
-	ht=fopen("timevar","w");
-	fclose(ht);
+		ht=fopen("timevar","w");
+		fclose(ht);
+#ifdef WITH_PARTICLES
+		ht=fopen("partvar","w");
+		fclose(ht);
+#endif
 	}
 
 	DEBUG_END_FUNC;
@@ -1350,6 +1354,9 @@ void output(const double t) {
 	if( (t-lastoutput_time)>=param.toutput_time) {
 		output_timevar(fld,t);
 		output1Dspectrum(fld,t);
+#ifdef WITH_PARTICLES
+		output_partvar(fld.part,t);
+#endif
 		lastoutput_time = lastoutput_time + param.toutput_time;
 	}
 	
