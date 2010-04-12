@@ -1,6 +1,7 @@
 #ifndef __PARTICLES_H
 #define __PARTICLES_H
 
+#ifdef WITH_PARTICLES
 void output_partvart(struct Particle *part, double t);
 void output_particles(const int n, double t);
 void write_vtk_particles(FILE * ht, const double t);
@@ -21,4 +22,5 @@ void particle_implicit_step(struct Field fldi,
 							const double dt);
 							
 void finish_particles();
+#endif
 #endif

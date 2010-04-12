@@ -19,10 +19,10 @@
 #include <stdlib.h>
 
 #include "common.h"
-#include "timestep.h"
 #include "gfft.h"
 #include "shear.h"
 #include "debug.h"
+#include "particles.h"
 
 #define MAX_N_BIN					10000
 #define OUTPUT_SPECTRUM_K_BIN		(2.0 * M_PI)

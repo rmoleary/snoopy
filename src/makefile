@@ -5,13 +5,13 @@ all: snoopy
 snoopy: $(OBJ)
 	$(CC) -o $@ $^ $(LDFLAGS)
 
-%.o: %.c gvars.h
+%.o: %.c common.h gvars.h error.h debug.h gfft.h
 	$(CC) -o $@ $< $(CFLAGS) -c
 
 clean:
 	rm -f *.o libconfig/*.o snoopy
 
-fullclean:
+cleanall:
 	rm -f *.o libconfig/*.o snoopy gvars.h
 
 bench:
@@ -21,3 +21,22 @@ bench:
 benchclean:
 	rm -f ./gvars.h
 	mv ./gvars.h.old ./gvars.h
+
+
+#--ADDITIONAL DEPENDENCIES--
+
+boundaries.o: symmetries.h
+gfft.o: transpose.h
+initflow.o: output.h symmetries.h
+interface.o: mainloop.h output.h transpose.h
+mainloop.o: timestep.h output.h interface.h shear.h transpose.h symmetries.h boundary.h particles.h
+output.o: shear.h particles.h
+particles.o: shear.h transpose.h
+read_config.o: libconfig/libconfig.h
+shear.o: transpose.h
+snoopy.o: mainloop.h output.h initflow.h read_config.h particles.h
+timestep.o: forcing.h particles.h
+libconfig/libconfig.o: libconfig/libconfig.h libconfig/grammar.h libconfig/scanner.h libconfig/private.h
+libconfig/grammar.o: libconfig/libconfig.h libconfig/private.h
+
+
