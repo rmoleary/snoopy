@@ -35,7 +35,6 @@ AC_CHECK_HEADERS([complex.h],[ok=yes],[
 			echo "******************************************"
                   	exit -1
                   ])
-
 #----------------------------------------------------
 #Check best optimisation
 AX_CC_MAXOPT 
@@ -54,6 +53,14 @@ if test "$FFTPATH" != ""; then
 	
 fi
 
+#----------------------------------------------------
+# Find Math library
+AC_CHECK_LIB(m,cexp,[],[
+			echo "******************************************"
+	              	echo "Error! Math library not found."
+			echo "******************************************"
+					exit -1
+				  ])
 
 #----------------------------------------------------
 #Check we have FFTW
