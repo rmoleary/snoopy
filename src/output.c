@@ -172,6 +172,9 @@ void write_spectrum(const double complex wi[], const double complex wj[], const 
 			fprintf(ht,"%08e\t", spectrum[i]);
 	
 		fprintf(ht,"\n");
+		
+		if(ferror(ht)) ERROR_HANDLER( ERROR_CRITICAL, "Error writing spectrum file");
+		
 		fclose(ht);
 	}
 
@@ -432,6 +435,7 @@ void init1Dspectrum() {
 	
 		fprintf(ht,"\n");
 	
+		if(ferror(ht)) ERROR_HANDLER( ERROR_CRITICAL, "Error writing spectrum file");
 		fclose(ht);
 	}
 	
@@ -516,6 +520,7 @@ void write_vtk(FILE * ht, double complex wi[], const double t) {
 				q0 = big_endian( (float) wr1[k + j * (NZ + 2) + i * NY * (NZ + 2) ] );
 #endif
 				fwrite(&q0, sizeof(float), 1, ht);
+				if(ferror(ht)) ERROR_HANDLER( ERROR_CRITICAL, "Error writing VTK file");
 #endif
 			}
 #ifdef MPI_SUPPORT
@@ -630,7 +635,10 @@ void output_vtk(const int n, double t) {
 #endif
 #endif
 		
-	if(rank==0) fclose(ht);
+	if(rank==0) {
+		if(ferror(ht)) ERROR_HANDLER( ERROR_CRITICAL, "Error writing VTK file");
+		fclose(ht);
+	}
 	
 	DEBUG_END_FUNC;
 	
@@ -848,6 +856,9 @@ void output_timevar(const struct Field fldi,
 		fprintf(ht,"\t%08e", cos(param.omega_shear * t) / param.shear );		// This parameter times the Reynolds stress leads to the instantenous "turbulent" viscosity
 #endif
 		fprintf(ht,"\n");
+		
+		if(ferror(ht)) ERROR_HANDLER( ERROR_CRITICAL, "Error writing timevar file");
+		
 		fclose(ht);
 #ifdef MPI_SUPPORT
 		MPI_Barrier(MPI_COMM_WORLD);
@@ -896,6 +907,9 @@ void write_field(FILE *handler, double complex *fldwrite) {
 			}
 #endif
 			fwrite(w1, sizeof(double complex), NTOTAL_COMPLEX, handler);
+			
+			if(ferror(handler)) ERROR_HANDLER( ERROR_CRITICAL, "Error writing dump file");
+			
 #ifdef MPI_SUPPORT
 		}
 		MPI_Barrier(MPI_COMM_WORLD);
@@ -929,6 +943,7 @@ void read_field(FILE *handler, double complex *fldread) {
 		for(current_rank=0; current_rank < NPROC; current_rank++) {
 #endif
 			fread(w1, sizeof(double complex), NTOTAL_COMPLEX, handler);
+			if(ferror(handler)) ERROR_HANDLER( ERROR_CRITICAL, "Error reading dump file");
 
 #ifdef MPI_SUPPORT
 			if(current_rank==0) {
@@ -1064,6 +1079,10 @@ void output_dump( const struct Field fldi,
 	
 		fwrite(&marker		, sizeof(int)			   , 1			   , ht);
 	
+// Check everything was fine with the file
+		
+		if(ferror(ht)) ERROR_HANDLER( ERROR_CRITICAL, "Error writing dump file");
+		
 		fclose(ht);
 	}
 	
@@ -1201,7 +1220,10 @@ void read_dump(   struct Field fldo,
 		MPI_Printf("Restarting at t=%e...\n",*t);
 	}
 
-	fclose(ht);
+	if(rank==0) {
+		if(ferror(ht)) ERROR_HANDLER( ERROR_CRITICAL, "Error reading dump file");
+		fclose(ht);
+	}
 	
 	DEBUG_END_FUNC;
 	

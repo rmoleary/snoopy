@@ -153,6 +153,9 @@ void output_partvar(struct Particle *part, double t) {
 		fprintf(ht,"%08e\t%08e\t%08e\t",vxm,vym,vzm);
 		fprintf(ht,"%08e\t%08e\t%08e",vx2,vy2,vz2);
 		fprintf(ht,"\n");
+		
+		if(ferror(ht)) ERROR_HANDLER( ERROR_CRITICAL, "Error writing partvar file");
+		
 		fclose(ht);
 #ifdef MPI_SUPPORT
 		MPI_Barrier(MPI_COMM_WORLD);
@@ -292,7 +295,10 @@ void output_particles(const int n, double t) {
 	
 #endif
 	
-	if(rank==0) fclose(ht);
+	if(rank==0) {
+		if(ferror(ht)) ERROR_HANDLER( ERROR_CRITICAL, "Error writing particles-vtk file");
+		fclose(ht);
+	}
 	
 #ifdef MPI_SUPPORT
 	if(rank==0) free(part_chunk);
