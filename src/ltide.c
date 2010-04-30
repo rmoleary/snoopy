@@ -23,6 +23,7 @@
 #include "gfft.h"
 #include "debug.h"
 
+#ifdef WITH_LINEAR_TIDE
 
 void ltide_timestep(struct Field dfldo,
 			   struct Field fldi,
@@ -84,3 +85,5 @@ void ltide_implicitstep(
 
 	return;
 }
+
+#endif

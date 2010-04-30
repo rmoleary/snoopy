@@ -15,6 +15,7 @@
     along with Snoopy code.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifdef WITH_LINEAR_TIDE
 
 void ltide_timestep(struct Field dfldo,
 			   struct Field fldi,
@@ -26,3 +27,4 @@ void ltide_implicitstep(
 			   const double t,
 			   const double dt );
 			   
+#endif
