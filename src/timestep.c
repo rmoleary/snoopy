@@ -24,6 +24,7 @@
 #include "debug.h"
 #include "forcing.h"
 #include "particles.h"
+#include "ltide.h"
 
 
 /**************************************************
@@ -325,7 +326,11 @@ void timestep( struct Field dfldo,
 		dfldo.vz[i] += -kz[i] * q0 * ik2t[i];
 #endif
 	}
-		
+	
+#ifdef WITH_LINEAR_TIDE
+	ltide_timestep(dfldo, fldi, t, dt);	
+#endif
+
 	return;
 }
 /************************************
@@ -438,6 +443,11 @@ void implicitstep(
 #ifdef WITH_PARTICLES
 	particle_implicit_step( fldi, t, dt);
 #endif
+
+#ifdef WITH_LINEAR_TIDE
+	ltide_implicitstep( fldi, t, dt);
+#endif
+
 	return;
 }
 	

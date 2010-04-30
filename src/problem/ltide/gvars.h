@@ -25,8 +25,8 @@
 
 //#define		MHD						/**< Uncomment to activate MHD*/
 
-//#define		BOUSSINESQ				/**< Uncomment to activate Boussinesq */
-//#define		VERTSTRAT				/**< Vertical stratification. Otherwise, Boussinesq stratification is in X */
+#define		BOUSSINESQ				/**< Uncomment to activate Boussinesq */
+#define		VERTSTRAT				/**< Vertical stratification. Otherwise, Boussinesq stratification is in X */
 //#define		N2PROFILE				/**< Assumes N2 depends on spatial coordinates. The profile has to be set up by hand in common.c/init_N2_profile(). This feature in in alpha version. */
 
 //#define		WITH_ROTATION			/**< Enable a Coriolis force, assuming the rotation axis is z. The rotation speed is set up in snoopy.cfg */
@@ -34,7 +34,7 @@
 //#define		WITH_SHEAR				/**< Uncomment to activate mean SHEAR */
 //#define		TIME_DEPENDANT_SHEAR	/**< Enable Time dependant shear */
 
-//#define		WITH_LINEAR_TIDE		/**< Enable linear tide evolution following Goodman & Oh (1997) */
+#define			WITH_LINEAR_TIDE		/**< Enable linear tide evolution following Goodman & Oh (1997) */
 
 //#define		ANELASTIC				/**< Anelastic approximation in the x direction, assuming an exponential density profile. This work only for the moment with pure hydro (no MHD/BOUSSINESQ).*/
 

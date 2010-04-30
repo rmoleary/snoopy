@@ -213,9 +213,15 @@ void output1Dspectrum(const struct Field fldi, const double ti) {
 	write_spectrum(fldi.by, fldi.by, ti);
 	write_spectrum(fldi.bz, fldi.bz, ti);
 #else
+#ifdef WITH_LINEAR_TIDE
+	write_spectrum(fldi.tvx, fldi.tvx,ti);		// When Linear tide is on, tide statistics replaces B statistics
+	write_spectrum(fldi.tvy, fldi.tvy,ti);
+	write_spectrum(fldi.tvz, fldi.tvz,ti);
+#else
 	write_spectrum(w1, w1, ti);
 	write_spectrum(w1, w1, ti);
 	write_spectrum(w1, w1, ti);
+#endif
 #endif
 
 #ifdef BOUSSINESQ
@@ -229,8 +235,14 @@ void output1Dspectrum(const struct Field fldi, const double ti) {
 #ifdef MHD
 	write_spectrum(fldi.bx,fldi.by, ti);
 #else
+#ifdef WITH_LINEAR_TIDE
+	write_spectrum(fldi.vx,fldi.tvy, ti);
+	write_spectrum(fldi.vy,fldi.tvx, ti);
+#else
 	write_spectrum(w1, w1, ti);
 #endif
+#endif
+
 	
 	// Transfer spectrums
 	// Kinetic energy transfer
@@ -668,6 +680,9 @@ void output_timevar(const struct Field fldi,
 	double reynolds_stress;
 	double maxwell_stress;
 	double helicity;
+#ifdef WITH_LINEAR_TIDE
+	double tide_stress;
+#endif
 
 	int i;
 	
@@ -685,11 +700,16 @@ void output_timevar(const struct Field fldi,
 		w6[i] = fldi.by[i];
 		w7[i] = fldi.bz[i];
 #endif
+#ifdef WITH_LINEAR_TIDE
+		w5[i] = fldi.tvx[i];	// When WITH_LINEAR_TIDE is on, the statistics of the tide replaces the statistics of B
+		w6[i] = fldi.tvy[i];
+		w7[i] = fldi.tvz[i];
+#endif
 	}
 
 	energy_total = energy(w1) + energy(w2) + energy(w3);
 	reduce(&energy_total,1);
-#ifdef MHD
+#if defined(MHD) || defined(WITH_LINEAR_TIDE)
 	energy_mag = energy(w5) + energy(w6) + energy(w7);
 	reduce(&energy_mag,1);
 #else
@@ -702,7 +722,7 @@ void output_timevar(const struct Field fldi,
 #ifdef BOUSSINESQ
 	gfft_c2r(w4);
 #endif
-#ifdef MHD
+#if defined(MHD) || defined(WITH_LINEAR_TIDE)
 	gfft_c2r(w5);
 	gfft_c2r(w6);
 	gfft_c2r(w7);
@@ -715,7 +735,7 @@ void output_timevar(const struct Field fldi,
 #ifdef BOUSSINESQ
 		wr4[i] = wr4[i] / ((double) NTOTAL );
 #endif
-#ifdef MHD
+#if defined(MHD) || defined(WITH_LINEAR_TIDE)
 		wr5[i] = wr5[i] / ((double) NTOTAL );
 		wr6[i] = wr6[i] / ((double) NTOTAL );
 		wr7[i] = wr7[i] / ((double) NTOTAL );
@@ -759,16 +779,21 @@ void output_timevar(const struct Field fldi,
 		if(thmax < wr4[i]) thmax = wr4[i];
 		if(thmin > wr4[i]) thmin = wr4[i];
 #endif
-#ifdef MHD
+#if defined(MHD) || defined(WITH_LINEAR_TIDE)
 		if(bxmax < wr5[i]) bxmax = wr5[i];
 		if(bxmin > wr5[i]) bxmin = wr5[i];
 		if(bymax < wr6[i]) bymax = wr6[i];
 		if(bymin > wr6[i]) bymin = wr6[i];
 		if(bzmax < wr7[i]) bzmax = wr7[i];
 		if(bzmin > wr7[i]) bzmin = wr7[i];
-		
+#endif
+#ifdef MHD
 		maxwell_stress += wr5[i] * wr6[i] / ((double) NTOTAL);
 #endif
+#ifdef WITH_LINEAR_TIDE
+		maxwell_stress += (wr5[i] * wr2[i] + wr6[i] * wr1[i]) / ((double) NTOTAL);
+#endif
+
 	}
 	
 	reduce(&vxmax,2);
@@ -1048,6 +1073,9 @@ void output_dump( const struct Field fldi,
 #ifdef WITH_PARTICLES
 		included_field+=4;
 #endif
+#ifdef WITH_LINEAR_TIDE
+		included_field+=8;
+#endif
 		fwrite(&included_field, sizeof(int), 1, ht);
 	}
 	
@@ -1065,6 +1093,11 @@ void output_dump( const struct Field fldi,
 #endif
 #ifdef WITH_PARTICLES
 	write_particle_dump(ht, fldi.part);
+#endif
+#ifdef WITH_LINEAR_TIDE
+	write_field(ht, fldi.tvx);
+	write_field(ht, fldi.tvy);
+	write_field(ht, fldi.tvz);
 #endif
 
 	if(rank==0) {
@@ -1192,6 +1225,21 @@ void read_dump(   struct Field fldo,
 		ERROR_HANDLER( ERROR_WARNING, "No Particles in the dump, using initial conditions.");
 	}
 #endif
+#ifdef WITH_LINEAR_TIDE
+	// Do we have tide field in the dump?
+	if(included_field & 8) {
+		// Yes
+		MPI_Printf("Reading tide field\n");
+		read_field(ht, fldo.tvx);
+		read_field(ht, fldo.tvy);
+		read_field(ht, fldo.tvz);
+	}
+	else {
+		//No
+		ERROR_HANDLER( ERROR_WARNING, "No tide field in the dump, using initial conditions.");
+	}
+#endif
+
 	
 	if(param.restart) {		// If the dump is used to restart, we need these extra variables
 		if(rank==0) {

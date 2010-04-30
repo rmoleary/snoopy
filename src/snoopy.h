@@ -117,6 +117,11 @@ struct Field {
 #ifdef WITH_PARTICLES
 	struct Particle *part;
 #endif
+#ifdef WITH_LINEAR_TIDE
+	double complex *tvx;
+	double complex *tvy;
+	double complex *tvz;
+#endif
 };
 
 struct Parameters {
@@ -135,7 +140,7 @@ struct Parameters {
 	
 	double shear;			/**< Shear rate (only when WITH_SHEAR is on) */
 	
-	double omega_shear;		/**< Pulsation of the time dependant shear (only when WITH_SHEAR and TIME_DEPENDANT_SHEAR is on) */
+	double omega_shear;		/**< Pulsation of the time dependant shear (only when WITH_SHEAR and TIME_DEPENDANT_SHEAR is on, or alternatively WITH_LINEAR_TIDE) */
 	
 	double anelastic_lambda;/**< Stratification length when using the anelastic approximation, assuming an exponential density profile */
 	

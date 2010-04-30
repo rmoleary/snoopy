@@ -330,6 +330,10 @@ void allocate_field(struct Field *fldi) {
 	fldi->nfield=fldi->nfield+3;
 #endif
 
+#ifdef WITH_LINEAR_TIDE
+	fldi->nfield=fldi->nfield+3;
+#endif
+
 	// Now we want to initialize the pointers of the field structure
 	
 	// farray will point to each of the array previously allocated
@@ -397,7 +401,25 @@ void allocate_field(struct Field *fldi) {
 
 	// Add a field here if you need one... (don't forget to ajust fldi.nfield accordingly)
 	// *
+#ifdef WITH_LINEAR_TIDE
+	fldi->tvx = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
+	if (fldi->tvx == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fldi->tvx allocation");
+	fldi->farray[current_field] = fldi->tvx;
+	sprintf(fldi->fname[current_field],"tvx");
+	current_field++;
 	
+	fldi->tvy = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
+	if (fldi->tvy == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fldi->tvy allocation");
+	fldi->farray[current_field] = fldi->tvy;
+	sprintf(fldi->fname[current_field],"tvy");
+	current_field++;
+	
+	fldi->tvz = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
+	if (fldi->tvz == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fldi->tvz allocation");
+	fldi->farray[current_field] = fldi->tvz;
+	sprintf(fldi->fname[current_field],"tvz");
+	current_field++;
+#endif
 
 #ifdef WITH_PARTICLES	
 	// Init space for particle storage
