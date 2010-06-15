@@ -583,6 +583,8 @@ void symmetrize_walls_x(struct Field fldi) {
 	symm_sin_x(fldi.th);
 #endif
 	
+	enforce_complex_symm(fldi);
+	
 	DEBUG_END_FUNC;
 	return;
 }				
@@ -608,6 +610,8 @@ void symmetrize_walls_z(struct Field fldi) {
 	symm_sin_z(fldi.th);
 #endif
 
+	enforce_complex_symm(fldi);
+	
 	DEBUG_END_FUNC;
 	return;
 }				
