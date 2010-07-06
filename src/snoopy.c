@@ -110,6 +110,9 @@ void print_information(void) {
 #endif
 #ifdef MHD
 	MPI_Printf("\nMHD enabled\n");
+#ifdef ELSASSER_FORMULATION
+	MPI_Printf("Using Elsasser Formulation\n");
+#endif
 	if(param.init_mean_field) {
 		MPI_Printf("BX0=\t\t%f\n",param.bx0);
 		MPI_Printf("BY0=\t\t%f\n",param.by0);

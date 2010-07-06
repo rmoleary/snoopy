@@ -24,6 +24,7 @@
 #define		NZ				64			/**< Z Dimension in real space. */
 
 #define		MHD						/**< Uncomment to activate MHD*/
+#define		ELSASSER_FORMULATION
 
 #define		BOUSSINESQ				/**< Uncomment to activate Boussinesq */
 //#define		VERTSTRAT				/**< Vertical stratification. Otherwise, Boussinesq stratification is in X */
