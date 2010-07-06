@@ -44,6 +44,12 @@
 
 #include "error.h"
 
+// Enforce No elssaser when not using MHD
+#ifdef ELSASSER_FORMULATION
+#ifndef MHD
+#undef ELSASSER_FORMULATION
+#endif
+#endif
 
 #ifdef MPI_SUPPORT
 #define		MPI_Printf			if (rank==0) printf

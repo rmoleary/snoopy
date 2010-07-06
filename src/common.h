@@ -31,13 +31,21 @@ extern double   *mask;
 extern double	*wr1,	*wr2,	*wr3;
 extern double	*wr4,	*wr5,	*wr6;
 extern double	*wr7,	*wr8,	*wr9;
-extern double	*wr10;
+#ifdef ELSASSER_FORMULATION
+extern double	*wr10,	*wr11,	*wr12;
+extern double	*wr13,	*wr14,	*wr15;
+#endif
 
 extern struct Field				fld;
 
 extern double complex		*w1,	*w2,	*w3;
 extern double complex		*w4,	*w5,	*w6;
 extern double complex		*w7,	*w8,	*w9;
+#ifdef ELSASSER_FORMULATION
+extern double complex		*w10,	*w11,	*w12;
+extern double complex		*w13,	*w14,	*w15;
+#endif
+
 
 extern double complex		*pressure;
 

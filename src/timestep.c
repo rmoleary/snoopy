@@ -51,6 +51,92 @@ void timestep( struct Field dfldo,
 #endif
 #endif
 
+
+
+#ifdef ELSASSER_FORMULATION
+/******************************************
+** ELSASSER variable formulation **********
+** To be used 
+*******************************************/
+
+// Solve the MHD equations using Elsasser fields
+#ifdef _OPENMP
+	#pragma omp parallel for private(i) schedule(static)	
+#endif
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		w1[i] =  fldi.vx[i]+fldi.bx[i];
+		w2[i] =  fldi.vy[i]+fldi.by[i];
+		w3[i] =  fldi.vz[i]+fldi.bz[i];
+		
+		w4[i] =  fldi.vx[i]-fldi.bx[i];
+		w5[i] =  fldi.vy[i]-fldi.by[i];
+		w6[i] =  fldi.vz[i]-fldi.bz[i];
+	}
+
+	gfft_c2r_t(w1);
+	gfft_c2r_t(w2);
+	gfft_c2r_t(w3);
+	
+	gfft_c2r_t(w4);
+	gfft_c2r_t(w5);
+	gfft_c2r_t(w6);
+	
+// Compute the Elsasser tensor
+
+#ifdef _OPENMP
+	#pragma omp parallel for private(i) schedule(static)	
+#endif
+	for( i = 0 ; i < 2*NTOTAL_COMPLEX ; i++) {
+		wr7[i]  = wr1[i] * wr4[i] / ((double) NTOTAL*NTOTAL);
+		wr8[i]  = wr1[i] * wr5[i] / ((double) NTOTAL*NTOTAL);
+		wr9[i]  = wr1[i] * wr6[i] / ((double) NTOTAL*NTOTAL);
+		wr10[i] = wr2[i] * wr4[i] / ((double) NTOTAL*NTOTAL);
+		wr11[i] = wr2[i] * wr5[i] / ((double) NTOTAL*NTOTAL);
+		wr12[i] = wr2[i] * wr6[i] / ((double) NTOTAL*NTOTAL);
+		wr13[i] = wr3[i] * wr4[i] / ((double) NTOTAL*NTOTAL);
+		wr14[i] = wr3[i] * wr5[i] / ((double) NTOTAL*NTOTAL);
+		wr15[i] = wr3[i] * wr6[i] / ((double) NTOTAL*NTOTAL);
+	}
+	
+	gfft_r2c_t(wr7);
+	gfft_r2c_t(wr8);
+	gfft_r2c_t(wr9);
+	gfft_r2c_t(wr10);
+	gfft_r2c_t(wr11);
+	gfft_r2c_t(wr12);
+	gfft_r2c_t(wr13);
+	gfft_r2c_t(wr14);
+	gfft_r2c_t(wr15);
+	
+// Compute the volution of the Elssaser fields (u= ik.
+#ifdef _OPENMP
+	#pragma omp parallel for private(i) schedule(static)	
+#endif
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		dfldo.vx[i] = - I * 0.5 * mask[i] * (
+						kxt[i] * ( 2.0 * w7[i]  ) + ky[i] * ( w8[i] + w10[i]) + kz[i] * (w9[i]  + w13[i]) );
+		dfldo.vy[i] = - I * 0.5 * mask[i] * (
+						kxt[i] * (w10[i] + w8[i]) + ky[i] * ( 2.0   * w11[i]) + kz[i] * (w12[i] + w14[i]) );
+		dfldo.vz[i] = - I * 0.5 * mask[i] * (
+						kxt[i] * (w13[i] + w9[i]) + ky[i] * (w14[i] + w12[i]) + kz[i] * ( 2.0 * w15[i]  ) );
+						
+		dfldo.bx[i] = - I * 0.5 * mask[i] * (
+						                            ky[i] * ( w8[i] - w10[i]) + kz[i] * (w9[i]  - w13[i]) );
+		dfldo.by[i] = - I * 0.5 * mask[i] * (
+						kxt[i] * (w10[i] - w8[i])                             + kz[i] * (w12[i] - w14[i]) );
+		dfldo.bz[i] = - I * 0.5 * mask[i] * (
+						kxt[i] * (w13[i] - w9[i]) + ky[i] * (w14[i] - w12[i])  );
+
+	}
+		
+// Compute real(U) in case it is used later.
+	for( i = 0 ; i < 2*NTOTAL_COMPLEX ; i++) {
+		wr1[i] = 0.5 * (wr1[i] + wr4[i]);
+		wr2[i] = 0.5 * (wr2[i] + wr5[i]);
+		wr3[i] = 0.5 * (wr3[i] + wr6[i]);
+	}
+
+#else
 /******************************************
 ** Velocity Self Advection ****************
 *******************************************/
@@ -105,6 +191,10 @@ void timestep( struct Field dfldo,
 		dfldo.vz[i] = - I * mask[i] * (
 					kxt[i] * w8[i] + ky[i] * w9[i] + kz[i] * w6[i] );	// since kz=0 in 2D, kz*w6 gives 0, even if w6 is some random array
 	}
+	
+#endif
+
+
 /**********************************************
 ** Particles (if needed) **********************
 ***********************************************/
@@ -185,6 +275,7 @@ void timestep( struct Field dfldo,
 **** MHD Terms (if needed)   *****************
 *********************************************/
 #ifdef MHD
+#ifndef ELSASSER_FORMULATION		// If Elssaser is on, MHD are already computed...
 
 // Start with the induction equation
 #ifdef _OPENMP
@@ -259,6 +350,7 @@ void timestep( struct Field dfldo,
 		dfldo.vz[i] += I * mask[i] * (kxt[i] * w8[i] + ky[i] * w9[i] + kz[i] * w3[i]);
 	}
 	
+#endif
 #endif
 
 

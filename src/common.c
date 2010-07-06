@@ -50,12 +50,20 @@ double   *mask;	/**< Deasliasing Mask*/
 double	*wr1,	*wr2,	*wr3;		/** Temporary real array (alias of complex w**) */
 double	*wr4,	*wr5,	*wr6;		/** Temporary real array (alias of complex w**) */
 double	*wr7,	*wr8,	*wr9;		/** Temporary real array (alias of complex w**) */
+#ifdef ELSASSER_FORMULATION
+double	*wr10,	*wr11,	*wr12;
+double	*wr13,	*wr14,	*wr15;
+#endif
 
 struct Field			fld;
 
 double complex		*w1,	*w2,	*w3;	/**< Temporary complex array (alias of real wr**) */
 double complex		*w4,	*w5,	*w6;	/**< Temporary complex array (alias of real wr**) */
 double complex		*w7,	*w8,	*w9;	/**< Temporary complex array (alias of real wr**) */
+#ifdef ELSASSER_FORMULATION
+double complex		*w10,	*w11,	*w12;
+double complex		*w13,	*w14,	*w15;
+#endif
 
 double complex		*pressure;				/**< Pressure field computed during the code evolution.
 												 Is only initialized if param.output_pressure is true. */
@@ -238,6 +246,28 @@ void init_common(void) {
 	w9 = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (w9 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w9 allocation");
 	
+#ifdef ELSASSER_FORMULATION
+	w10 = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
+	if (w10 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w10 allocation");
+	
+	w11 = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
+	if (w11 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w11 allocation");
+	
+	w12 = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
+	if (w12 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w12 allocation");
+	
+	w13 = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
+	if (w13 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w13 allocation");
+	
+	w14 = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
+	if (w14 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w14 allocation");
+	
+	w15 = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
+	if (w15 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w15 allocation");
+#endif
+	
+	
+	
 	if(param.output_pressure) {
 		pressure = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 		if (pressure == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for pressure allocation");
@@ -256,6 +286,14 @@ void init_common(void) {
 	wr7 = (double *) w7;
 	wr8 = (double *) w8;
 	wr9 = (double *) w9;
+#ifdef ELSASSER_FORMULATION
+	wr10 = (double *) w10;
+	wr11 = (double *) w11;
+	wr12 = (double *) w12;
+	wr13 = (double *) w13;
+	wr14 = (double *) w14;
+	wr15 = (double *) w15;
+#endif
 
 #ifdef BOUSSINESQ
 #ifdef N2PROFILE
@@ -301,6 +339,14 @@ void finish_common(void) {
 	free(w7);
 	free(w8);
 	free(w9);
+#ifdef ELSASSER_FORMULATION
+	free(w10);
+	free(w11);
+	free(w12);
+	free(w13);
+	free(w14);
+	free(w15);
+#endif
 
 	return;
 }
