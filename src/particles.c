@@ -946,6 +946,8 @@ void compute_drag_step(struct Field dfldo,
 		x = fldi.part[i].x - param.lx * floor( fld.part[i].x / param.lx + 0.5 );
 #ifdef WITH_SHEAR
 		y = fldi.part[i].y + (fld.part[i].x - x) * param.shear * t;
+#else
+		y = fldi.part[i].y;
 #endif
 		y = y - param.ly * floor( y / param.ly + 0.5 );
 		z = fldi.part[i].z - param.lz * floor( fld.part[i].z / param.lz + 0.5 );
