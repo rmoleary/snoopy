@@ -101,6 +101,14 @@ read_config() {
 			param.particles_stime = 1.0;
 		}
 		
+		if(!config_lookup_float(&config, "particles.dg_ratio",&param.particles_dg_ratio)) {
+			param.particles_dg_ratio = 0.01;
+		}
+		
+		if(!config_lookup_float(&config, "particles.epsilon",&param.particles_epsilon)) {
+			param.particles_epsilon = 0.1;
+		}
+		
 		// Code parameters-------------------------------------------------------------------------------------
 	
 		if(!config_lookup_float(&config, "code.cfl",&param.cfl)) {

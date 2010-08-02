@@ -21,6 +21,7 @@ void timestep( struct Field dfldo,
 			   struct Field fldi,
 			   double complex *po,
 			   const double t,
+			   const double tremap,
 			   const double dt);
 			   			   
 void implicitstep(

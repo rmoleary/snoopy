@@ -418,7 +418,11 @@ void init_MeanField() {
 }
 /** Init the flow arrays... */	
 void init_flow() {
-  int i,n;
+	int i,n;
+	double vx0;
+	double vy0;
+	double kappa_tau2;
+	
 	double dummy_var;
 	
 	DEBUG_START_FUNC;
@@ -463,7 +467,15 @@ void init_flow() {
 		projector(fld.bx,fld.by,fld.bz);
 #endif
 
-	
+#ifdef WITH_PARTICLES
+		if(rank==0) {
+			kappa_tau2 = 2.0*param.omega*(2.0*param.omega-param.shear) * param.particles_stime * param.particles_stime + (param.particles_dg_ratio + 1.0) * (param.particles_dg_ratio + 1.0);
+
+	// This is a non trivial equilibrium for the particles+gas system
+			fld.vx[0] = param.particles_epsilon*param.particles_stime*param.particles_dg_ratio / kappa_tau2 * ( (double) NTOTAL);
+			fld.vy[0] = param.particles_epsilon*param.particles_dg_ratio*(1.0+param.particles_dg_ratio)/(2.0*param.omega*kappa_tau2) * ( (double) NTOTAL);
+		}
+#endif
 
 #ifdef DEBUG
 	MPI_Printf("Initflow:\n");

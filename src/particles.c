@@ -31,18 +31,17 @@ fftw_plan	fft_particle_backward;							/**< 1D FFT transforms. Used by remap rou
 /***********************************************************/
 
 void remap_flow(	double wri[], 
-					const double t) {
+					const double t,
+					const double tremap) {
 					
 	int i,j,k;
 	double tvelocity;
-	double tremap;
 	complex double wexp;
 	complex double phase;
 	double complex		*wremap;						/** 1D arrays used by the remap methods */
 	
 	DEBUG_START_FUNC;
 	
-	tremap = time_shift(t);
 	tvelocity = fmod(t, 2.0 * param.ly / (param.shear * param.lx));
 	
 	wremap = (double complex *) fftw_malloc( sizeof(double complex) * (NY/2+1) * (NZ+1) );
@@ -69,6 +68,58 @@ void remap_flow(	double wri[],
 	
 	return;
 }
+
+/***********************************************************/
+/** 
+	Remap a real field from the galilean frame to the classical 
+	sheared frame. This remap routine assumes the incoming field 
+	has dimensions NX/NPROC+1, NY+1, NZ+1
+	
+	@param wri Real array to be remapped. The remapped array will be stored here.
+	@param t Current time of the simulation (used to compute what the sheared frame is).
+	
+*/
+/***********************************************************/
+
+void remap_flow_inv( double wri[], 
+					 const double t,
+					 const double tremap) {
+					
+	int i,j,k;
+	double tvelocity;
+	complex double wexp;
+	complex double phase;
+	double complex		*wremap;						/** 1D arrays used by the remap methods */
+	
+	DEBUG_START_FUNC;
+	
+	tvelocity = fmod(t, 2.0 * param.ly / (param.shear * param.lx));
+	
+	wremap = (double complex *) fftw_malloc( sizeof(double complex) * (NY/2+1) * (NZ+1) );
+	if (wremap == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for wremap allocation");
+	
+	for( i = 0 ; i < NX/NPROC+1 ; i++) {
+		fftw_execute_dft_r2c(fft_particle_forward, wri + i*(NZ+1)*(NY+1), wremap);
+		for( j = 0 ; j < NY/2+1 ; j++) {
+			phase = - (double complex) ((2.0 * M_PI) / param.ly *  ((double) j )  * 
+									( ((double) (i + rank * (NX/NPROC)) / (double) NX ) * tremap - tvelocity / 2.0 ) * param.lx * param.shear);
+			
+			wexp = cexp( I * phase) / NY;
+			
+			for( k = 0 ; k < NZ+1; k++) {
+				wremap[ k + j * (NZ+1) ] = wexp * wremap[ k + j * (NZ+1) ];
+			}
+		}
+		fftw_execute_dft_c2r(fft_particle_backward, wremap, wri+i*(NZ+1)*(NY+1));
+	}
+
+	fftw_free(wremap);
+	
+	DEBUG_END_FUNC;
+	
+	return;
+}
+
 
 
 #endif
@@ -304,6 +355,8 @@ void output_particles(const int n, double t) {
 	if(rank==0) free(part_chunk);
 #endif
 
+	DEBUG_END_FUNC; 
+	
 	return;
 }
 
@@ -322,34 +375,49 @@ void output_particles(const int n, double t) {
 
 void write_vtk_particles(FILE * ht, const double t) {
 	int i,j,k;
-	int m, n, p;
-	
 	float q0;
-#ifndef MPI_SUPPORT
-	// This stuff is messy if I have MPI...
 	
-	for(i = 0 ; i < 2*NTOTAL_COMPLEX ; i++) {
-		wr1[i] = 0.0;
+	
+	double *density;
+	double *MassArray;
+	int *indexArray;
+
+	DEBUG_START_FUNC;
+	
+	density = (double *) fftw_malloc( (NX/NPROC+1) * (NY+1) * (NZ+1) * sizeof(double ));
+	if (density == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for density allocation");
+
+	indexArray = (int *) malloc( param.particles_n/NPROC * 3 * sizeof(int) );	//3 spatial coordinates per particle
+	MassArray = (double *) malloc( param.particles_n/NPROC * sizeof(double) ); // interpolated vx values at particle location
+	
+	for(i=0 ; i < param.particles_n/NPROC ; i++) {
+		MassArray[i] = fld.part[i].mass;
 	}
 	
-	for(i = 0 ; i < param.particles_n ; i++) {
-		m = floor( (fld.part[i].x / param.lx + 0.5) * NX );
-		n = floor( (fld.part[i].y / param.ly + 0.5) * NY );
-		p = floor( (fld.part[i].z / param.lz + 0.5) * NZ );
-		
-		wr1[ p + n * (NZ + 2) + m * (NZ + 2) * NY]++;
+	build_indexArray(fld, t, indexArray);
+	
+	for( i = 0 ; i < (NX/NPROC+1) * (NY+1) * (NZ+1) ; i++) {
+		density[ i ] = 0.0;
 	}
+	
+	particles_to_flow(indexArray, fld, MassArray, density);
+	
 	
 	for( k = 0 ; k < NZ; k++) {
 		for( j = 0; j < NY; j++) {	
 			for( i = 0; i < NX; i++) {
-				q0 = big_endian( (float) wr1[k + j * (NZ + 2) + i * NY * (NZ + 2) ] );
+				q0 = big_endian( (float) (density[k + j * (NZ + 1) + i * (NY + 1) * (NZ + 1) ] * NX * NY * NZ / (param.lx * param.ly * param.lz)));
 				fwrite(&q0, sizeof(float), 1, ht);
 			}
 		}
 	}
-#endif
-
+	
+	free(density);
+	free(indexArray);
+	free(MassArray);
+	
+	DEBUG_END_FUNC;
+	
 	return;
 }
 
@@ -456,6 +524,9 @@ void init_particles() {
 	double complex		*wremap;
 	double *vx;
 #endif
+	double vx0;
+	double vy0;
+	double kappa_tau2;
 	
 	const int n_size1D[1] = {NY};
 	
@@ -485,7 +556,8 @@ void init_particles() {
 	}
 	
 	// init particle positions and velocity
-	/*
+	
+	
 	for(i = 0 ; i < 100/NPROC ; i++) {
 		for(j = 0 ; j < 100 ; j++) {
 			fld.part[ j + 100 * i ].x = -param.lx / 2.0 + param.lx * (i+rank*100/NPROC) / 100;
@@ -493,21 +565,32 @@ void init_particles() {
 			fld.part[ j + 100 * i ].z = 0.0;
 		}
 	}
+	/*
+	fld.part[0].x=0.0;
+	fld.part[0].y=0.0;
+	fld.part[0].z=0.0;
 	*/
 	
-			
+	kappa_tau2 = 2.0*param.omega*(2.0*param.omega-param.shear) * param.particles_stime * param.particles_stime + (param.particles_dg_ratio + 1.0) * (param.particles_dg_ratio + 1.0);
+
+	// This is a non trivial equilibrium for the particles+gas system
+	
+	vx0=-param.particles_epsilon*param.particles_stime/kappa_tau2;
+	vy0= param.particles_epsilon*(kappa_tau2-(param.particles_dg_ratio+1.0)) / ( 2.0*param.omega*kappa_tau2 );
+	
 	for(i = 0 ; i < param.particles_n/NPROC ; i++) {
 		//fld.part[i].x = 0.4-0.1*i;
 		//fld.part[i].y = 0.0;
 		//fld.part[i].z = 0.0;
 		fld.part[i].x = -param.lx/2.0 +param.lx*randm();
 		fld.part[i].y = -param.ly/2.0 +param.ly*randm();
-		fld.part[i].z = 0.0;
+		fld.part[i].z = -param.lz/2.0 +param.lz*randm();
 		
-		fld.part[i].vx = 0.0;//0.1*randm()-0.5;
-		fld.part[i].vy = 0.0;//*randm()-0.5;
-		fld.part[i].vz = 0.0;
-		fld.part[i].mass = param.particles_mass;
+		fld.part[i].vx = vx0;
+		fld.part[i].vy = vy0;
+		fld.part[i].vz = 1.0*(randm()-0.5);
+		//fld.part[i].mass = param.particles_mass;
+		fld.part[i].mass = param.particles_dg_ratio * param.lx * param.ly * param.lz / param.particles_n;
 		fld.part[i].stime = param.particles_stime;
 	}
 	
@@ -561,6 +644,64 @@ void init_particles() {
 	return;
 }
 
+void map_flow_forces(double *qi,
+					 double *qo,
+					 const double t,
+					 const double tremap) {
+					 
+	
+	int i,j,k;
+	
+	DEBUG_START_FUNC;
+	
+	// Sum the ghost zones in each direction
+	
+	// Periodize in the z direction k=0->k=NZ
+	for( i = 0  ; i < NX/NPROC+1 ; i++) {
+		for( j = 0 ; j < NY+1 ; j++) {
+			qi[j * (NZ+1) + i * (NZ+1) * (NY+1)] += qi[NZ + j * (NZ+1) + i * (NZ+1) * (NY+1)];
+		}
+	}
+	
+	// Periodize in the y direction j=0->j=NY
+	
+	for( i = 0  ; i < NX/NPROC+1 ; i++) {
+		for( k = 0 ; k < NZ ; k++) {
+			qi[k + i * (NZ+1) * (NY+1)] += qi[k + NY * (NZ+1) + i * (NZ+1) * (NY+1)];
+		}
+	}
+
+#ifdef WITH_SHEAR
+	// Remap the flow
+	remap_flow_inv(qi, t, tremap);
+#endif
+
+	// Periodize the output array in the x direction i=O->i=NX
+	
+	for( j = 0  ; j < NY ; j++) {
+		for( k = 0 ; k < NZ ; k++) {
+			qi[k + j * (NZ + 1)] += qi[k + j * (NZ+1) + NX * (NZ+1) * (NY+1)];
+		}
+	}
+
+#ifdef _OPENMP
+#pragma omp parallel for private(i,j,k) schedule(static)	
+#endif
+	for( i = 0 ; i < NX/NPROC ; i++) {
+		for( j = 0  ; j < NY ; j++) {
+			for( k = 0 ; k < NZ ; k++) {
+				qo[k + j * (NZ + 2) + i * (NZ+2) * NY] = qi[k + j * (NZ+1) + i * (NZ+1) * (NY+1)];
+			}
+		}
+	}
+	
+	DEBUG_END_FUNC;
+	
+	return;
+}
+
+
+
 /***********************************************************/
 /** 
 	Computes the flow velocity (minus shear if shear is present)
@@ -568,7 +709,7 @@ void init_particles() {
 	field in a sheared frame (such as the one given by a call to gfft_c2r(fld.qi))
 	and produces an unsheared velocity field to which ghost zones are added in each direction
 	
-	The ghost zones are used by the interpolation routines later one
+	The ghost zones are used by the interpolation routines later on
 	
 	We assume the input arrays have size (NX, NY, NZ+2) without mpi or (NY/NPROC, NX, NZ+2) with mpi
 	
@@ -592,7 +733,8 @@ void compute_flow_velocity(double *qxi,
 						   double *qxo,
 						   double *qyo,
 						   double *qzo,
-						   const double t) {
+						   const double t,
+						   const double tremap) {
 	
 	int i,j,k;
 	int dest, source;
@@ -674,9 +816,9 @@ void compute_flow_velocity(double *qxi,
 #ifdef WITH_SHEAR
 	// Remap the flow
 	
-	remap_flow(qxo, t);
-	remap_flow(qyo, t);
-	remap_flow(qzo, t);
+	remap_flow(qxo, t, tremap);
+	remap_flow(qyo, t, tremap);
+	remap_flow(qzo, t, tremap);
 	
 #endif
 
@@ -741,18 +883,64 @@ int alltoall_schedule(int npes, int myrank, int step)
   }
   return pe;
 }
+#endif
 
 
-void get_flow_velocity(int *indexArray, double *vin, double *Varray) {
+void build_indexArray(struct  Field fldi,
+					  double  t,
+						 int  *indexArray) {
+						
+	// Build an indexArray so that indexArray[3*i+j] is the the grid coordinate of particle i (x->j=0, y->j=1, z->j=2)
+	// This routine assumes indexArray was already allocated
+	int i,m,n,p;
+	double x,y,z;
+	
+#ifdef _OPENMP
+#pragma omp parallel for private(i, x, y, z, m, n, p) schedule(static)	
+#endif
+	for( i = 0 ; i < param.particles_n/NPROC ; i++) {
+		// Compute particle position in the box
+		x = fldi.part[i].x - param.lx * floor( fld.part[i].x / param.lx + 0.5 );
+#ifdef WITH_SHEAR
+		y = fldi.part[i].y + (fld.part[i].x - x) * param.shear * t;
+#else
+		y = fldi.part[i].y;
+#endif
+		y = y - param.ly * floor( y / param.ly + 0.5 );
+		z = fldi.part[i].z - param.lz * floor( fld.part[i].z / param.lz + 0.5 );
+
+		// particle indices (these indices could be outside of the local box!!)
+		m=(int) floor( (x/param.lx+0.5) * NX);
+		n=(int) floor( (y/param.ly+0.5) * NY);
+		p=(int) floor( (z/param.lz+0.5) * NZ);
+
+		indexArray[3*i]   = m;
+		indexArray[3*i+1] = n;
+		indexArray[3*i+2] = p;
+	}
+	
+	return;
+}
+
+
+	
+	
+// Map grid based scalar to a particle based scalar
+void flow_to_particles(int *indexArray, struct Field fldi, double *vin, double *Varray) {
+	int m,n,p;
+	int i,j;
+	
+	double dx, dy, dz;
+	double q000, q001, q010, q011, q100, q101, q110, q111;
+	
+#ifdef MPI_SUPPORT
 	int nstep;
 	int target;
 	int nsend;
 	int nrecv;
-	int m,n,p;
-	int i,j;
 	
 	MPI_Status	status;
-	
+		
 	static int *indexSend = NULL;
 	static int *indexRecv = NULL;
 	static int *indexPos = NULL;
@@ -760,7 +948,7 @@ void get_flow_velocity(int *indexArray, double *vin, double *Varray) {
 	static double *Vrecv = NULL;
 	
 	DEBUG_START_FUNC;
-	
+
 	// Allocate memory if it is the first time this function is called
 	
 	if(indexSend == NULL) {
@@ -848,28 +1036,233 @@ void get_flow_velocity(int *indexArray, double *vin, double *Varray) {
 					  Vrecv, 8*nsend, MPI_DOUBLE, target, 1,
 					  MPI_COMM_WORLD, &status);
 					  
-		// Map back in Varray
+		// Compute the interpolated field in Varray
 		
-		for( i = 0 ; i < nsend ; i++) {
-			j = indexPos[ i ];
-			Varray[ 8*j     ] = Vrecv[ 8*i     ];
-			Varray[ 8*j + 1 ] = Vrecv[ 8*i + 1 ];
-			Varray[ 8*j + 2 ] = Vrecv[ 8*i + 2 ];
-			Varray[ 8*j + 3 ] = Vrecv[ 8*i + 3 ];
-			Varray[ 8*j + 4 ] = Vrecv[ 8*i + 4 ];
-			Varray[ 8*j + 5 ] = Vrecv[ 8*i + 5 ];
-			Varray[ 8*j + 6 ] = Vrecv[ 8*i + 6 ];
-			Varray[ 8*j + 7 ] = Vrecv[ 8*i + 7 ];
+		for( j = 0 ; j < nsend ; j++) {
+			i = indexPos[ j ];
+			
+			q000 = Vrecv[ 8*j   ];
+			q001 = Vrecv[ 8*j+1 ];
+			q010 = Vrecv[ 8*j+2 ];
+			q011 = Vrecv[ 8*j+3 ];
+			q100 = Vrecv[ 8*j+4 ];
+			q101 = Vrecv[ 8*j+5 ];
+			q110 = Vrecv[ 8*j+6 ];
+			q111 = Vrecv[ 8*j+7 ];
+#else
+		// non MPI routine starts here
+		
+		DEBUG_START_FUNC;
+		
+#ifdef _OPENMP
+#pragma omp parallel for private(i, m, n, p, dx, dy ,dz, q000, q001, q010, q011, q100, q101, q110, q111) schedule(static)	
+#endif
+		for( i = 0 ; i < param.particles_n ; i++) {
+			m = indexArray[ 3*i     ];
+			n = indexArray[ 3*i + 1 ];
+			p = indexArray[ 3*i + 2 ];
+		
+			q000 = vin[p   + (NZ+1)*n    + (NZ+1)*(NY+1)*m    ];
+			q001 = vin[p+1 + (NZ+1)*n    + (NZ+1)*(NY+1)*m    ];
+			q010 = vin[p   + (NZ+1)*(n+1)+ (NZ+1)*(NY+1)*m    ];
+			q011 = vin[p+1 + (NZ+1)*(n+1)+ (NZ+1)*(NY+1)*m    ];
+			q100 = vin[p   + (NZ+1)*n    + (NZ+1)*(NY+1)*(m+1)];
+			q101 = vin[p+1 + (NZ+1)*n    + (NZ+1)*(NY+1)*(m+1)];
+			q110 = vin[p   + (NZ+1)*(n+1)+ (NZ+1)*(NY+1)*(m+1)];
+			q111 = vin[p+1 + (NZ+1)*(n+1)+ (NZ+1)*(NY+1)*(m+1)];
+#endif
+	
+					
+			// Compute a linear interpolation of the flow at the particle location
+			// NB: we add param.lx/y/z fldi.part[i].x/y/z so that the result returned by fmod is always positive.
+			dx=fmod( fldi.part[i].x+param.lx , param.lx/((double)NX)) * NX / param.lx;
+			dy=fmod( fldi.part[i].y+param.ly , param.ly/((double)NY)) * NY / param.ly;
+			dz=fmod( fldi.part[i].z+param.lz , param.lz/((double)NZ)) * NZ / param.lz;
+
+			Varray[i] =	  (1.0-dx) * (1.0-dy)*(1.0-dz) * q000
+						+ (1.0-dx) * (1.0-dy)*(    dz) * q001
+						+ (1.0-dx) * (    dy)*(1.0-dz) * q010
+						+ (1.0-dx) * (    dy)*(    dz) * q011
+						+ (    dx) * (1.0-dy)*(1.0-dz) * q100
+						+ (    dx) * (1.0-dy)*(    dz) * q101
+						+ (    dx) * (    dy)*(1.0-dz) * q110
+						+ (    dx) * (    dy)*(    dz) * q111;
+
 		}
+#ifdef MPI_SUPPORT
 	}
+#endif
+	
 	
 	DEBUG_END_FUNC;
 	
 	return;
 }
 			
-#endif
+// Map grid based scalar to a particle based scalar
+void particles_to_flow(int *indexArray, struct Field fldi, double *Varray, double *vout) {
+	int m,n,p;
+	int i,j;
+	
+	double dx, dy, dz;
+	double q000, q001, q010, q011, q100, q101, q110, q111;
+	
+#ifdef MPI_SUPPORT
+	int nstep;
+	int target;
+	int nsend;
+	int nrecv;
+	
+	MPI_Status	status;
+		
+	static int *indexSend = NULL;
+	static int *indexRecv = NULL;
+	static int *indexPos = NULL;
+	static double *Vsend = NULL;
+	static double *Vrecv = NULL;
+	
+	DEBUG_START_FUNC;
+	
+	// Allocate memory if it is the first time this function is called
+	
+	if(indexSend == NULL) {
+		indexSend = (int *) malloc( 3 * sizeof(int) * param.particles_n/NPROC );
+		if(indexSend == NULL) ERROR_HANDLER(ERROR_CRITICAL, "No memory for indexSend allocation");
+		
+		indexRecv = (int *) malloc( 3 * sizeof(int) * param.particles_n/NPROC );
+		if(indexRecv == NULL) ERROR_HANDLER(ERROR_CRITICAL, "No memory for indexRecv allocation");
+		
+		indexPos = (int *) malloc(      sizeof(int) * param.particles_n/NPROC );
+		if(indexPos == NULL) ERROR_HANDLER(ERROR_CRITICAL, "No memory for indexPos allocation");
+		
+		Vsend = (double *) malloc( 8 * sizeof(double) * param.particles_n/NPROC );
+		if(Vsend == NULL) ERROR_HANDLER(ERROR_CRITICAL, "No memory for Vsend allocation");
+		
+		Vrecv = (double *) malloc( 8 * sizeof(double) * param.particles_n/NPROC );
+		if(Vrecv == NULL) ERROR_HANDLER(ERROR_CRITICAL, "No memory for Vrecv allocation");
+	}
+	
+	// Loop on each process
+	for( nstep = 0; nstep < NPROC ; nstep++) {
+		
+		target = alltoall_schedule( NPROC, rank, nstep);	// Find the target processor
+		
+		nsend = 0;
+		// Find the information we need to send to the target processor
+		for( i = 0 ; i < param.particles_n/NPROC ; i++) {
+			if( (indexArray[ 3*i ] / (NX/NPROC) ) == target ) {
+				//particle i belongs to the flow in processor target
+				
+				indexPos[ nsend ] = i; 
+				indexSend[ 3*nsend ] = indexArray[ 3*i ];
+				indexSend[ 3*nsend + 1] = indexArray[ 3*i + 1 ];
+				indexSend[ 3*nsend + 2] = indexArray[ 3*i + 2 ];
+		
+				// Build the velocity we have to send
+				// Compute a linear interpolation of the flow at the particle location
+				dx=fmod( fldi.part[i].x+param.lx/2 , param.lx/((double)NX)) * NX / param.lx;
+				dy=fmod( fldi.part[i].y+param.ly/2 , param.ly/((double)NY)) * NY / param.ly;
+				dz=fmod( fldi.part[i].z+param.lz/2 , param.lz/((double)NZ)) * NZ / param.lz;
 			
+				Vsend[ 8*nsend    ] = (1.0-dx) * (1.0-dy) * (1.0-dz) * Varray[i];
+				Vsend[ 8*nsend + 1] = (1.0-dx) * (1.0-dy) * (    dz) * Varray[i];
+				Vsend[ 8*nsend + 2] = (1.0-dx) * (    dy) * (1.0-dz) * Varray[i];
+				Vsend[ 8*nsend + 3] = (1.0-dx) * (    dy) * (    dz) * Varray[i];
+				Vsend[ 8*nsend + 4] = (    dx) * (1.0-dy) * (1.0-dz) * Varray[i];
+				Vsend[ 8*nsend + 5] = (    dx) * (1.0-dy) * (    dz) * Varray[i];
+				Vsend[ 8*nsend + 6] = (    dx) * (    dy) * (1.0-dz) * Varray[i];
+				Vsend[ 8*nsend + 7] = (    dx) * (    dy) * (    dz) * Varray[i];
+
+				nsend++;
+			}
+		}
+		
+		// We're going to send nsend flow velocities points to processor target
+			
+		// Exchange the array sizes
+			
+		MPI_Sendrecv( &nsend, 1, MPI_INT, target, 1, 
+					  &nrecv, 1, MPI_INT, target, 1,
+					  MPI_COMM_WORLD, &status );
+		
+		// Exchange the indices
+		MPI_Sendrecv( indexSend, 3*nsend, MPI_INT, target, 1,
+					  indexRecv, 3*nrecv, MPI_INT, target, 1,
+					  MPI_COMM_WORLD, &status );
+		
+		// From that point indexRecv contains the indices of the velocity field we will receive from the target
+			
+				
+		// Exchange back the velocity information
+		
+		MPI_Sendrecv( Vsend, 8*nsend, MPI_DOUBLE, target, 1,
+					  Vrecv, 8*nrecv, MPI_DOUBLE, target, 1,
+					  MPI_COMM_WORLD, &status);
+		
+		// Compute the interpolated field in Varray
+		
+		
+		for( i = 0 ; i < nrecv ; i++) {
+				m = indexRecv[ 3*i     ];
+				n = indexRecv[ 3*i + 1 ];
+				p = indexRecv[ 3*i + 2 ];
+				
+				m = m - (NX/NPROC)*rank;
+				
+				if( (m >= NX/NPROC) || (m < 0) ) ERROR_HANDLER(ERROR_CRITICAL, "You gave me flow information this process doesn't need");
+				
+				// Add to vout the result (caution, vout is not initialized!)
+				
+				vout[p   + (NZ+1)*n    + (NZ+1)*(NY+1)*m    ] += Vrecv[ 8*i     ];
+				vout[p+1 + (NZ+1)*n    + (NZ+1)*(NY+1)*m    ] += Vrecv[ 8*i + 1 ];
+				vout[p   + (NZ+1)*(n+1)+ (NZ+1)*(NY+1)*m    ] += Vrecv[ 8*i + 2 ];
+				vout[p+1 + (NZ+1)*(n+1)+ (NZ+1)*(NY+1)*m    ] += Vrecv[ 8*i + 3 ];
+				vout[p   + (NZ+1)*n    + (NZ+1)*(NY+1)*(m+1)] += Vrecv[ 8*i + 4 ];
+				vout[p+1 + (NZ+1)*n    + (NZ+1)*(NY+1)*(m+1)] += Vrecv[ 8*i + 5 ];
+				vout[p   + (NZ+1)*(n+1)+ (NZ+1)*(NY+1)*(m+1)] += Vrecv[ 8*i + 6 ];
+				vout[p+1 + (NZ+1)*(n+1)+ (NZ+1)*(NY+1)*(m+1)] += Vrecv[ 8*i + 7 ];
+
+	
+		}
+
+	}
+#else			// no MPI
+
+	DEBUG_START_FUNC;
+	
+#ifdef _OPENMP
+#pragma omp parallel for private(i, m, n, p, dx, dy ,dz, q000, q001, q010, q011, q100, q101, q110, q111) schedule(static)	
+#endif
+	for( i = 0 ; i < param.particles_n ; i++) {
+		m = indexArray[ 3*i     ];
+		n = indexArray[ 3*i + 1 ];
+		p = indexArray[ 3*i + 2 ];
+			
+		// Compute a linear interpolation of the flow at the particle location
+		dx=fmod( fldi.part[i].x+param.lx , param.lx/((double)NX)) * NX / param.lx;
+		dy=fmod( fldi.part[i].y+param.ly , param.ly/((double)NY)) * NY / param.ly;
+		dz=fmod( fldi.part[i].z+param.lz , param.lz/((double)NZ)) * NZ / param.lz;
+		
+		if(dx>1.0 || dx < 0.0) printf("shit with dx=%g, x=%g\n",dx,fldi.part[i].x);
+		if(dy>1.0 || dy < 0.0) printf("shit with dy=%g, y=%g\n",dy,fldi.part[i].y);
+		if(dz>1.0 || dz < 0.0) printf("shit with dz=%g\n",dz);
+
+		vout[p   + (NZ+1)*n    + (NZ+1)*(NY+1)*m    ] += (1.0-dx) * (1.0-dy)*(1.0-dz) * Varray[i];
+		vout[p+1 + (NZ+1)*n    + (NZ+1)*(NY+1)*m    ] += (1.0-dx) * (1.0-dy)*(    dz) * Varray[i];
+		vout[p   + (NZ+1)*(n+1)+ (NZ+1)*(NY+1)*m    ] += (1.0-dx) * (    dy)*(1.0-dz) * Varray[i];
+		vout[p+1 + (NZ+1)*(n+1)+ (NZ+1)*(NY+1)*m    ] += (1.0-dx) * (    dy)*(    dz) * Varray[i];
+		vout[p   + (NZ+1)*n    + (NZ+1)*(NY+1)*(m+1)] += (    dx) * (1.0-dy)*(1.0-dz) * Varray[i];
+		vout[p+1 + (NZ+1)*n    + (NZ+1)*(NY+1)*(m+1)] += (    dx) * (1.0-dy)*(    dz) * Varray[i];
+		vout[p   + (NZ+1)*(n+1)+ (NZ+1)*(NY+1)*(m+1)] += (    dx) * (    dy)*(1.0-dz) * Varray[i];
+		vout[p+1 + (NZ+1)*(n+1)+ (NZ+1)*(NY+1)*(m+1)] += (    dx) * (    dy)*(    dz) * Varray[i];
+	}
+#endif
+
+	DEBUG_END_FUNC;
+	
+	return;
+}
+
 
 /***********************************************************/
 /** 
@@ -899,24 +1292,18 @@ void compute_drag_step(struct Field dfldo,
 				   double *qy,
 				   double *qz,
 				   const double t,
+				   const double tremap,
 				   const double dt) {
 				   
 	int i;
-	int m,n,p;
 	double *vx;
 	double *vy;
 	double *vz;
-	double x, y, z;
-	double dx, dy, dz;
-	double q000, q001, q010, q011, q100, q101, q110, q111;
-	double partvx, partvy, partvz;
-	
-#ifdef MPI_SUPPORT
+
 	int *indexArray;
 	double *VxArray;
 	double *VyArray;
 	double *VzArray;
-#endif
 	
 	vx = (double *) fftw_malloc( (NX/NPROC+1) * (NY+1) * (NZ+1) * sizeof(double ));
 	if (vx == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for vx allocation");
@@ -927,191 +1314,82 @@ void compute_drag_step(struct Field dfldo,
 	vz = (double *) fftw_malloc( (NX/NPROC+1) * (NY+1) * (NZ+1) * sizeof(double ));
 	if (vz == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for vz allocation");
 	
-#ifdef MPI_SUPPORT
 	indexArray = (int *) malloc( param.particles_n/NPROC * 3 * sizeof(int) );	//3 spatial coordinates per particle
-	VxArray = (double *) malloc( param.particles_n/NPROC * 8 * sizeof(double) ); // 8 values around the particle (that's a cube)
-	VyArray = (double *) malloc( param.particles_n/NPROC * 8 * sizeof(double) ); // 8 values around the particle (that's a cube)
-	VzArray = (double *) malloc( param.particles_n/NPROC * 8 * sizeof(double) ); // 8 values around the particle (that's a cube)
-#endif
+	VxArray = (double *) malloc( param.particles_n/NPROC * sizeof(double) ); // interpolated vx values at particle location
+	VyArray = (double *) malloc( param.particles_n/NPROC * sizeof(double) ); // interpolated vy values at particle location
+	VzArray = (double *) malloc( param.particles_n/NPROC * sizeof(double) ); // interpolated vz values at particle location
 	
 	// Create a velocity field we can use
-	compute_flow_velocity(qx, qy, qz, vx, vy, vz, t);
+	compute_flow_velocity(qx, qy, qz, vx, vy, vz, t, tremap);
+
+	// Compute the index Array
+	build_indexArray(fldi, t, indexArray);
+	
+	flow_to_particles(indexArray, fldi, vx, VxArray);
+	flow_to_particles(indexArray, fldi, vy, VyArray);
+	flow_to_particles(indexArray, fldi, vz, VzArray);
 	
 #ifdef _OPENMP
-	#pragma omp parallel for private(i, x, y, z, m, n, p, dx, dy ,dz, q000, q001, q010, q011, q100, q101, q110, q111, partvx, partvy, partvz) schedule(static)	
+	#pragma omp parallel for private(i) schedule(static)	
 #endif
 	for( i = 0 ; i < param.particles_n/NPROC ; i++) {
-		// Add drag forces
-		// Compute particle position in the box
-		x = fldi.part[i].x - param.lx * floor( fld.part[i].x / param.lx + 0.5 );
-#ifdef WITH_SHEAR
-		y = fldi.part[i].y + (fld.part[i].x - x) * param.shear * t;
-#else
-		y = fldi.part[i].y;
-#endif
-		y = y - param.ly * floor( y / param.ly + 0.5 );
-		z = fldi.part[i].z - param.lz * floor( fld.part[i].z / param.lz + 0.5 );
-
-		// particle indices (these indices could be outside of the local box!!)
-		m=(int) floor( (x/param.lx+0.5) * NX);
-		n=(int) floor( (y/param.ly+0.5) * NY);
-		p=(int) floor( (z/param.lz+0.5) * NZ);
-
-	
-#ifdef MPI_SUPPORT
-		indexArray[3*i]   = m;
-		indexArray[3*i+1] = n;
-		indexArray[3*i+2] = p;
-	}
-	
-	get_flow_velocity(indexArray, vx, VxArray);
-	get_flow_velocity(indexArray, vy, VyArray);
-	get_flow_velocity(indexArray, vz, VzArray);
-	
-	for( i = 0 ; i < param.particles_n/NPROC ; i++) {
+		// Compute the forces in VjArray
 		
-		// Compute particle position in the box
-		x = fldi.part[i].x - param.lx * floor( fld.part[i].x / param.lx + 0.5 );
-#ifdef WITH_SHEAR
-		y = fldi.part[i].y + (fld.part[i].x - x) * param.shear * t;
-#endif
-		y = y - param.ly * floor( y / param.ly + 0.5 );
-		z = fldi.part[i].z - param.lz * floor( fld.part[i].z / param.lz + 0.5 );
-		
-#endif	// Non MPI takes over here
-
-		
-		// Compute a linear interpolation of the flow at the particle location
-		dx=fmod( fldi.part[i].x+param.lx/2 , param.lx/((double)NX)) * NX / param.lx;
-		dy=fmod( fldi.part[i].y+param.ly/2 , param.ly/((double)NY)) * NY / param.ly;
-		dz=fmod( fldi.part[i].z+param.lz/2 , param.lz/((double)NZ)) * NZ / param.lz;
-		
-		/*
-		dx = (x - x3D[ p + n*(NZ+1) + m*(NZ+1)*(NY+1) ])/param.lx * ((double)NX);
-		dy = (y - y3D[ p + n*(NZ+1) + m*(NZ+1)*(NY+1) ])/param.ly * ((double)NY);
-		dz = (z - z3D[ p + n*(NZ+1) + m*(NZ+1)*(NY+1) ])/param.lz * ((double)NZ);
-		*/
-		//printf("dx=%g, dy=%g, dz=%g\n",dx,dy,dz);
-		
-		////////////// VX interpolation
-
-#ifdef MPI_SUPPORT
-		q000 = VxArray[ 8*i   ];
-		q001 = VxArray[ 8*i+1 ];
-		q010 = VxArray[ 8*i+2 ];
-		q011 = VxArray[ 8*i+3 ];
-		q100 = VxArray[ 8*i+4 ];
-		q101 = VxArray[ 8*i+5 ];
-		q110 = VxArray[ 8*i+6 ];
-		q111 = VxArray[ 8*i+7 ];
-
-		//printf("rank=%d, particule=%d, q000=%g, q001=%g\n",rank,i,q000,q001);
-#else
-
-		q000 = vx[p   + (NZ+1)*n    + (NZ+1)*(NY+1)*m    ];
-		q001 = vx[p+1 + (NZ+1)*n    + (NZ+1)*(NY+1)*m    ];
-		q010 = vx[p   + (NZ+1)*(n+1)+ (NZ+1)*(NY+1)*m    ];
-		q011 = vx[p+1 + (NZ+1)*(n+1)+ (NZ+1)*(NY+1)*m    ];
-		q100 = vx[p   + (NZ+1)*n    + (NZ+1)*(NY+1)*(m+1)];
-		q101 = vx[p+1 + (NZ+1)*n    + (NZ+1)*(NY+1)*(m+1)];
-		q110 = vx[p   + (NZ+1)*(n+1)+ (NZ+1)*(NY+1)*(m+1)];
-		q111 = vx[p+1 + (NZ+1)*(n+1)+ (NZ+1)*(NY+1)*(m+1)];
-#endif
-		
-		partvx = (1.0-dx) * (1.0-dy)*(1.0-dz) * q000
-			   + (1.0-dx) * (1.0-dy)*(    dz) * q001
-			   + (1.0-dx) * (    dy)*(1.0-dz) * q010
-			   + (1.0-dx) * (    dy)*(    dz) * q011
-			   + (    dx) * (1.0-dy)*(1.0-dz) * q100
-			   + (    dx) * (1.0-dy)*(    dz) * q101
-			   + (    dx) * (    dy)*(1.0-dz) * q110
-			   + (    dx) * (    dy)*(    dz) * q111;
-			  
-		////////////// VY interpolation
-
-#ifdef MPI_SUPPORT
-		q000 = VyArray[ 8*i   ];
-		q001 = VyArray[ 8*i+1 ];
-		q010 = VyArray[ 8*i+2 ];
-		q011 = VyArray[ 8*i+3 ];
-		q100 = VyArray[ 8*i+4 ];
-		q101 = VyArray[ 8*i+5 ];
-		q110 = VyArray[ 8*i+6 ];
-		q111 = VyArray[ 8*i+7 ];
-#else
-
-		q000 = vy[p   + (NZ+1)*n    + (NZ+1)*(NY+1)*m    ];
-		q001 = vy[p+1 + (NZ+1)*n    + (NZ+1)*(NY+1)*m    ];
-		q010 = vy[p   + (NZ+1)*(n+1)+ (NZ+1)*(NY+1)*m    ];
-		q011 = vy[p+1 + (NZ+1)*(n+1)+ (NZ+1)*(NY+1)*m    ];
-		q100 = vy[p   + (NZ+1)*n    + (NZ+1)*(NY+1)*(m+1)];
-		q101 = vy[p+1 + (NZ+1)*n    + (NZ+1)*(NY+1)*(m+1)];
-		q110 = vy[p   + (NZ+1)*(n+1)+ (NZ+1)*(NY+1)*(m+1)];
-		q111 = vy[p+1 + (NZ+1)*(n+1)+ (NZ+1)*(NY+1)*(m+1)];
-#endif
-		
-		partvy = (1.0-dx) * (1.0-dy)*(1.0-dz) * q000
-			   + (1.0-dx) * (1.0-dy)*(    dz) * q001
-			   + (1.0-dx) * (    dy)*(1.0-dz) * q010
-			   + (1.0-dx) * (    dy)*(    dz) * q011
-			   + (    dx) * (1.0-dy)*(1.0-dz) * q100
-			   + (    dx) * (1.0-dy)*(    dz) * q101
-			   + (    dx) * (    dy)*(1.0-dz) * q110
-			   + (    dx) * (    dy)*(    dz) * q111;
-			   
-		////////////// VZ interpolation
-
-#ifdef MPI_SUPPORT
-		q000 = VzArray[ 8*i   ];
-		q001 = VzArray[ 8*i+1 ];
-		q010 = VzArray[ 8*i+2 ];
-		q011 = VzArray[ 8*i+3 ];
-		q100 = VzArray[ 8*i+4 ];
-		q101 = VzArray[ 8*i+5 ];
-		q110 = VzArray[ 8*i+6 ];
-		q111 = VzArray[ 8*i+7 ];
-#else
-		q000 = vz[p   + (NZ+1)*n    + (NZ+1)*(NY+1)*m    ];
-		q001 = vz[p+1 + (NZ+1)*n    + (NZ+1)*(NY+1)*m    ];
-		q010 = vz[p   + (NZ+1)*(n+1)+ (NZ+1)*(NY+1)*m    ];
-		q011 = vz[p+1 + (NZ+1)*(n+1)+ (NZ+1)*(NY+1)*m    ];
-		q100 = vz[p   + (NZ+1)*n    + (NZ+1)*(NY+1)*(m+1)];
-		q101 = vz[p+1 + (NZ+1)*n    + (NZ+1)*(NY+1)*(m+1)];
-		q110 = vz[p   + (NZ+1)*(n+1)+ (NZ+1)*(NY+1)*(m+1)];
-		q111 = vz[p+1 + (NZ+1)*(n+1)+ (NZ+1)*(NY+1)*(m+1)];
-#endif
-		
-		partvz = (1.0-dx) * (1.0-dy)*(1.0-dz) * q000
-			   + (1.0-dx) * (1.0-dy)*(    dz) * q001
-			   + (1.0-dx) * (    dy)*(1.0-dz) * q010
-			   + (1.0-dx) * (    dy)*(    dz) * q011
-			   + (    dx) * (1.0-dy)*(1.0-dz) * q100
-			   + (    dx) * (1.0-dy)*(    dz) * q101
-			   + (    dx) * (    dy)*(1.0-dz) * q110
-			   + (    dx) * (    dy)*(    dz) * q111;
-		
-		
-		if(p>NZ||p<0) ERROR_HANDLER( ERROR_CRITICAL, "Error with p");
-		if(n>NY||n<0) ERROR_HANDLER( ERROR_CRITICAL, "Error with n");
-		if(m>NX||m<0) ERROR_HANDLER( ERROR_CRITICAL, "Error with m");
-		// Apply forces
+		VxArray[i] = - (fldi.part[i].vx - VxArray[i]) / fldi.part[i].stime;
+		VyArray[i] = - (fldi.part[i].vy - VyArray[i]) / fldi.part[i].stime;
+		VzArray[i] = - (fldi.part[i].vz - VzArray[i]) / fldi.part[i].stime;
 		
 		//printf("m=%d, n=%d, p=%d, velocity on location is (%g, %g, %g)\n",m,n,p, vx[p + (NZ+1)*n + (NZ+1)*(NY+1)*m],vy[p + (NZ+1)*n + (NZ+1)*(NY+1)*m],vz[p + (NZ+1)*n + (NZ+1)*(NY+1)*m]);
-		dfldo.part[i].vx += - (fldi.part[i].vx - partvx)/fldi.part[i].stime;
-		dfldo.part[i].vy += - (fldi.part[i].vy - partvy)/fldi.part[i].stime;
-		dfldo.part[i].vz += - (fldi.part[i].vz - partvz)/fldi.part[i].stime;
+		dfldo.part[i].vx += VxArray[i];
+		dfldo.part[i].vy += VyArray[i];
+		dfldo.part[i].vz += VzArray[i];
 	}
+
+	// initialize to 0 vx, vy, vz
+	
+	
+	for(i=0 ; i < (NX/NPROC+1) * (NY+1) * (NZ+1) ; i++) {
+		vx[i]=0.0;
+		vy[i]=0.0;
+		vz[i]=0.0;
+	}
+	
+	// Map back forces fo the grid.
+	particles_to_flow(indexArray, fldi, VxArray, vx);
+	particles_to_flow(indexArray, fldi, VyArray, vy);
+	particles_to_flow(indexArray, fldi, VzArray, vz);
+	
+	// remove ghost zone and remap
+	map_flow_forces(vx,wr4,t,tremap);
+	map_flow_forces(vy,wr5,t,tremap);
+	map_flow_forces(vz,wr6,t,tremap);
+	
+	// fourier transform
+	gfft_r2c(wr4);
+	gfft_r2c(wr5);
+	gfft_r2c(wr6);
+	
+	// Add to the deviations (including antialiasing)
+
+
+#ifdef _OPENMP
+	#pragma omp parallel for private(i) schedule(static)	
+#endif
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		dfldo.vx[i] -= param.particles_dg_ratio * NX * NY * NZ * mask[i] * w4[i] / param.particles_n;
+		dfldo.vy[i] -= param.particles_dg_ratio * NX * NY * NZ * mask[i] * w5[i] / param.particles_n;
+		dfldo.vz[i] -= param.particles_dg_ratio * NX * NY * NZ * mask[i] * w6[i] / param.particles_n;
+	}
+
 
 	fftw_free(vx);
 	fftw_free(vy);
-	fftw_free(vz);
-	
-#ifdef MPI_SUPPORT
+	fftw_free(vz);	
 	free(indexArray);
 	free(VxArray);
 	free(VyArray);
 	free(VzArray);
-#endif
+
 	return;
 		
 }
@@ -1148,6 +1426,7 @@ void particle_step(struct Field dfldo,
 				   double *qy,
 				   double *qz,
 				   const double t,
+				   const double tremap,
 				   const double dt) {
 			
 	int i;
@@ -1164,7 +1443,7 @@ void particle_step(struct Field dfldo,
 	#pragma omp parallel for private(i) schedule(static)	
 #endif
 	for( i = 0 ; i < param.particles_n/NPROC ; i++) {
-		dfldo.part[i].vx =   2.0 * param.omega * fldi.part[i].vy;
+		dfldo.part[i].vx =   2.0 * param.omega * fldi.part[i].vy - param.particles_epsilon;
 #ifdef WITH_SHEAR
 		dfldo.part[i].vy = - (2.0 * param.omega - param.shear) * fldi.part[i].vx;
 #else
@@ -1181,7 +1460,7 @@ void particle_step(struct Field dfldo,
 		dfldo.part[i].z = fldi.part[i].vz;
 	}
 		
-	compute_drag_step(dfldo, fldi, qx, qy, qz,t, dt);
+	compute_drag_step(dfldo, fldi, qx, qy, qz, t, tremap, dt);
 	
 	DEBUG_END_FUNC;
 }

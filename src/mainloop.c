@@ -249,7 +249,7 @@ void mainloop(double t_start, double t_end) {
 		
 		// 1st RK3 step
 		
-		timestep(dfld, fld, pressure, t, dt );
+		timestep(dfld, fld, pressure, t, tremap, dt );
 		
 #ifdef _OPENMP
 		#pragma omp parallel private(i,n) 
@@ -310,7 +310,7 @@ void mainloop(double t_start, double t_end) {
 		kvolve(tremap+gammaRK[0]*dt);
 #endif
 #endif
-		timestep(dfld, fld, NULL, t+gammaRK[0]*dt, dt);
+		timestep(dfld, fld, NULL, t+gammaRK[0]*dt, tremap+gammaRK[0]*dt, dt);
 
 #ifdef _OPENMP
 		#pragma omp parallel private(i,n) 
@@ -371,7 +371,7 @@ void mainloop(double t_start, double t_end) {
 		kvolve(tremap + (gammaRK[0] + xiRK[0] + gammaRK[1]) * dt );
 #endif
 #endif
-		timestep(dfld, fld, NULL, t + (gammaRK[0] + xiRK[0] + gammaRK[1]) * dt, dt);
+		timestep(dfld, fld, NULL, t + (gammaRK[0] + xiRK[0] + gammaRK[1]) * dt, tremap + (gammaRK[0] + xiRK[0] + gammaRK[1]) * dt, dt);
 
 #ifdef _OPENMP
 		#pragma omp parallel private(i,n) 

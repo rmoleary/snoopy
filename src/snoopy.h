@@ -154,6 +154,8 @@ struct Parameters {
 	int    particles_n;		/**< Number of particles */
 	double particles_mass;  /**< Mass of the particles */
 	double particles_stime;	/**< Stopping time of the particles */
+	double particles_dg_ratio;	/**< Dust to gas mass ratio for the particles feedback */
+	double particles_epsilon;	/**< Pressure gradient epsilon */
 	
 	// Code parameters
 	

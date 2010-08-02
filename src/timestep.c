@@ -35,6 +35,7 @@ void timestep( struct Field dfldo,
 			   struct Field fldi,
 			   double complex *po,
 			   const double t,
+			   const double tremap,
 			   const double dt) {
 			   
 	int i;
@@ -200,7 +201,7 @@ void timestep( struct Field dfldo,
 ***********************************************/
 
 #ifdef WITH_PARTICLES
-	particle_step(dfldo, fldi, wr1, wr2, wr3, t, dt);
+	particle_step(dfldo, fldi, wr1, wr2, wr3, t, tremap, dt);
 #endif
 
 	

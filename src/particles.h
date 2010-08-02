@@ -15,6 +15,7 @@ void particle_step(struct Field dfldo,
 				   double *vy,
 				   double *vz,
 				   const double t,
+				   const double tremap,
 				   const double dt);
 
 void particle_implicit_step(struct Field fldi,

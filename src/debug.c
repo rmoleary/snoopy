@@ -72,7 +72,7 @@ void D_show_field(double complex * field) {
 #ifdef WITH_PARTICLES
 void D_show_part(struct Field fldi) {
 	int i;
-	for( i = 0 ; i < NPARTICLES ; i++) {
+	for( i = 0 ; i < param.particles_n/NPROC ; i++) {
 		MPI_Printf("   Particule %d: x= %12e, y= %12e, z= %12e, vx= %12e, vy= %12e, vz= %12e\n", i, fldi.part[i].x, fldi.part[i].y, fldi.part[i].z, fldi.part[i].vx, fldi.part[i].vy, fldi.part[i].vz);
 	}
 	return;
