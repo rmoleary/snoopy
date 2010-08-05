@@ -19,6 +19,8 @@
 
 #include "snoopy.h"
 
+#define		CHECK_NAN(XIN)		c_nan(XIN, __func__, __LINE__,__FILE__)
+ 
 // All these variables may be used in the code as they are initialized by common.c
 // Wave number pointers
 extern double	*kx,	*ky,	*kz,	*kxt,	*k2t,	*ik2t;

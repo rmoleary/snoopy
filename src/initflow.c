@@ -468,6 +468,7 @@ void init_flow() {
 #endif
 
 #ifdef WITH_PARTICLES
+#ifdef WITH_ROTATION
 		if(rank==0) {
 			kappa_tau2 = 2.0*param.omega*(2.0*param.omega-param.shear) * param.particles_stime * param.particles_stime + (param.particles_dg_ratio + 1.0) * (param.particles_dg_ratio + 1.0);
 
@@ -475,6 +476,7 @@ void init_flow() {
 			fld.vx[0] = param.particles_epsilon*param.particles_stime*param.particles_dg_ratio / kappa_tau2 * ( (double) NTOTAL);
 			fld.vy[0] = param.particles_epsilon*param.particles_dg_ratio*(1.0+param.particles_dg_ratio)/(2.0*param.omega*kappa_tau2) * ( (double) NTOTAL);
 		}
+#endif
 #endif
 
 #ifdef DEBUG

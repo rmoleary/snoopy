@@ -72,11 +72,17 @@ read_config() {
 		if(!config_lookup_float(&config, "physics.omega",&param.omega)) {
 			param.omega = 0.0;
 		}
-	
+#ifndef WITH_ROTATION
+		// Omega should be forced to zero in order to be fool-proof
+		param.omega = 0.0;
+#endif
 		if(!config_lookup_float(&config, "physics.shear",&param.shear)) {
 			param.shear = 0.0;
 		}
-	
+#ifndef WITH_SHEAR
+		// same for the shear
+		param.shear = 0.0;
+#endif	
 		if(!config_lookup_float(&config, "physics.omega_shear",&param.omega_shear)) {
 			param.omega_shear = 0.0;
 		}

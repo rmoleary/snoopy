@@ -193,9 +193,9 @@ void output_partvar(struct Particle *part, double t) {
 	vz2=vz2/param.particles_n;
 	
 	// Root mean square
-	pow(vx2,0.5);
-	pow(vy2,0.5);
-	pow(vz2,0.5);
+	vx2=pow(vx2,0.5);
+	vy2=pow(vy2,0.5);
+	vz2=pow(vz2,0.5);
 	
 	if(rank==0) {
 		ht=fopen("partvar","a");
@@ -557,7 +557,7 @@ void init_particles() {
 	
 	// init particle positions and velocity
 	
-	
+	/*
 	for(i = 0 ; i < 100/NPROC ; i++) {
 		for(j = 0 ; j < 100 ; j++) {
 			fld.part[ j + 100 * i ].x = -param.lx / 2.0 + param.lx * (i+rank*100/NPROC) / 100;
@@ -565,6 +565,7 @@ void init_particles() {
 			fld.part[ j + 100 * i ].z = 0.0;
 		}
 	}
+	*/
 	/*
 	fld.part[0].x=0.0;
 	fld.part[0].y=0.0;
@@ -586,14 +587,14 @@ void init_particles() {
 		fld.part[i].y = -param.ly/2.0 +param.ly*randm();
 		fld.part[i].z = -param.lz/2.0 +param.lz*randm();
 		
-		fld.part[i].vx = vx0;
-		fld.part[i].vy = vy0;
-		fld.part[i].vz = 1.0*(randm()-0.5);
+		fld.part[i].vx = 0.5-randm();//vx0;
+		fld.part[i].vy = 0.5-randm();//vy0;
+		fld.part[i].vz = 0.5-randm();
 		//fld.part[i].mass = param.particles_mass;
 		fld.part[i].mass = param.particles_dg_ratio * param.lx * param.ly * param.lz / param.particles_n;
 		fld.part[i].stime = param.particles_stime;
 	}
-	
+
 	// Init velocity vectors
 	
 	
@@ -1230,9 +1231,8 @@ void particles_to_flow(int *indexArray, struct Field fldi, double *Varray, doubl
 
 	DEBUG_START_FUNC;
 	
-#ifdef _OPENMP
-#pragma omp parallel for private(i, m, n, p, dx, dy ,dz, q000, q001, q010, q011, q100, q101, q110, q111) schedule(static)	
-#endif
+// This loop cannot be parallelized with OpneMP due to race conditions appearing in the vout accesses.
+// Usage of OMP ATOMIC is strongly inefficient in this particular context (tested).
 	for( i = 0 ; i < param.particles_n ; i++) {
 		m = indexArray[ 3*i     ];
 		n = indexArray[ 3*i + 1 ];
@@ -1305,6 +1305,9 @@ void compute_drag_step(struct Field dfldo,
 	double *VyArray;
 	double *VzArray;
 	
+	double fxt, fyt, fzt;
+	double fxt1, fyt1, fzt1;
+	
 	vx = (double *) fftw_malloc( (NX/NPROC+1) * (NY+1) * (NZ+1) * sizeof(double ));
 	if (vx == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for vx allocation");
 	
@@ -1329,6 +1332,10 @@ void compute_drag_step(struct Field dfldo,
 	flow_to_particles(indexArray, fldi, vy, VyArray);
 	flow_to_particles(indexArray, fldi, vz, VzArray);
 	
+	fxt=0.0;
+	fyt=0.0;
+	fzt=0.0;
+	
 #ifdef _OPENMP
 	#pragma omp parallel for private(i) schedule(static)	
 #endif
@@ -1339,14 +1346,13 @@ void compute_drag_step(struct Field dfldo,
 		VyArray[i] = - (fldi.part[i].vy - VyArray[i]) / fldi.part[i].stime;
 		VzArray[i] = - (fldi.part[i].vz - VzArray[i]) / fldi.part[i].stime;
 		
-		//printf("m=%d, n=%d, p=%d, velocity on location is (%g, %g, %g)\n",m,n,p, vx[p + (NZ+1)*n + (NZ+1)*(NY+1)*m],vy[p + (NZ+1)*n + (NZ+1)*(NY+1)*m],vz[p + (NZ+1)*n + (NZ+1)*(NY+1)*m]);
+		//printf("m=%d, n=%d, p=%d, velocity on location is (%g, %g, %g)\n",m,n,p, vx[p + (NZ+1)*n + (NZ+1)*(NY+1)*m],vy[p + (NZ+1)*n + (NZ+1)*(NY+1)*m],vz[p + (NZ+1)*n + (NZ+1)*(NY+1)*m]);		
 		dfldo.part[i].vx += VxArray[i];
 		dfldo.part[i].vy += VyArray[i];
 		dfldo.part[i].vz += VzArray[i];
 	}
 
 	// initialize to 0 vx, vy, vz
-	
 	
 	for(i=0 ; i < (NX/NPROC+1) * (NY+1) * (NZ+1) ; i++) {
 		vx[i]=0.0;
@@ -1359,19 +1365,20 @@ void compute_drag_step(struct Field dfldo,
 	particles_to_flow(indexArray, fldi, VyArray, vy);
 	particles_to_flow(indexArray, fldi, VzArray, vz);
 	
+
 	// remove ghost zone and remap
 	map_flow_forces(vx,wr4,t,tremap);
 	map_flow_forces(vy,wr5,t,tremap);
 	map_flow_forces(vz,wr6,t,tremap);
+	
 	
 	// fourier transform
 	gfft_r2c(wr4);
 	gfft_r2c(wr5);
 	gfft_r2c(wr6);
 	
-	// Add to the deviations (including antialiasing)
-
-
+		// Add to the deviations (including antialiasing)
+	
 #ifdef _OPENMP
 	#pragma omp parallel for private(i) schedule(static)	
 #endif
@@ -1457,6 +1464,7 @@ void particle_step(struct Field dfldo,
 #else
 		dfldo.part[i].y = fldi.part[i].vy;
 #endif
+		
 		dfldo.part[i].z = fldi.part[i].vz;
 	}
 		
@@ -1494,6 +1502,7 @@ void particle_implicit_step(struct Field fldi,
 #endif
 
 		fld.part[i].y = fld.part[i].y - param.ly * floor( fld.part[i].y / param.ly + 0.5 );
+
 		fld.part[i].z = fld.part[i].z - param.lz * floor( fld.part[i].z / param.lz + 0.5 );
 
 		//printf("t=%g, Particle %d: x=%g, y=%g, z=%g\n",t+dt, i, fld.part[i].vx, fld.part[i].vy, fld.part[i].vz);

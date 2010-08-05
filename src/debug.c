@@ -72,9 +72,88 @@ void D_show_field(double complex * field) {
 #ifdef WITH_PARTICLES
 void D_show_part(struct Field fldi) {
 	int i;
+	double xmax, xmin, ymax, ymin, zmax, zmin, vxmax, vxmin, vymax, vymin, vzmax, vzmin;
+	double vxmean, vymean, vzmean;
+	xmax = fldi.part[0].x;
+	xmin = fldi.part[0].x;
+	ymax = fldi.part[0].y;
+	ymin = fldi.part[0].y;
+	zmax = fldi.part[0].z;
+	zmin = fldi.part[0].z;
+	vxmax = fldi.part[0].vx;
+	vxmin = fldi.part[0].vx;
+	vymax = fldi.part[0].vy;
+	vymin = fldi.part[0].vy;
+	vzmax = fldi.part[0].vz;
+	vzmin = fldi.part[0].vz;
+	vxmean = 0.0;
+	vymean = 0.0;
+	vzmean = 0.0;
+	
 	for( i = 0 ; i < param.particles_n/NPROC ; i++) {
-		MPI_Printf("   Particule %d: x= %12e, y= %12e, z= %12e, vx= %12e, vy= %12e, vz= %12e\n", i, fldi.part[i].x, fldi.part[i].y, fldi.part[i].z, fldi.part[i].vx, fldi.part[i].vy, fldi.part[i].vz);
+		if(fldi.part[i].x > xmax) xmax = fldi.part[i].x;
+		if(fldi.part[i].x < xmin) xmin = fldi.part[i].x;
+		if(fldi.part[i].y > ymax) ymax = fldi.part[i].y;
+		if(fldi.part[i].y < ymin) ymin = fldi.part[i].y;
+		if(fldi.part[i].z > zmax) zmax = fldi.part[i].z;
+		if(fldi.part[i].z < zmin) zmin = fldi.part[i].z;
+		
+		if(fldi.part[i].vx > vxmax) vxmax = fldi.part[i].vx;
+		if(fldi.part[i].vx < vxmin) vxmin = fldi.part[i].vx;
+		if(fldi.part[i].vy > vymax) vymax = fldi.part[i].vy;
+		if(fldi.part[i].vy < vymin) vymin = fldi.part[i].vy;
+		if(fldi.part[i].vz > vzmax) vzmax = fldi.part[i].vz;
+		if(fldi.part[i].vz < vzmin) vzmin = fldi.part[i].vz;
+			
+		vxmean = vxmean + fldi.part[i].vx;
+		vymean = vymean + fldi.part[i].vy;
+		vzmean = vzmean + fldi.part[i].vz;
 	}
+	
+	vxmean = vxmean / param.particles_n;
+	vymean = vymean / param.particles_n;
+	vzmean = vzmean / param.particles_n;
+	
+	reduce(&xmax, 2);
+	reduce(&xmin, 3);
+	reduce(&ymax, 2);
+	reduce(&ymin, 3);
+	reduce(&zmax, 2);
+	reduce(&zmin, 3);
+	
+	reduce(&vxmax, 2);
+	reduce(&vxmin, 3);
+	reduce(&vymax, 2);
+	reduce(&vymin, 3);
+	reduce(&vzmax, 2);
+	reduce(&vzmin, 3);
+	
+	reduce(&vxmean, 1);
+	reduce(&vymean, 1);
+	reduce(&vzmean, 1);
+	
+	MPI_Printf("xmax = %12e, xmin = %12e, ymax = %12e, ymin = %12e, zmax = %12e, zmin = %12e\n",xmax, xmin, ymax, ymin, zmax, zmin);
+	MPI_Printf("vxmax= %12e, vxmin= %12e, vymax= %12e, vymin= %12e, vzmax= %12e, vzmin= %12e\n", vxmax, vxmin, vymax, vymin, vzmax, vzmin);
+	MPI_Printf("vxm  = %12e, vym  = %12e, vzm  = %12e\n",vxmean, vymean, vzmean);
+	
+	CHECK_NAN(xmax);
+	CHECK_NAN(xmin);
+	CHECK_NAN(ymax);
+	CHECK_NAN(ymin);
+	CHECK_NAN(zmax);
+	CHECK_NAN(zmin);
+	
+	CHECK_NAN(vxmax);
+	CHECK_NAN(vxmin);
+	CHECK_NAN(vymax);
+	CHECK_NAN(vymin);
+	CHECK_NAN(vzmax);
+	CHECK_NAN(vzmin);
+
+	CHECK_NAN(vxmean);
+	CHECK_NAN(vymean);
+	CHECK_NAN(vzmean);
+	
 	return;
 }
 #endif

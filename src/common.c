@@ -764,6 +764,20 @@ float big_endian(float in_number)
 	return(in_number);
 }
 
+/******************************************************************************/
+/** Test a double for Not a Number error 
+	@param xi double to be checked */
+/* ************************************************************************** */
+
+void c_nan(double xi, const char ErrorRoutine[], const int line, const char Filename[]) {
+	if(isnan(xi)) {
+		error_h( 3, "Not a number detected", ErrorRoutine, line, Filename);
+	}
+	return;
+}
+
+
+
 
 /******************************************
 ** init the brunt vaissala frequency profile

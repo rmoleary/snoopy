@@ -100,6 +100,29 @@ double newdt(double tremap) {
 #ifdef TIME_DEPENDANT_SHEAR
 	gamma_v += fabs(param.omega_shear) / param.safety_source;
 #endif
+
+#ifdef WITH_PARTICLES
+	gamma_v += 1.0 / (fabs(param.particles_stime) * param.safety_source );
+	
+	maxfx=0.0;
+	maxfy=0.0;
+	maxfz=0.0;
+	
+	for(i = 0 ; i < param.particles_n/NPROC ; i++) {
+		if( fabs( fld.part[i].vx ) > maxfx ) maxfx = fabs( fld.part[i].vx );
+		if( fabs( fld.part[i].vy ) > maxfy ) maxfy = fabs( fld.part[i].vy );
+		if( fabs( fld.part[i].vz ) > maxfz ) maxfz = fabs( fld.part[i].vz );
+	}
+#ifdef MPI_SUPPORT
+	reduce(&maxfx,2);
+	reduce(&maxfy,2);
+	reduce(&maxfz,2);
+#endif
+	
+	gamma_v += param.lx/(NX)*maxfx+param.ly/(NY)*maxfy+param.lz/(NZ)*maxfz;
+	
+#endif
+
 #ifdef MHD
 
 	/* Compute the magnetic CFL condition */
