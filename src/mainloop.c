@@ -164,6 +164,7 @@ double newdt(double tremap) {
 #endif
 	
 	gamma_b = (kxmax + fabs(tremap)*kymax) * maxbx + kymax * maxby + kzmax * maxbz;
+
 	
 	dt = param.cfl / (gamma_v + gamma_b);
 #else

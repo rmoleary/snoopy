@@ -381,9 +381,9 @@ void timestep( struct Field dfldo,
 	#pragma omp parallel for private(i) schedule(static)
 #endif
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
-		w1[i] = 2.0 * I * kxt[i] * fldi.vx[i];
-		w2[i] = 2.0 * I * ky[i] * fldi.vy[i];
-		w3[i] = 2.0 * I * kz[i] * fldi.vz[i];
+		w1[i] = I * kxt[i] * fldi.vx[i];
+		w2[i] = I * ky[i] * fldi.vy[i];
+		w3[i] = I * kz[i] * fldi.vz[i];
 		w4[i] = I * ( kxt[i] * fldi.vy[i] + ky[i] * fldi.vx[i] );
 		w5[i] = I * ( kxt[i] * fldi.vz[i] + kz[i] * fldi.vx[i] );
 		w6[i] = I * ( ky[i]  * fldi.vz[i] + kz[i] * fldi.vy[i] );
@@ -405,7 +405,7 @@ void timestep( struct Field dfldo,
 		wr7[i] = (wr10[i] * wr1[i] 
 				+ wr11[i] * wr2[i]
 				+ wr12[i] * wr3[i]
-				+ wr13[i] * (wr4[i] - param.shear)		// Take into account the background shear in the stress tensor
+				+ wr13[i] * (wr4[i] - param.shear*((double) NTOTAL))		// Take into account the background shear in the stress tensor
 				+ wr14[i] * wr5[i]
 				+ wr15[i] * wr6[i]
 				) / ((double) NTOTAL);
@@ -431,6 +431,7 @@ void timestep( struct Field dfldo,
 	gfft_r2c_t(wr13);
 	gfft_r2c_t(wr14);
 	gfft_r2c_t(wr15);
+
 	
 #ifdef _OPENMP
 	#pragma omp parallel for private(i) schedule(static)
@@ -440,7 +441,7 @@ void timestep( struct Field dfldo,
 		dfldo.vy[i] += 3.0 * mask[i] * I / param.reynolds_B * ( kxt[i] * w13[i] + ky[i] * w11[i] + kz[i] * w15[i] );
 		dfldo.vz[i] += 3.0 * mask[i] * I / param.reynolds_B * ( kxt[i] * w14[i] + ky[i] * w15[i] + kz[i] * w12[i] );
 	}
-	
+
 #endif
 
 #endif

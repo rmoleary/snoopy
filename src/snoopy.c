@@ -120,7 +120,7 @@ void print_information(void) {
 	}
 	MPI_Printf("Reynolds_m=\t%f\n",param.reynolds_m);
 #ifdef WITH_BRAGINSKII
-	MPI_Printf("\NUsing Braginskii Viscosity\n");
+	MPI_Printf("\nUsing Braginskii Viscosity\n");
 	MPI_Printf("Reynolds_B=\t%f\n",param.reynolds_B);
 #endif
 
