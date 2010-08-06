@@ -50,7 +50,7 @@ double   *mask;	/**< Deasliasing Mask*/
 double	*wr1,	*wr2,	*wr3;		/** Temporary real array (alias of complex w**) */
 double	*wr4,	*wr5,	*wr6;		/** Temporary real array (alias of complex w**) */
 double	*wr7,	*wr8,	*wr9;		/** Temporary real array (alias of complex w**) */
-#ifdef ELSASSER_FORMULATION
+#if defined(ELSASSER_FORMULATION) || defined(WITH_BRAGINSKII)
 double	*wr10,	*wr11,	*wr12;
 double	*wr13,	*wr14,	*wr15;
 #endif
@@ -60,7 +60,7 @@ struct Field			fld;
 double complex		*w1,	*w2,	*w3;	/**< Temporary complex array (alias of real wr**) */
 double complex		*w4,	*w5,	*w6;	/**< Temporary complex array (alias of real wr**) */
 double complex		*w7,	*w8,	*w9;	/**< Temporary complex array (alias of real wr**) */
-#ifdef ELSASSER_FORMULATION
+#if defined(ELSASSER_FORMULATION) || defined(WITH_BRAGINSKII)
 double complex		*w10,	*w11,	*w12;
 double complex		*w13,	*w14,	*w15;
 #endif
@@ -246,7 +246,7 @@ void init_common(void) {
 	w9 = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (w9 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w9 allocation");
 	
-#ifdef ELSASSER_FORMULATION
+#if defined(ELSASSER_FORMULATION) || defined(WITH_BRAGINSKII)
 	w10 = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (w10 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w10 allocation");
 	
@@ -286,7 +286,7 @@ void init_common(void) {
 	wr7 = (double *) w7;
 	wr8 = (double *) w8;
 	wr9 = (double *) w9;
-#ifdef ELSASSER_FORMULATION
+#if defined(ELSASSER_FORMULATION) || defined(WITH_BRAGINSKII)
 	wr10 = (double *) w10;
 	wr11 = (double *) w11;
 	wr12 = (double *) w12;
@@ -339,7 +339,7 @@ void finish_common(void) {
 	free(w7);
 	free(w8);
 	free(w9);
-#ifdef ELSASSER_FORMULATION
+#if defined(ELSASSER_FORMULATION) || defined(WITH_BRAGINSKII)
 	free(w10);
 	free(w11);
 	free(w12);

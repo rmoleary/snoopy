@@ -140,6 +140,7 @@ struct Parameters {
 	double reynolds_m;		/**< Magnetic Reynolds number (actully the inverse of the resistivity)  Used only when MHD is on*/
 	
 	double reynolds_th;		/**< Thermal Reynolds number (actully the inverse of the thermal diffusivity)  Used only when Boussinesq is on*/
+	double reynolds_B;		/**< Reynolds number based on Braginskii viscosity */
 	double N2;				/**< Brunt Vaissala frequency squared */
 	
 	double omega;			/**< Vertical rotation rate (if Shear=1, Keplerian if found for (2.0/3.0). Only when WITH_ROTATION is on. */

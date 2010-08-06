@@ -25,6 +25,7 @@
 
 //#define		MHD						/**< Uncomment to activate MHD*/
 //#define		ELSASSER_FORMULATION	/**< Use Elsasser formulation for MHD terms */
+//#define		WITH_BRAGINSKII			/**< Enable Braginskii viscosity. CAUTION: this is incompatible with the Elsasser formulation */
 
 //#define		BOUSSINESQ				/**< Uncomment to activate Boussinesq */
 //#define		VERTSTRAT				/**< Vertical stratification. Otherwise, Boussinesq stratification is in X */

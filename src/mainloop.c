@@ -125,6 +125,10 @@ double newdt(double tremap) {
 
 #ifdef MHD
 
+#ifdef WITH_BRAGINSKII
+	gamma_v += ((kxmax+fabs(tremap)*kymax)*(kxmax+fabs(tremap)*kymax)+kymax*kymax+kzmax*kzmax)/param.reynolds_B;
+#endif
+
 	/* Compute the magnetic CFL condition */
 #ifdef _OPENMP
 	#pragma omp parallel for private(i) schedule(static)	

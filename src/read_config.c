@@ -65,6 +65,10 @@ read_config() {
 			param.reynolds_th = 1.0;
 		}
 	
+		if(!config_lookup_float(&config, "physics.reynolds_Braginskii",&param.reynolds_B)) {
+			param.reynolds_B = 1.0;
+		}
+		
 		if(!config_lookup_float(&config, "physics.brunt_vaissala_squared",&param.N2)) {
 			param.N2 = 0.0;
 		}

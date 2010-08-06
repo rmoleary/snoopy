@@ -40,6 +40,7 @@ void timestep( struct Field dfldo,
 			   
 	int i;
 	double complex q0,q1;
+	double qr0;
 	double S;
 	// This is the timesteping algorithm, solving the physics.
 
@@ -204,7 +205,6 @@ void timestep( struct Field dfldo,
 	particle_step(dfldo, fldi, wr1, wr2, wr3, t, tremap, dt);
 #endif
 
-	
 /**********************************************
 ** BOUSSINESQ TERMS (if needed) ***************
 ***********************************************/
@@ -352,6 +352,97 @@ void timestep( struct Field dfldo,
 	}
 	
 #endif
+
+// Braginski viscosity.
+// Only to be used without the ELSASSER formulation (otherwise we have
+// to calculate the maxwell stress twice
+
+// Compute the b_i b_j tensor
+
+#ifdef WITH_BRAGINSKII
+
+#ifdef _OPENMP
+	#pragma omp parallel for private(i,qr0) schedule(static)	
+#endif
+	for( i = 0 ; i < 2*NTOTAL_COMPLEX ; i++) {
+		
+		qr0 = wr4[i] * wr4[i] + wr5[i] * wr5[i] + wr6[i] * wr6[i];	// norm(B)^2
+		
+		wr10[i] = wr4[i] * wr4[i] / qr0;
+		wr11[i] = wr5[i] * wr5[i] / qr0;
+		wr12[i] = wr6[i] * wr6[i] / qr0;
+		wr13[i] = wr4[i] * wr5[i] / qr0;
+		wr14[i] = wr4[i] * wr6[i] / qr0;
+		wr15[i] = wr5[i] * wr6[i] / qr0;
+	}
+	
+// Compute the stress tensor
+#ifdef _OPENMP
+	#pragma omp parallel for private(i) schedule(static)
+#endif
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		w1[i] = 2.0 * I * kxt[i] * fldi.vx[i];
+		w2[i] = 2.0 * I * ky[i] * fldi.vy[i];
+		w3[i] = 2.0 * I * kz[i] * fldi.vz[i];
+		w4[i] = I * ( kxt[i] * fldi.vy[i] + ky[i] * fldi.vx[i] );
+		w5[i] = I * ( kxt[i] * fldi.vz[i] + kz[i] * fldi.vx[i] );
+		w6[i] = I * ( ky[i]  * fldi.vz[i] + kz[i] * fldi.vy[i] );
+	}
+	
+	gfft_c2r_t(w1);
+	gfft_c2r_t(w2);
+	gfft_c2r_t(w3);
+	gfft_c2r_t(w4);
+	gfft_c2r_t(w5);
+	gfft_c2r_t(w6);
+	
+// Compute the pressure anisotropy
+
+#ifdef _OPENMP
+	#pragma omp parallel for private(i) schedule(static)
+#endif
+	for( i = 0 ; i < 2*NTOTAL_COMPLEX ; i++) {
+		wr7[i] = (wr10[i] * wr1[i] 
+				+ wr11[i] * wr2[i]
+				+ wr12[i] * wr3[i]
+				+ wr13[i] * (wr4[i] - param.shear)		// Take into account the background shear in the stress tensor
+				+ wr14[i] * wr5[i]
+				+ wr15[i] * wr6[i]
+				) / ((double) NTOTAL);
+	}
+	
+	
+// Compute the viscous stress tensor
+#ifdef _OPENMP
+	#pragma omp parallel for private(i) schedule(static)
+#endif
+	for( i = 0 ; i < 2*NTOTAL_COMPLEX ; i++) {
+		wr10[i] = wr10[i] * wr7[i];
+		wr11[i] = wr11[i] * wr7[i];
+		wr12[i] = wr12[i] * wr7[i];
+		wr13[i] = wr13[i] * wr7[i];
+		wr14[i] = wr14[i] * wr7[i];
+		wr15[i] = wr15[i] * wr7[i];
+	}
+	
+	gfft_r2c_t(wr10);
+	gfft_r2c_t(wr11);
+	gfft_r2c_t(wr12);
+	gfft_r2c_t(wr13);
+	gfft_r2c_t(wr14);
+	gfft_r2c_t(wr15);
+	
+#ifdef _OPENMP
+	#pragma omp parallel for private(i) schedule(static)
+#endif
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		dfldo.vx[i] += 3.0 * mask[i] * I / param.reynolds_B * ( kxt[i] * w10[i] + ky[i] * w13[i] + kz[i] * w14[i] );
+		dfldo.vy[i] += 3.0 * mask[i] * I / param.reynolds_B * ( kxt[i] * w13[i] + ky[i] * w11[i] + kz[i] * w15[i] );
+		dfldo.vz[i] += 3.0 * mask[i] * I / param.reynolds_B * ( kxt[i] * w14[i] + ky[i] * w15[i] + kz[i] * w12[i] );
+	}
+	
+#endif
+
 #endif
 
 

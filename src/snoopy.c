@@ -119,6 +119,11 @@ void print_information(void) {
 		MPI_Printf("BZ0=\t\t%f\n",param.bz0);
 	}
 	MPI_Printf("Reynolds_m=\t%f\n",param.reynolds_m);
+#ifdef WITH_BRAGINSKII
+	MPI_Printf("\NUsing Braginskii Viscosity\n");
+	MPI_Printf("Reynolds_B=\t%f\n",param.reynolds_B);
+#endif
+
 #else
 	MPI_Printf("\nNo MHD\n");
 #endif
@@ -170,6 +175,11 @@ int main(int argc, char *argv[]) {
 #endif
 #else
 	rank=0;
+#endif
+#ifdef WITH_BRAGINSKII
+#ifdef ELSASSER_FORMULATION
+	ERROR_HANDLER( ERROR_CRITICAL,"Braginskii viscosity is incompatible with the Elsasser formulation.");
+#endif
 #endif
 	print_logo();
 	MPI_Printf("The Snoopy code v6.0\n");
