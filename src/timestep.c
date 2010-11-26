@@ -33,7 +33,6 @@
 
 void timestep( struct Field dfldo,
 			   struct Field fldi,
-			   double complex *po,
 			   const double t,
 			   const double tremap,
 			   const double dt) {
@@ -352,8 +351,10 @@ void timestep( struct Field dfldo,
 	}
 	
 #endif
+/*************************************************
+/** Braginskii viscosity.               ***********
+/*************************************************/
 
-// Braginski viscosity.
 // Only to be used without the ELSASSER formulation (otherwise we have
 // to calculate the maxwell stress twice
 
@@ -475,41 +476,20 @@ void timestep( struct Field dfldo,
 	#pragma omp parallel for private(i,q0,q1) schedule(static)
 #endif
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
-	
-#ifdef ANELASTIC
-		// We have to use a different prescription here since we don't have div v = 0 but div rho v = 0
-#ifdef WITH_SHEAR
-		q0 = S * ky[i] * fldi.vx[i] + kxt[i] * dfldo.vx[i] + ky[i] * dfldo.vy[i] + kz[i] * dfldo.vz[i] - I * dfldo.vx[i] / param.anelastic_lambda;
-#else
-		q0 = kxt[i] * dfldo.vx[i] + ky[i] * dfldo.vy[i] + kz[i] * dfldo.vz[i] - I * dfldo.vx[i] / param.anelastic_lambda;
-#endif
-		
-		// inverse Poisson equation in anelastic
-		q1 = 1.0 / (param.anelastic_lambda * param.anelastic_lambda) + 2.0 * I * kxt[i] / param.anelastic_lambda - k2t[i];
-		
-		if(q1 != 0)
-			q0 = q0 / q1;
-		else
-			q0=0.0;		// That means the Poisson equation has a singularity (only expected if lambda=infinity)
 			
-		dfldo.vx[i] += (kxt[i] - I / param.anelastic_lambda) * q0;
-		dfldo.vy[i] += ky[i] * q0;
-		dfldo.vz[i] += kz[i] * q0;
-	
-#else
-		
 #ifdef WITH_SHEAR
 		q0= S * ky[i] * fldi.vx[i] + kxt[i] * dfldo.vx[i] + ky[i] * dfldo.vy[i] + kz[i] * dfldo.vz[i];
 #else
 		q0= kxt[i] * dfldo.vx[i] + ky[i] * dfldo.vy[i] + kz[i] * dfldo.vz[i];
 #endif
+/* po would contain the pressure field
 		if(po != NULL) {
 			po[i] = - I * ik2t[i] * q0;	// Save the pressure field (if needed)
 		}
+*/
 		dfldo.vx[i] += -kxt[i]* q0 * ik2t[i];
 		dfldo.vy[i] += -ky[i] * q0 * ik2t[i];
 		dfldo.vz[i] += -kz[i] * q0 * ik2t[i];
-#endif
 	}
 	
 #ifdef WITH_LINEAR_TIDE
@@ -518,6 +498,7 @@ void timestep( struct Field dfldo,
 
 	return;
 }
+
 /************************************
 ** Implicit steps called by mainloop
 *************************************/
@@ -527,16 +508,78 @@ void implicitstep(
 			   const double t,
 			   const double dt ) {
 			   
+	double q0;
+	int i;
+	
+#ifdef SGS
+	sgs_dissipation( fldi, t, dt);
+#endif
+
+#ifdef _OPENMP
+	#pragma omp parallel for private(i,q0) schedule(static)
+#endif
+
+	
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+#ifndef SGS
+		q0 = exp( - nu * dt* k2t[i] );
+
+		fldi.vx[i] = fldi.vx[i] * q0;
+		fldi.vy[i] = fldi.vy[i] * q0;
+		fldi.vz[i] = fldi.vz[i] * q0;
+#endif
+		
+#ifdef BOUSSINESQ
+		q0 = exp( - nu_th * dt* k2t[i] );
+		fldi.th[i] = fldi.th[i] * q0;
+#endif
+#ifdef MHD
+		q0 = exp( - eta * dt* k2t[i] );
+		fldi.bx[i] = fldi.bx[i] * q0;
+		fldi.by[i] = fldi.by[i] * q0;
+		fldi.bz[i] = fldi.bz[i] * q0;
+#endif
+	}
+
+#ifdef FORCING
+	forcing(fldi, dt);
+#endif
+
+#ifdef WITH_PARTICLES
+	particle_implicit_step( fldi, t, dt);
+#endif
+
+#ifdef WITH_LINEAR_TIDE
+	ltide_implicitstep( fldi, t, dt);
+#endif
+
+	return;
+}
+	
+
+#ifdef SGS
+/***************************************************************/
+/**
+	Subgridscale model 
+	This is the Chollet-Lesieur Model (1981)
+	We have nu(k)=nu_i(k)*(E(kc)/kc)^(1/2)
+	nu_i(k)=0.267+9.21*exp(-3.03 kc/k)
+	
+	NB: this subgridscale model is applied only to the velocity field,
+	even when MHD is active!
+*/
+/***************************************************************/
+void sgs_dissipation(struct Field fldi,
+			   const double t,
+			   const double dt) {
+			   
+		// Subgrid model
+				
+		// Compute E(kc)
+	double kc, dk;
 	double q0, q1;
 	int i,j,k;
 	
-#ifdef SGS		// Subgrid model
-		// This is the Chollet-Lesieur Model (1981)
-		// We have nu(k)=nu_i(k)*(E(kc)/kc)^(1/2)
-		// nu_i(k)=0.267+9.21*exp(-3.03 kc/k)
-		
-		// Compute E(kc)
-	double kc, dk;
 	
 	kc = 2.0 * M_PI * 50;
 	dk = 2.5;
@@ -583,60 +626,20 @@ void implicitstep(
 //		w1[i] = 0.1 * (1.0 + 5.0*pow(k2t[i]/(kc*kc), 4.0)) * q0;		// Ponty el al 2003
 		pressure[i] = w1[i];
 	}
-#ifdef DEBUG
-	MPI_Printf("w1:\n");
-	D_show_field(w1);
 	
-	printf("nu_t=%g\n",pow(q0/kc, 0.5));
+	// Apply SGS viscosity to the flow.
 	
-#endif
-	
-	//printf("nu_t=%g\n",pow(q0/kc, 0.5));
-#endif
-
-
-#ifdef _OPENMP
-	#pragma omp parallel for private(i,q0) schedule(static)
-#endif
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
-#ifdef SGS
+
 		q0 = exp( - w1[i] * dt* k2t[i] );
-#else
-		q0 = exp( - nu * dt* k2t[i] );
-#endif
+
 		fldi.vx[i] = fldi.vx[i] * q0;
 		fldi.vy[i] = fldi.vy[i] * q0;
 		fldi.vz[i] = fldi.vz[i] * q0;
-		
-#ifdef BOUSSINESQ
-		q0 = exp( - nu_th * dt* k2t[i] );
-		fldi.th[i] = fldi.th[i] * q0;
-#endif
-#ifdef MHD
-		q0 = exp( - eta * dt* k2t[i] );
-		fldi.bx[i] = fldi.bx[i] * q0;
-		fldi.by[i] = fldi.by[i] * q0;
-		fldi.bz[i] = fldi.bz[i] * q0;
-#endif
-
+	
 	}
 
-#ifdef FORCING
-	forcing(fldi, dt);
-#endif
-
-#ifdef WITH_PARTICLES
-	particle_implicit_step( fldi, t, dt);
-#endif
-
-#ifdef WITH_LINEAR_TIDE
-	ltide_implicitstep( fldi, t, dt);
-#endif
-
-	return;
 }
-	
-	
-
+#endif
 
 			   

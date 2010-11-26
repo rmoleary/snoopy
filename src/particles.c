@@ -262,7 +262,7 @@ void write_particles_position(FILE *ht, struct Particle *part) {
 */
 /***********************************************************/
 
-void output_particles(const int n, double t) {
+void output_particles(struct Field fldi, const int n, double t) {
 
 	FILE *ht = NULL;
 	char  filename[50];
@@ -297,7 +297,7 @@ void output_particles(const int n, double t) {
 		for(i = 0 ; i < NPROC ; i++) {
 			if(i==0) {
 				// Write down the local process
-				write_particles_position(ht, fld.part);
+				write_particles_position(ht, fldi.part);
 			}
 			else {
 				// Then gather the other processes
@@ -307,12 +307,12 @@ void output_particles(const int n, double t) {
 		}
 	}
 	else {
-		MPI_Send( fld.part, sizeof(struct Particle) * param.particles_n/NPROC, MPI_BYTE, 0, 2, MPI_COMM_WORLD);
+		MPI_Send( fldi.part, sizeof(struct Particle) * param.particles_n/NPROC, MPI_BYTE, 0, 2, MPI_COMM_WORLD);
 	}
 	
 #else
 		
-	write_particles_position(ht, fld.part);
+	write_particles_position(ht, fldi.part);
 
 #endif
 	
@@ -327,7 +327,7 @@ void output_particles(const int n, double t) {
 		for(i = 0 ; i < NPROC ; i++) {
 			if(i==0) {
 				// Write down the local process
-				write_particles_mass(ht, fld.part);
+				write_particles_mass(ht, fldi.part);
 			}
 			else {
 				// Then gather the other processes
@@ -337,12 +337,12 @@ void output_particles(const int n, double t) {
 		}
 	}
 	else {
-		MPI_Send( fld.part, sizeof(struct Particle) * param.particles_n/NPROC, MPI_BYTE, 0, 2, MPI_COMM_WORLD);
+		MPI_Send( fldi.part, sizeof(struct Particle) * param.particles_n/NPROC, MPI_BYTE, 0, 2, MPI_COMM_WORLD);
 	}
 	
 #else
 
-	write_particles_mass(ht,fld.part);
+	write_particles_mass(ht,fldi.part);
 	
 #endif
 	
@@ -373,7 +373,7 @@ void output_particles(const int n, double t) {
 */
 /***********************************************************/
 
-void write_vtk_particles(FILE * ht, const double t) {
+void write_vtk_particles(struct Field fldi, FILE * ht, const double t) {
 	int i,j,k;
 	float q0;
 	
@@ -391,16 +391,16 @@ void write_vtk_particles(FILE * ht, const double t) {
 	MassArray = (double *) malloc( param.particles_n/NPROC * sizeof(double) ); // interpolated vx values at particle location
 	
 	for(i=0 ; i < param.particles_n/NPROC ; i++) {
-		MassArray[i] = fld.part[i].mass;
+		MassArray[i] = fldi.part[i].mass;
 	}
 	
-	build_indexArray(fld, t, indexArray);
+	build_indexArray(fldi, t, indexArray);
 	
 	for( i = 0 ; i < (NX/NPROC+1) * (NY+1) * (NZ+1) ; i++) {
 		density[ i ] = 0.0;
 	}
 	
-	particles_to_flow(indexArray, fld, MassArray, density);
+	particles_to_flow(indexArray, fldi, MassArray, density);
 	
 	
 	for( k = 0 ; k < NZ; k++) {
@@ -518,7 +518,7 @@ void write_particle_dump(FILE *ht, struct Particle *part) {
 */
 /***********************************************************/
 
-void init_particles() {
+void init_particles(struct Field fldi) {
 	int i,j,k;
 #ifdef WITH_SHEAR
 	double complex		*wremap;
@@ -560,16 +560,16 @@ void init_particles() {
 	/*
 	for(i = 0 ; i < 100/NPROC ; i++) {
 		for(j = 0 ; j < 100 ; j++) {
-			fld.part[ j + 100 * i ].x = -param.lx / 2.0 + param.lx * (i+rank*100/NPROC) / 100;
-			fld.part[ j + 100 * i ].y = -param.ly / 2.0 + param.ly * j / 100;
-			fld.part[ j + 100 * i ].z = 0.0;
+			fldi.part[ j + 100 * i ].x = -param.lx / 2.0 + param.lx * (i+rank*100/NPROC) / 100;
+			fldi.part[ j + 100 * i ].y = -param.ly / 2.0 + param.ly * j / 100;
+			fldi.part[ j + 100 * i ].z = 0.0;
 		}
 	}
 	*/
 	/*
-	fld.part[0].x=0.0;
-	fld.part[0].y=0.0;
-	fld.part[0].z=0.0;
+	fldi.part[0].x=0.0;
+	fldi.part[0].y=0.0;
+	fldi.part[0].z=0.0;
 	*/
 	
 	kappa_tau2 = 2.0*param.omega*(2.0*param.omega-param.shear) * param.particles_stime * param.particles_stime + (param.particles_dg_ratio + 1.0) * (param.particles_dg_ratio + 1.0);
@@ -580,19 +580,19 @@ void init_particles() {
 	vy0= param.particles_epsilon*(kappa_tau2-(param.particles_dg_ratio+1.0)) / ( 2.0*param.omega*kappa_tau2 );
 	
 	for(i = 0 ; i < param.particles_n/NPROC ; i++) {
-		//fld.part[i].x = 0.4-0.1*i;
-		//fld.part[i].y = 0.0;
-		//fld.part[i].z = 0.0;
-		fld.part[i].x = -param.lx/2.0 +param.lx*randm();
-		fld.part[i].y = -param.ly/2.0 +param.ly*randm();
-		fld.part[i].z = -param.lz/2.0 +param.lz*randm();
+		//fldi.part[i].x = 0.4-0.1*i;
+		//fldi.part[i].y = 0.0;
+		//fldi.part[i].z = 0.0;
+		fldi.part[i].x = -param.lx/2.0 +param.lx*randm();
+		fldi.part[i].y = -param.ly/2.0 +param.ly*randm();
+		fldi.part[i].z = -param.lz/2.0 +param.lz*randm();
 		
-		fld.part[i].vx = 0.5-randm();//vx0;
-		fld.part[i].vy = 0.5-randm();//vy0;
-		fld.part[i].vz = 0.5-randm();
-		//fld.part[i].mass = param.particles_mass;
-		fld.part[i].mass = param.particles_dg_ratio * param.lx * param.ly * param.lz / param.particles_n;
-		fld.part[i].stime = param.particles_stime;
+		fldi.part[i].vx = 0.5-randm();//vx0;
+		fldi.part[i].vy = 0.5-randm();//vy0;
+		fldi.part[i].vz = 0.5-randm();
+		//fldi.part[i].mass = param.particles_mass;
+		fldi.part[i].mass = param.particles_dg_ratio * param.lx * param.ly * param.lz / param.particles_n;
+		fldi.part[i].stime = param.particles_stime;
 	}
 
 	// Init velocity vectors
@@ -707,7 +707,7 @@ void map_flow_forces(double *qi,
 /** 
 	Computes the flow velocity (minus shear if shear is present)
 	in the traditional rectangular frame. It takes as an input the velocity
-	field in a sheared frame (such as the one given by a call to gfft_c2r(fld.qi))
+	field in a sheared frame (such as the one given by a call to gfft_c2r(fldi.qi))
 	and produces an unsheared velocity field to which ghost zones are added in each direction
 	
 	The ghost zones are used by the interpolation routines later on
@@ -901,14 +901,14 @@ void build_indexArray(struct  Field fldi,
 #endif
 	for( i = 0 ; i < param.particles_n/NPROC ; i++) {
 		// Compute particle position in the box
-		x = fldi.part[i].x - param.lx * floor( fld.part[i].x / param.lx + 0.5 );
+		x = fldi.part[i].x - param.lx * floor( fldi.part[i].x / param.lx + 0.5 );
 #ifdef WITH_SHEAR
-		y = fldi.part[i].y + (fld.part[i].x - x) * param.shear * t;
+		y = fldi.part[i].y + (fldi.part[i].x - x) * param.shear * t;
 #else
 		y = fldi.part[i].y;
 #endif
 		y = y - param.ly * floor( y / param.ly + 0.5 );
-		z = fldi.part[i].z - param.lz * floor( fld.part[i].z / param.lz + 0.5 );
+		z = fldi.part[i].z - param.lz * floor( fldi.part[i].z / param.lz + 0.5 );
 
 		// particle indices (these indices could be outside of the local box!!)
 		m=(int) floor( (x/param.lx+0.5) * NX);
@@ -1270,7 +1270,7 @@ void particles_to_flow(int *indexArray, struct Field fldi, double *Varray, doubl
 	on the particles using a linear interpolation at subgrid scale.
 	
 	The velocity field used as input is the one found in the sheared
-	frame (such as the one given by a call to gfft_c2r(fld.qi))
+	frame (such as the one given by a call to gfft_c2r(fldi.qi))
 	
 	We assume the input velocity arrays have size (NX, NY, NZ+2) 
 	without mpi or (NY/NPROC, NX, NZ+2) with mpi
@@ -1411,7 +1411,7 @@ void compute_drag_step(struct Field dfldo,
 	for the navier-stokes equation.
 	
 	The velocity field used as input is the one found in the sheared
-	frame (such as the one given by a call to gfft_c2r(fld.qi))
+	frame (such as the one given by a call to gfft_c2r(fldi.qi))
 	
 	We assume the input velocity arrays have size (NX, NY, NZ+2) 
 	without mpi or (NY/NPROC, NX, NZ+2) with mpi
@@ -1494,18 +1494,18 @@ void particle_implicit_step(struct Field fldi,
 	// Implicit step for particles, actually just a routine to keep the particles in the simulation "box"
 	
 	for(i = 0 ; i < param.particles_n/NPROC ; i++) {
-		x0 = fld.part[i].x;
-		fld.part[i].x = fld.part[i].x - param.lx * floor( fld.part[i].x / param.lx + 0.5 );
+		x0 = fldi.part[i].x;
+		fldi.part[i].x = fldi.part[i].x - param.lx * floor( fldi.part[i].x / param.lx + 0.5 );
 		
 #ifdef WITH_SHEAR
-		fld.part[i].y = fld.part[i].y + (x0 - fld.part[i].x) * param.shear * t;
+		fldi.part[i].y = fldi.part[i].y + (x0 - fldi.part[i].x) * param.shear * t;
 #endif
 
-		fld.part[i].y = fld.part[i].y - param.ly * floor( fld.part[i].y / param.ly + 0.5 );
+		fldi.part[i].y = fldi.part[i].y - param.ly * floor( fldi.part[i].y / param.ly + 0.5 );
 
-		fld.part[i].z = fld.part[i].z - param.lz * floor( fld.part[i].z / param.lz + 0.5 );
+		fldi.part[i].z = fldi.part[i].z - param.lz * floor( fldi.part[i].z / param.lz + 0.5 );
 
-		//printf("t=%g, Particle %d: x=%g, y=%g, z=%g\n",t+dt, i, fld.part[i].vx, fld.part[i].vy, fld.part[i].vz);
+		//printf("t=%g, Particle %d: x=%g, y=%g, z=%g\n",t+dt, i, fldi.part[i].vx, fldi.part[i].vy, fldi.part[i].vz);
 	}
 	
 	DEBUG_END_FUNC;

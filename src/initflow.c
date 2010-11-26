@@ -19,7 +19,7 @@
 
 #include "common.h"
 #include "gfft.h"
-#include "output.h"
+#include "output/output_dump.h"
 #include "symmetries.h"
 
 #include "debug.h"
@@ -28,7 +28,7 @@
 
 /** Allow one to init a structure in real space using ordinary defined x,y,z coordinates */
 
-void init_SpatialStructure() {
+void init_SpatialStructure(struct Field fldi) {
 	double *x,*y,*z;
 	int i,j,k;
 	
@@ -115,13 +115,13 @@ void init_SpatialStructure() {
 	
 	// Transfer data in the relevant array (including dealiasing mask)
 	for(i = 0 ; i < NTOTAL_COMPLEX ; i++) {
-		fld.vx[i] += w1[i] * mask[i];
-		fld.vy[i] += w2[i] * mask[i];
-		fld.vz[i] += w3[i] * mask[i];
+		fldi.vx[i] += w1[i] * mask[i];
+		fldi.vy[i] += w2[i] * mask[i];
+		fldi.vz[i] += w3[i] * mask[i];
 #ifdef MHD
-		fld.bx[i] += w4[i] * mask[i];
-		fld.by[i] += w5[i] * mask[i];
-		fld.bz[i] += w6[i] * mask[i];
+		fldi.bx[i] += w4[i] * mask[i];
+		fldi.by[i] += w5[i] * mask[i];
+		fldi.bz[i] += w6[i] * mask[i];
 #endif
 	}
 	
@@ -135,7 +135,7 @@ void init_SpatialStructure() {
 }
 
 
-void init_KidaVortex() {
+void init_KidaVortex(struct Field fldi) {
 	double a = param.vortex_a;
 	double b = param.vortex_b;
 	
@@ -177,8 +177,8 @@ void init_KidaVortex() {
 	gfft_r2c(wr1);
 	
 	for(i = 0 ; i < NTOTAL_COMPLEX ; i++) {
-		fld.vx[ i ] +=  I * ky[i] * w1[i] * ik2t[i];
-		fld.vy[ i ] += -I * kxt[i] * w1[i] * ik2t[i];
+		fldi.vx[ i ] +=  I * ky[i] * w1[i] * ik2t[i];
+		fldi.vy[ i ] += -I * kxt[i] * w1[i] * ik2t[i];
 	}
 	
 	// done
@@ -190,7 +190,7 @@ void init_KidaVortex() {
 /** A kida vortex and a vertical structure
 /** for the field */
 /***********************************/
-void init_Bench() {
+void init_Bench(struct Field fldi) {
 	const double a = 0.3;
 	const double b = 0.4;
 	
@@ -222,17 +222,17 @@ void init_Bench() {
 	gfft_r2c(wr1);
 	
 	for(i = 0 ; i < NTOTAL_COMPLEX ; i++) {
-		fld.vx[ i ] +=  I * ky[i] * w1[i] * ik2t[i];
-		fld.vy[ i ] += -I * kxt[i] * w1[i] * ik2t[i];
+		fldi.vx[ i ] +=  I * ky[i] * w1[i] * ik2t[i];
+		fldi.vy[ i ] += -I * kxt[i] * w1[i] * ik2t[i];
 	}
 	
 	// Brake vertical symmetry
 	if(rank==0) {
-		fld.vx[1] = 1000.0 / NTOTAL;
-		fld.vy[1] = 1000.0 / NTOTAL;
+		fldi.vx[1] = 1000.0 / NTOTAL;
+		fldi.vy[1] = 1000.0 / NTOTAL;
 #ifdef MHD
-		fld.bx[1] = 1000.0 / NTOTAL;
-		fld.by[1] = 1000.0 / NTOTAL;
+		fldi.bx[1] = 1000.0 / NTOTAL;
+		fldi.by[1] = 1000.0 / NTOTAL;
 #endif
 	}
 	// done
@@ -240,7 +240,7 @@ void init_Bench() {
 }
 
 
-void init_LargeScaleNoise() {
+void init_LargeScaleNoise(struct Field fldi) {
 	int i,j,k;
 	int num_force=0;
 	int total_num_force;
@@ -250,13 +250,13 @@ void init_LargeScaleNoise() {
 		for( j = 0; j < NY_COMPLEX; j++) {
 			for( k = 0; k < NZ_COMPLEX; k++) {
 				if(pow(k2t[ IDX3D ], 0.5) / ( 2.0*M_PI ) < 1.0 / param.noise_cut_length) {
-					fld.vx[ IDX3D ] += param.per_amplitude_large * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
-					fld.vy[ IDX3D ] += param.per_amplitude_large * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
-					fld.vz[ IDX3D ] += param.per_amplitude_large * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
+					fldi.vx[ IDX3D ] += param.per_amplitude_large * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
+					fldi.vy[ IDX3D ] += param.per_amplitude_large * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
+					fldi.vz[ IDX3D ] += param.per_amplitude_large * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
 #ifdef MHD
-					fld.bx[ IDX3D ] += param.per_amplitude_large * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
-					fld.by[ IDX3D ] += param.per_amplitude_large * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
-					fld.bz[ IDX3D ] += param.per_amplitude_large * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
+					fldi.bx[ IDX3D ] += param.per_amplitude_large * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
+					fldi.by[ IDX3D ] += param.per_amplitude_large * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
+					fldi.bz[ IDX3D ] += param.per_amplitude_large * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
 #endif
 					if(mask[IDX3D] > 0) num_force++;
 				}
@@ -277,38 +277,26 @@ void init_LargeScaleNoise() {
 	for( i = 0; i < NX_COMPLEX/NPROC; i++) {
 		for( j = 0; j < NY_COMPLEX; j++) {
 			for( k = 0; k < NZ_COMPLEX; k++) {
-				fld.vx[ IDX3D ] = fld.vx[ IDX3D ] / fact;
-				fld.vy[ IDX3D ] = fld.vy[ IDX3D ] / fact;
-				fld.vz[ IDX3D ] = fld.vz[ IDX3D ] / fact;
+				fldi.vx[ IDX3D ] = fldi.vx[ IDX3D ] / fact;
+				fldi.vy[ IDX3D ] = fldi.vy[ IDX3D ] / fact;
+				fldi.vz[ IDX3D ] = fldi.vz[ IDX3D ] / fact;
 #ifdef MHD
-				fld.bx[ IDX3D ] = fld.bx[ IDX3D ] / fact;
-				fld.by[ IDX3D ] = fld.by[ IDX3D ] / fact;
-				fld.bz[ IDX3D ] = fld.bz[ IDX3D ] / fact;
+				fldi.bx[ IDX3D ] = fldi.bx[ IDX3D ] / fact;
+				fldi.by[ IDX3D ] = fldi.by[ IDX3D ] / fact;
+				fldi.bz[ IDX3D ] = fldi.bz[ IDX3D ] / fact;
 #endif
 			}
 		}
 	}
 	
-  symmetrize_complex(fld.vx);
-  if(rank==0) fld.vx[0]=0.0;
-  symmetrize_complex(fld.vy);
-  if(rank==0) fld.vy[0]=0.0;
-  symmetrize_complex(fld.vz);
-  if(rank==0) fld.vz[0]=0.0;
-  
-#ifdef MHD
-  symmetrize_complex(fld.bx);
-  symmetrize_complex(fld.by);
-  symmetrize_complex(fld.bz);
-#endif
-  
+  enforce_complex_symm(fldi);  
 }
 
 /******************************************
 ** Large scale 2D (x,y) noise *************
 *******************************************/
 
-void init_LargeScale2DNoise() {
+void init_LargeScale2DNoise(struct Field fldi) {
 	int i,j,k;
 	int num_force=0;
 	int total_num_force;
@@ -319,11 +307,11 @@ void init_LargeScale2DNoise() {
 			k=0;
 			if(kz[ IDX3D ] == 0.0) {
 				if(pow(k2t[ IDX3D ], 0.5) / ( 2.0*M_PI ) < 1.0 / param.noise_cut_length_2D) {
-					fld.vx[ IDX3D ] += param.per_amplitude_large_2D * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
-					fld.vy[ IDX3D ] += param.per_amplitude_large_2D * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
+					fldi.vx[ IDX3D ] += param.per_amplitude_large_2D * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
+					fldi.vy[ IDX3D ] += param.per_amplitude_large_2D * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
 #ifdef MHD
-					fld.bx[ IDX3D ] += param.per_amplitude_large_2D * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
-					fld.by[ IDX3D ] += param.per_amplitude_large_2D * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
+					fldi.bx[ IDX3D ] += param.per_amplitude_large_2D * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
+					fldi.by[ IDX3D ] += param.per_amplitude_large_2D * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * NTOTAL;
 #endif
 					if(mask[IDX3D] > 0) num_force++;
 				}
@@ -345,33 +333,22 @@ void init_LargeScale2DNoise() {
 		for( j = 0; j < NY_COMPLEX; j++) {
 			k=0;
 			if(kz[ IDX3D ] == 0.0) {
-				fld.vx[ IDX3D ] = fld.vx[ IDX3D ] / fact;
-				fld.vy[ IDX3D ] = fld.vy[ IDX3D ] / fact;
+				fldi.vx[ IDX3D ] = fldi.vx[ IDX3D ] / fact;
+				fldi.vy[ IDX3D ] = fldi.vy[ IDX3D ] / fact;
 #ifdef MHD
-				fld.bx[ IDX3D ] = fld.bx[ IDX3D ] / fact;
-				fld.by[ IDX3D ] = fld.by[ IDX3D ] / fact;
+				fldi.bx[ IDX3D ] = fldi.bx[ IDX3D ] / fact;
+				fldi.by[ IDX3D ] = fldi.by[ IDX3D ] / fact;
 #endif
 			}
 		}
 	}
 	
-  symmetrize_complex(fld.vx);
-  if(rank==0) fld.vx[0]=0.0;
-  symmetrize_complex(fld.vy);
-  if(rank==0) fld.vy[0]=0.0;
-  
-#ifdef MHD
-  symmetrize_complex(fld.bx);
-  symmetrize_complex(fld.by);
-#endif
-  
+  enforce_complex_symm(fldi);  
 }
 
 
-void init_WhiteNoise() {
+void init_WhiteNoise(struct Field fldi) {
 	int i,j,k;
-	int num_force=0;
-	int total_num_force;
 	double fact;
 	
 	// Excite (2/3)^3*NTOTAL modes
@@ -380,91 +357,75 @@ void init_WhiteNoise() {
 	for( i = 0; i < NX_COMPLEX/NPROC; i++) {
 		for( j = 0; j < NY_COMPLEX; j++) {
 			for( k = 0; k < NZ_COMPLEX; k++) {
-				fld.vx[ IDX3D ] += param.per_amplitude_noise * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * fact;
-				fld.vy[ IDX3D ] += param.per_amplitude_noise * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * fact;
-				fld.vz[ IDX3D ] += param.per_amplitude_noise * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * fact;
+				fldi.vx[ IDX3D ] += param.per_amplitude_noise * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * fact;
+				fldi.vy[ IDX3D ] += param.per_amplitude_noise * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * fact;
+				fldi.vz[ IDX3D ] += param.per_amplitude_noise * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * fact;
 #ifdef MHD
-				fld.bx[ IDX3D ] += param.per_amplitude_noise * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * fact;
-				fld.by[ IDX3D ] += param.per_amplitude_noise * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * fact;
-				fld.bz[ IDX3D ] += param.per_amplitude_noise * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * fact;
+				fldi.bx[ IDX3D ] += param.per_amplitude_noise * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * fact;
+				fldi.by[ IDX3D ] += param.per_amplitude_noise * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * fact;
+				fldi.bz[ IDX3D ] += param.per_amplitude_noise * mask[IDX3D] * randm() * cexp( I * 2.0*M_PI*randm() ) * fact;
 #endif
 			}
 		}
 	}
 	
-  symmetrize_complex(fld.vx);
-  if(rank==0) fld.vx[0]=0.0;
-  symmetrize_complex(fld.vy);
-  if(rank==0) fld.vy[0]=0.0;
-  symmetrize_complex(fld.vz);
-  if(rank==0) fld.vz[0]=0.0;
-  
-#ifdef MHD
-  symmetrize_complex(fld.bx);
-  symmetrize_complex(fld.by);
-  symmetrize_complex(fld.bz);
-#endif
+	enforce_complex_symm(fldi);
   
 }
 
-void init_MeanField() {
+void init_MeanField(struct Field fldi) {
 #ifdef MHD
 	if(rank==0) {
-		fld.bx[0] = param.bx0 * ((double) NTOTAL);
-		fld.by[0] = param.by0 * ((double) NTOTAL);
-		fld.bz[0] = param.bz0 * ((double) NTOTAL);
+		fldi.bx[0] = param.bx0 * ((double) NTOTAL);
+		fldi.by[0] = param.by0 * ((double) NTOTAL);
+		fldi.bz[0] = param.bz0 * ((double) NTOTAL);
 	}
 #endif
 }
+
+
 /** Init the flow arrays... */	
-void init_flow() {
+void init_flow(struct Field fldi) {
 	int i,n;
-	double vx0;
-	double vy0;
-	double kappa_tau2;
 	
 	double dummy_var;
 	
 	DEBUG_START_FUNC;
 	// Initialise vectors to 0
 	
-	for( n = 0 ; n < fld.nfield ; n++) {
+	for( n = 0 ; n < fldi.nfield ; n++) {
 		for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
-			fld.farray[n][i] = 0.0;
+			fldi.farray[n][i] = 0.0;
 		}
 	}
 	
-	if(param.init_large_scale_noise) init_LargeScaleNoise();
+	if(param.init_large_scale_noise) init_LargeScaleNoise(fldi);
 	
-	if(param.init_large_scale_2D_noise) init_LargeScale2DNoise();
+	if(param.init_large_scale_2D_noise) init_LargeScale2DNoise(fldi);
 
-	if(param.init_vortex) init_KidaVortex();
+	if(param.init_vortex) init_KidaVortex(fldi);
 
-	if(param.init_spatial_structure) init_SpatialStructure();
+	if(param.init_spatial_structure) init_SpatialStructure(fldi);
 
-	if(param.init_white_noise) init_WhiteNoise();
+	if(param.init_white_noise) init_WhiteNoise(fldi);
 
-	if(param.init_bench) init_Bench();
+	if(param.init_bench) init_Bench(fldi);
 
-	if(param.init_mean_field) init_MeanField();
+	if(param.init_mean_field) init_MeanField(fldi);
 	
 	if(param.init_dump) {
-		read_dump(fld, &dummy_var,"init.dmp");
+		read_dump(fldi, &dummy_var,"init.dmp");
 		MPI_Printf("Initial conditions read successfully from the restart dump\n");
 	}
 
 #ifdef BOUNDARY_C
-	boundary_c(fld);
+	boundary_c(fldi);
 #endif
 
-#ifdef ANELASTIC
-		projector_anelastic(fld.vx,fld.vy,fld.vz);
-#else
-		projector(fld.vx,fld.vy,fld.vz);
-#endif
+		projector(fldi.vx,fldi.vy,fldi.vz);
 
 #ifdef MHD
-		projector(fld.bx,fld.by,fld.bz);
+		projector(fldi.bx,fldi.by,fldi.bz);
 #endif
 
 #ifdef WITH_PARTICLES
@@ -473,15 +434,15 @@ void init_flow() {
 			kappa_tau2 = 2.0*param.omega*(2.0*param.omega-param.shear) * param.particles_stime * param.particles_stime + (param.particles_dg_ratio + 1.0) * (param.particles_dg_ratio + 1.0);
 
 	// This is a non trivial equilibrium for the particles+gas system
-			fld.vx[0] = param.particles_epsilon*param.particles_stime*param.particles_dg_ratio / kappa_tau2 * ( (double) NTOTAL);
-			fld.vy[0] = param.particles_epsilon*param.particles_dg_ratio*(1.0+param.particles_dg_ratio)/(2.0*param.omega*kappa_tau2) * ( (double) NTOTAL);
+			fldi.vx[0] = param.particles_epsilon*param.particles_stime*param.particles_dg_ratio / kappa_tau2 * ( (double) NTOTAL);
+			fldi.vy[0] = param.particles_epsilon*param.particles_dg_ratio*(1.0+param.particles_dg_ratio)/(2.0*param.omega*kappa_tau2) * ( (double) NTOTAL);
 		}
 #endif
 #endif
 
 #ifdef DEBUG
 	MPI_Printf("Initflow:\n");
-	D_show_all(fld);
+	D_show_all(fldi);
 	MPI_Printf("**************************************************************************************\n");
 #endif	
 	

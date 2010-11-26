@@ -21,8 +21,9 @@
 
 #include "common.h"
 #include "mainloop.h"
-#include "output.h"
+#include "output/output.h"
 #include "transpose.h"
+#include "gfft.h"
 
 // This is the user interface used in Snoopy
 // We assume check_interface is called periodically to check whether the user called for something
@@ -87,8 +88,12 @@ void check_interface(const struct Field fldi,
 		
 			fprintf(iostream,"STATUS command called.\n");
 			fprintf(iostream,"t=%e, dt=%e, nloop=%d, sec/loop=%f\n",t,dt,nloop, (get_c_time()-tstart)/nloop);
+			fprintf(iostream,"fft time=%e s (%f pc)\n",read_fft_timer(), read_fft_timer()/(get_c_time()-tstart)*100.0);
+			fprintf(iostream,"I/O time=%e s (%f pc)\n",read_output_timer(), read_output_timer()/(get_c_time()-tstart)*100.0);
 #ifdef MPI_SUPPORT
+#ifndef FFTW3_MPI_SUPPORT
 			fprintf(iostream,"transpose time %f seconds, or %f pc of computation time\n",read_transpose_timer(), read_transpose_timer()/(get_c_time()-tstart)*100.0);
+#endif
 #endif
 		}
 		output_status( iostream );
@@ -105,7 +110,7 @@ void check_interface(const struct Field fldi,
 			open_interface_io( &iostream );
 			fprintf(iostream,"OUTPUT command called. Calling for an immediate output\n");
 		}
-		output_immediate(t);
+		output_immediate(fldi,t);
 		if(rank==0) {
 			fprintf(iostream,"OUTPUT command end. Resuming execution\n");
 			close_interface_io( &iostream );
@@ -119,7 +124,7 @@ void check_interface(const struct Field fldi,
 			open_interface_io( &iostream );
 			fprintf(iostream,"DUMP command called. Calling for an immediate dump file\n");
 		}
-		dump_immediate(t);
+		dump_immediate(fldi, t);
 		if(rank==0) {
 			fprintf(iostream,"DUMP command end. Resuming execution\n");
 			close_interface_io( &iostream );
@@ -133,9 +138,8 @@ void check_interface(const struct Field fldi,
 			open_interface_io( &iostream );
 			fprintf(iostream,"STOP command called. Calling immediate dump and terminating\n");
 		}
-		dump_immediate(t);
+		dump_immediate(fldi, t);
 		
-		finish_mainloop();
 		finish_output();
 		finish_gfft();
 		finish_common();

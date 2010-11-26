@@ -21,25 +21,36 @@
 
 #include "common.h"
 #include "timestep.h"
-#include "output.h"
+#include "output/output.h"
+#include "output/output_dump.h"
 #include "interface.h"
 #include "gfft.h"
 #include "shear.h"
 #include "transpose.h"
 #include "symmetries.h"
+#include "initflow.h"
 #ifdef BOUNDARY_C
 #include "boundary.h"
 #endif
 #include "debug.h"
 
-struct Field			dfld, fld1;
 
-double complex		gammaRK[3];
-double complex		xiRK[2];
+const double		gammaRK[3] = {8.0 / 15.0 , 5.0 / 12.0 , 3.0 / 4.0};
+const double 		xiRK[2] = {-17.0 / 60.0 , -5.0 / 12.0};
 
 double forcing_last_time;
 
-double newdt(double tremap) {
+/***************************************************************/
+/**
+	generate a timestep (dt) as a function of the current flow configuration/velocity
+	This routine is essentially an application of the CFL condition. it returns
+	a timestep (dt)
+	
+	@param tremap: when using shear, the current remap time of the frame
+	@param fldi: Field structure containing the flow status
+*/
+/***************************************************************/
+double newdt(struct Field fldi, double tremap) {
 
 	int i;
 	double gamma_v;
@@ -56,9 +67,9 @@ double newdt(double tremap) {
 	#pragma omp parallel for private(i) schedule(static)
 #endif
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
-		w1[i] =  fld.vx[i];
-		w2[i] =  fld.vy[i];
-		w3[i] =  fld.vz[i];
+		w1[i] =  fldi.vx[i];
+		w2[i] =  fldi.vy[i];
+		w3[i] =  fldi.vz[i];
 	}
 
 	gfft_c2r_t(w1);
@@ -134,9 +145,9 @@ double newdt(double tremap) {
 	#pragma omp parallel for private(i) schedule(static)	
 #endif
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
-		w1[i] =  fld.bx[i];
-		w2[i] =  fld.by[i];
-		w3[i] =  fld.bz[i];
+		w1[i] =  fldi.bx[i];
+		w2[i] =  fldi.by[i];
+		w3[i] =  fldi.bz[i];
 	}
 
 	gfft_c2r_t(w1);
@@ -181,33 +192,6 @@ double newdt(double tremap) {
 	return(dt);
 }			   			   
 		
-void init_mainloop() {
-
-	DEBUG_START_FUNC;
-	
-	allocate_field(&dfld);
-	allocate_field(&fld1);
-	
-// Init the Runge-Kutta timestepping
-// Values coming from Brandenburg (2001) page 8
-
-	gammaRK[0] = 8.0 / 15.0;
-	gammaRK[1] = 5.0 / 12.0;
-	gammaRK[2] = 3.0 / 4.0;
-	
-	xiRK[0] = -17.0 / 60.0;
-	xiRK[1] = -5.0 / 12.0;
-
-	DEBUG_END_FUNC;
-	
-	return;
-}
-
-void finish_mainloop() {
-	deallocate_field(&fld1);
-	deallocate_field(&dfld);
-	return;
-}
 
 /***************************************************************/
 /**
@@ -219,6 +203,9 @@ void finish_mainloop() {
 */
 /***************************************************************/
 void mainloop(double t_start, double t_end) {
+
+	struct Field		fld, dfld, fld1;
+	
 	double		dt = 0.0;
 	double	    t = 0.0;
 	double		tremap = 0.0;
@@ -227,10 +214,19 @@ void mainloop(double t_start, double t_end) {
 	int i,n,nloop;
 	
 	DEBUG_START_FUNC;
+
+// We first init mainloop structures
+	allocate_field(&fld);
+	allocate_field(&dfld);
+	allocate_field(&fld1);
+		
 	
-	init_mainloop();
+	// Init the flow structure (aka initial conditions)
+	init_flow(fld);
+	
 	nloop=0;
 	
+	// Read restart file if needed
 	if(param.restart) {
 #ifdef DEBUG
 		MPI_Printf("Reading dump file\n");
@@ -239,9 +235,10 @@ void mainloop(double t_start, double t_end) {
 	}
 	else {
 		t = t_start;
-		output(t);
+		output(fld,t);
 	}
 
+	// Init shear parameters
 #ifdef WITH_SHEAR	
 	tremap = time_shift(t);
 	kvolve(tremap);
@@ -262,14 +259,14 @@ void mainloop(double t_start, double t_end) {
 		nloop++;
 		if(!(nloop % param.interface_check)) check_interface(fld,t,dt,nloop,timer_start);
 		
-		dt = newdt(tremap);
+		dt = newdt(fld, tremap);
 		// Let's try to stop exactly at t_final
 		if(dt > (t_end - t)) dt = t_end - t;
 		
 		// Stop if elpased time is larger than MAX_ELAPSED_TIME (in hours)
 		if((get_c_time()-timer_start) > 3600 * param.max_t_elapsed) {
 			MPI_Printf("Maximum elapsed time reached. Terminating.\n");
-			dump_immediate(t);
+			dump_immediate(fld,t);
 			break;
 		}
 		
@@ -277,7 +274,7 @@ void mainloop(double t_start, double t_end) {
 		
 		// 1st RK3 step
 		
-		timestep(dfld, fld, pressure, t, tremap, dt );
+		timestep(dfld, fld, t, tremap, dt );
 		
 #ifdef _OPENMP
 		#pragma omp parallel private(i,n) 
@@ -338,7 +335,7 @@ void mainloop(double t_start, double t_end) {
 		kvolve(tremap+gammaRK[0]*dt);
 #endif
 #endif
-		timestep(dfld, fld, NULL, t+gammaRK[0]*dt, tremap+gammaRK[0]*dt, dt);
+		timestep(dfld, fld, t+gammaRK[0]*dt, tremap+gammaRK[0]*dt, dt);
 
 #ifdef _OPENMP
 		#pragma omp parallel private(i,n) 
@@ -399,7 +396,7 @@ void mainloop(double t_start, double t_end) {
 		kvolve(tremap + (gammaRK[0] + xiRK[0] + gammaRK[1]) * dt );
 #endif
 #endif
-		timestep(dfld, fld, NULL, t + (gammaRK[0] + xiRK[0] + gammaRK[1]) * dt, tremap + (gammaRK[0] + xiRK[0] + gammaRK[1]) * dt, dt);
+		timestep(dfld, fld, t + (gammaRK[0] + xiRK[0] + gammaRK[1]) * dt, tremap + (gammaRK[0] + xiRK[0] + gammaRK[1]) * dt, dt);
 
 #ifdef _OPENMP
 		#pragma omp parallel private(i,n) 
@@ -462,8 +459,6 @@ void mainloop(double t_start, double t_end) {
 			for( n = 0 ; n < fld.nfield ; n++) {
 				remap(fld.farray[n]);
 			}
-			if(param.output_pressure)
-				remap(pressure);
 		}
 #endif
 		kvolve(tremap);
@@ -474,11 +469,7 @@ void mainloop(double t_start, double t_end) {
 		}
 		
 		// Divergence cleaning
-#ifdef ANELASTIC
-		projector_anelastic(fld.vx,fld.vy,fld.vz);
-#else
 		projector(fld.vx,fld.vy,fld.vz);
-#endif
 
 #ifdef MHD
 		projector(fld.bx,fld.by,fld.bz);
@@ -489,15 +480,22 @@ void mainloop(double t_start, double t_end) {
 #ifdef BOUNDARY_C
 		boundary_c(fld);
 #endif
-		output(t);
+		output(fld,t);
 	}
 	timer_end=get_c_time();
 	MPI_Printf("mainloop finished in %d loops and %f seconds (%f sec/loop)\n",nloop,timer_end-timer_start,(timer_end-timer_start)/nloop);
+	MPI_Printf("fft time=%f s (%f pc)\n",read_fft_timer(), read_fft_timer()/(timer_end-timer_start)*100.0);
+	MPI_Printf("I/O time=%f s (%f pc)\n",read_output_timer(), read_output_timer()/(timer_end-timer_start)*100.0);
 #ifdef MPI_SUPPORT
+#ifndef FFTW3_MPI_SUPPORT
 	MPI_Printf("Time used for transpose: %f seconds, or %f pc of total computation time\n",read_transpose_timer(), read_transpose_timer()/(timer_end-timer_start)*100.0);
 #endif
+#endif
 
-	finish_mainloop();
+// Close everything
+	deallocate_field(&fld);
+	deallocate_field(&fld1);
+	deallocate_field(&dfld);
 	return;
 
 }

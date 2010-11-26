@@ -25,7 +25,7 @@
 
 #include "common.h"
 #include "mainloop.h"
-#include "output.h"
+#include "output/output.h"
 #include "initflow.h"
 #include "gfft.h"
 #include "read_config.h"
@@ -197,8 +197,6 @@ int main(int argc, char *argv[]) {
 #endif
 	init_gfft();
 	init_output();
-		
-	init_flow();
 
 	MPI_Printf("Calling mainloop... touch status, output, dump or stop to print more information.\n");
 	please_wait();

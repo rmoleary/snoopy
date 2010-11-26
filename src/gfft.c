@@ -20,6 +20,8 @@
 #include "common.h"
 #include "debug.h"
 
+double fft_timer;
+
 #ifdef MPI_SUPPORT
 #ifndef FFTW3_MPI_SUPPORT
 // That's a long MPI if def...
@@ -42,6 +44,8 @@ void gfft_r2c_t(double *wrin) {
 	int i;
 	double complex *win = (double complex *) wrin;
 	
+	fft_timer = fft_timer - get_c_time();
+	
 	//start transforming in 2D wrin
 	fftw_execute_dft_r2c(r2c_2d, wrin, win);
 	
@@ -56,6 +60,8 @@ void gfft_r2c_t(double *wrin) {
 	for(i=0 ; i < NX_COMPLEX/NPROC ; i++) 
 		fftw_execute_dft(r2c_1d, &win[i*NY_COMPLEX*NZ_COMPLEX],&win[i*NY_COMPLEX*NZ_COMPLEX]);
 
+	fft_timer = fft_timer + get_c_time();
+	
 	// done...
 	return;
 }
@@ -64,6 +70,9 @@ void gfft_r2c_t(double *wrin) {
 void gfft_c2r_t(double complex *win) {
 	int i;
 	double *wrin = (double *) win;
+	
+	fft_timer = fft_timer - get_c_time();
+	
 	// We now have an array with logical dimensions[NX_COMPLEX/NPROC, NY_COMPLEX, NZ_COMPLEX]
 #ifdef _OPENMP
 	#pragma omp parallel for private(i) schedule(static)	
@@ -78,6 +87,8 @@ void gfft_c2r_t(double complex *win) {
 	// The final 2D transform
 	fftw_execute_dft_c2r(c2r_2d, win, wrin);
 	 // and we're done !
+	 
+	 fft_timer = fft_timer + get_c_time();
 	 return;
 }
 														  
@@ -86,15 +97,19 @@ void gfft_c2r_t(double complex *win) {
 // Not Fast, but convenient...!
 
 void gfft_r2c(double *wrin) {
+	fft_timer = fft_timer - get_c_time();
 	transpose_real(NX, NY, NZ+2, NPROC, wrin, wrin);
 	gfft_r2c_t(wrin);
+	fft_timer = fft_timer + get_c_time();
 	return;
 }
 
 void gfft_c2r(double complex *win) {
 	double *wrin = (double *) win;
+	fft_timer = fft_timer - get_c_time();
 	gfft_c2r_t(win);
 	transpose_real(NY,NX,NZ+2,NPROC,wrin,wrin);
+	fft_timer = fft_timer + get_c_time();
 	return;
 }	
 
@@ -154,6 +169,8 @@ void init_gfft() {
 	// Let's see which method is faster (with our without threads)
 		
 	fftw_free(wi1);
+	
+	fft_timer=0.0;
 
 	DEBUG_END_FUNC;
 	
@@ -183,25 +200,33 @@ fftw_plan	r2cfft_mpi_t, r2cfft_mpi, c2rfft_mpi, c2rfft_mpi_t;
 
 void gfft_r2c_t(double *wrin) {
 	double complex *win = (double complex *) wrin;
+	fft_timer = fft_timer - get_c_time();
 	fftw_execute_dft_r2c(r2cfft_mpi_t, wrin, win);
+	fft_timer = fft_timer + get_c_time();
 	return;
 }
 
 void gfft_c2r_t(double complex *win){
 	double *wrin = (double *) win;
+	fft_timer = fft_timer - get_c_time();
 	fftw_execute_dft_c2r(c2rfft_mpi_t, win, wrin);
+	fft_timer = fft_timer + get_c_time();
 	return;
 }
 
 void gfft_r2c(double *wrin) {
 	double complex *win = (double complex *) wrin;
+	fft_timer = fft_timer - get_c_time();
 	fftw_execute_dft_r2c(r2cfft_mpi, wrin, win);
+	fft_timer = fft_timer + get_c_time();
 	return;
 }
 
 void gfft_c2r(double complex *win){
 	double *wrin = (double *) win;
+	fft_timer = fft_timer - get_c_time();
 	fftw_execute_dft_c2r(c2rfft_mpi, win, wrin);
+	fft_timer = fft_timer + get_c_time();
 	return;
 }
 
@@ -229,6 +254,8 @@ void init_gfft() {
 	 
 	// init transpose routines (These are used by remap routines)
 	init_transpose();
+	
+	fft_timer=0.0;
 	
 	DEBUG_END_FUNC;
 	
@@ -267,25 +294,33 @@ fftw_plan	r2cfft, c2rfft;
 
 void gfft_r2c_t(double *wrin) {
 	double complex *win = (double complex *) wrin;
+	fft_timer = fft_timer - get_c_time();
 	fftw_execute_dft_r2c(r2cfft, wrin, win);
+	fft_timer = fft_timer + get_c_time();
 	return;
 }
 
 void gfft_c2r_t(double complex *win){
 	double *wrin = (double *) win;
+	fft_timer = fft_timer - get_c_time();
 	fftw_execute_dft_c2r(c2rfft, win, wrin);
+	fft_timer = fft_timer + get_c_time();
 	return;
 }
 
 void gfft_r2c(double *wrin) {
 	double complex *win = (double complex *) wrin;
+	fft_timer = fft_timer - get_c_time();
 	fftw_execute_dft_r2c(r2cfft, wrin, win);
+	fft_timer = fft_timer + get_c_time();
 	return;
 }
 
 void gfft_c2r(double complex *win){
 	double *wrin = (double *) win;
+	fft_timer = fft_timer - get_c_time();
 	fftw_execute_dft_c2r(c2rfft, win, wrin);
+	fft_timer = fft_timer + get_c_time();
 	return;
 }
 
@@ -321,6 +356,8 @@ void init_gfft() {
 	
 	fftw_free(wi1);
 	
+	fft_timer=0.0;
+	
 	DEBUG_END_FUNC;
 	
 	return;
@@ -339,5 +376,7 @@ void finish_gfft() {
 
 #endif
 
-														   
+double read_fft_timer() {
+	return(fft_timer);
+}
 	

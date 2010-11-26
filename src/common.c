@@ -55,8 +55,6 @@ double	*wr10,	*wr11,	*wr12;
 double	*wr13,	*wr14,	*wr15;
 #endif
 
-struct Field			fld;
-
 double complex		*w1,	*w2,	*w3;	/**< Temporary complex array (alias of real wr**) */
 double complex		*w4,	*w5,	*w6;	/**< Temporary complex array (alias of real wr**) */
 double complex		*w7,	*w8,	*w9;	/**< Temporary complex array (alias of real wr**) */
@@ -65,8 +63,6 @@ double complex		*w10,	*w11,	*w12;
 double complex		*w13,	*w14,	*w15;
 #endif
 
-double complex		*pressure;				/**< Pressure field computed during the code evolution.
-												 Is only initialized if param.output_pressure is true. */
 
 // Parameters
 struct Parameters			param;
@@ -75,9 +71,6 @@ struct Parameters			param;
 double	nu;
 #ifdef BOUSSINESQ
 double	nu_th;
-#ifdef N2PROFILE
-double *N2_profile;
-#endif
 #endif
 #ifdef MHD
 double	eta;
@@ -216,8 +209,6 @@ void init_common(void) {
 
 // Allocate fields
 // Complex fields
-	
-	allocate_field(&fld);
 
 	w1 = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (w1 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w1 allocation");
@@ -265,15 +256,6 @@ void init_common(void) {
 	w15 = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (w15 == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for w15 allocation");
 #endif
-	
-	
-	
-	if(param.output_pressure) {
-		pressure = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
-		if (pressure == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for pressure allocation");
-	}
-	else
-		pressure = NULL;
 			
 	/* Will use the same memory space for real and complex fields */
 	
@@ -295,19 +277,10 @@ void init_common(void) {
 	wr15 = (double *) w15;
 #endif
 
-#ifdef BOUSSINESQ
-#ifdef N2PROFILE
-	N2_profile = (double *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
-	if (N2_profile == NULL) ERROR_HANDLER( ERROR_CRITICAL, "no memory for N2 profile allocation");
-#endif
-#endif
 	
 // Physic initialisation
 //	init_real_mask();
 	
-#ifdef N2PROFILE
-	init_N2_profile();
-#endif
 	nu = 1.0 / param.reynolds;
 #ifdef BOUSSINESQ	
 	nu_th = 1.0 / param.reynolds_th;
@@ -327,8 +300,6 @@ void finish_common(void) {
 	free(k2t);
 	free(ik2t);
 	free(mask);
-
-	deallocate_field(&fld);
 	
 	free(w1);
 	free(w2);
@@ -509,9 +480,6 @@ void deallocate_field(struct Field *fldi) {
 	return;
 }
 	
-	
-	
-	
 
 /*********************************************/
 /**
@@ -587,53 +555,6 @@ void projector( double complex qx[],
 	
 	return;
 }
-
-#ifdef ANELASTIC
-/****************************************************/
-/**
-	Remove the divergence from a 3D field using
-	the projector operator from the anelastic equations
-	
-	@param qx: x component of the field
-	@param qy: y component of the field
-	@param qz: z component of the field
-*/
-/****************************************************/
-	
-void projector_anelastic( double complex qx[],
-			    double complex qy[],
-			    double complex qz[]) {
-				
-	int i;
-	double complex q0, q1;
-	
-	DEBUG_START_FUNC;
-	
-	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
-		// We have to use a different prescription here since we don't have div v = 0 but div rho v = 0
-
-		q0 = kxt[i] * qx[i] + ky[i] * qy[i] + kz[i] * qz[i] - I * qx[i] / param.anelastic_lambda;
-		
-		// inverse Poisson equation in anelastic
-		q1 = 1.0 / (param.anelastic_lambda * param.anelastic_lambda) + 2.0 * I * kxt[i] / param.anelastic_lambda - k2t[i];
-		
-		if(q1 != 0.0)
-			q0 = q0 / q1;
-		else
-			q0=0.0;		// That means the Poisson equation has a singularity (only expected if lambda=infinity)
-			
-		qx[i] += (kxt[i] - I / param.anelastic_lambda) * q0;
-		qy[i] += ky[i] * q0;
-		qz[i] += kz[i] * q0;
-
-	}
-	
-	DEBUG_END_FUNC;
-	
-	return;
-}
-#endif
-
 
 /*********************************************/
 /** Compute the energy of a given field.
@@ -775,69 +696,3 @@ void c_nan(double xi, const char ErrorRoutine[], const int line, const char File
 	}
 	return;
 }
-
-
-
-
-/******************************************
-** init the brunt vaissala frequency profile
-******************************************/
-#ifdef BOUSSINESQ
-#ifdef N2PROFILE
-void init_N2_profile() {
-	double *x,*y,*z;
-	int i,j,k;
-	
-	/*******************************************************************
-	** This part does not need to be modified **************************
-	********************************************************************/
-	// Allocate coordinate arrays
-	x = (double *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
-	if (x == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for x allocation");
-	
-	y = (double *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
-	if (y == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for y allocation");
-	
-	z = (double *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
-	if (z == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for z allocation");
-
-	// Initialize the (transposed!) arrays
-	for(i = 0 ; i < NX ; i++) {
-		for(j = 0 ; j < NY/NPROC ; j++) {
-			for(k = 0 ; k < NZ ; k++) {
-				x[k + (NZ + 2) * i + (NZ + 2) * NX * j] = - param.lx / 2 + (param.lx * i ) / NX;
-				y[k + (NZ + 2) * i + (NZ + 2) * NX * j] = - param.ly / 2 + (param.ly * (j + rank * NY / NPROC)) / NY;
-				z[k + (NZ + 2) * i + (NZ + 2) * NX * j] = - param.lz / 2 + (param.lz * k ) / NZ;
-			}
-		}
-	}
-	
-	// Initialize the extra points (k=NZ and k=NZ+1) to zero to prevent stupid things from happening...
-	for(i = 0 ; i < NX ; i++) {
-		for(j = 0 ; j < NY/NPROC ; j++) {
-			for(k = NZ ; k < NZ + 2 ; k++) {
-				x[k + (NZ + 2) * i + (NZ + 2) * NX * j] = 0.0;
-				y[k + (NZ + 2) * i + (NZ + 2) * NX * j] = 0.0;
-				z[k + (NZ + 2) * i + (NZ + 2) * NX * j] = 0.0;
-			}
-		}
-	}
-	
-	// Init array to zero
-	for(i = 0 ; i < NX ; i++) {
-		for(j = 0 ; j < NY/NPROC ; j++) {
-			for(k = 0 ; k < NZ + 2 ; k++) {
-				N2_profile[ k + (NZ + 2) * i + (NZ + 2) * NX * j ] = 0.0;
-			}
-		}
-	}
-	
-	// Init array
-	for(i = 0 ; i < 2*NTOTAL_COMPLEX ; i++) {
-		N2_profile[i] = - cos( 2.0 * M_PI * z[i] / param.lz);
-	}
-	return;
-}
-#endif
-#endif
-	

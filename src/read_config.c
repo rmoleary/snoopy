@@ -22,7 +22,7 @@
 
 #define CONFIG_FILENAME		"snoopy.cfg"
 
-read_config() {
+void read_config() {
 	// Read the config file and initialize everyting
 	config_t	config;		// Initialize the structure
 	long tmp_v;
@@ -89,10 +89,6 @@ read_config() {
 #endif	
 		if(!config_lookup_float(&config, "physics.omega_shear",&param.omega_shear)) {
 			param.omega_shear = 0.0;
-		}
-		
-		if(!config_lookup_float(&config, "physics.anelastic_lambda",&param.anelastic_lambda)) {
-			param.anelastic_lambda = 1.0;
 		}
 	
 		// Particles parameters-------------------------------------------------------------------------------------
@@ -170,9 +166,6 @@ read_config() {
 		}
 		if(!config_lookup_float(&config, "output.dump_step",&param.toutput_dump)) {
 			param.toutput_dump = 1.0;
-		}
-		if(!config_lookup_bool(&config, "output.pressure",&param.output_pressure)) {
-			param.output_pressure = 0;
 		}
 		if(!config_lookup_bool(&config, "output.vorticity",&param.output_vorticity)) {
 			param.output_vorticity = 0;
