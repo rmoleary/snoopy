@@ -1,4 +1,5 @@
-OBJ= error.o snoopy.o mainloop.o initflow.o timestep.o common.o output/output.o output/output_dump.c output/output_spectrum.o output/output_timevar.o output/output_vtk.o output/output_common.o interface.o gfft.o transpose.o debug.o shear.o read_config.o symmetries.o boundary.o forcing.o libconfig/libconfig.o libconfig/scanner.o libconfig/grammar.o particles.o ltide.o
+OBJ= error.o snoopy.o mainloop.o initflow.o timestep.o common.o output/output.o output/output_dump.o output/output_spectrum.o output/output_timevar.o output/output_vtk.o output/output_common.o interface.o gfft.o transpose.o debug.o shear.o read_config.o symmetries.o boundary.o forcing.o libconfig/libconfig.o libconfig/scanner.o libconfig/grammar.o particles.o ltide.o
+
 
 all: snoopy
 
@@ -9,7 +10,7 @@ snoopy: $(OBJ)
 	$(CC) -o $@ $< $(CFLAGS) -c
 
 clean:
-	rm -f *.o libconfig/*.o snoopy
+	rm -f *.o libconfig/*.o output/*.o snoopy
 
 cleanall:
 	rm -f *.o libconfig/*.o snoopy gvars.h

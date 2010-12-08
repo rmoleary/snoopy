@@ -130,6 +130,11 @@ struct Field {
 #endif
 };
 
+struct VarName {
+	int		length;		// Number of varnames
+	char**	name;		// Varnames (need to be allocated properly)
+};
+
 struct Parameters {
 	// Physics Parameters
 	double lx;				/**< Box length in X*/
@@ -184,6 +189,9 @@ struct Parameters {
 	
 	int		output_pressure;	/**< Output the pressure field in the 3D snapshots */
 	int		output_vorticity;	/**< Output the vorticity field in the 3D snapshots */
+	
+	struct VarName timevar_vars;	/**< Name of the variables needed in the timevar file */
+	struct VarName snapshot_vars;	/**< Name of the variables needed in snapshot (vtk) files */
 	
 	// initial conditions
 	int	   init_vortex;			/**< Add a 2D Kida vortex in the box. Assumes S=1. Requires b>a*/

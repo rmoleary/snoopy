@@ -235,6 +235,7 @@ void mainloop(double t_start, double t_end) {
 	}
 	else {
 		t = t_start;
+		// Go for an output
 		output(fld,t);
 	}
 
