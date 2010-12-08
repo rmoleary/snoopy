@@ -187,11 +187,9 @@ struct Parameters {
 	double toutput_flow;		/**< Time between two snapshot outputs */
 	double toutput_dump;		/**< Time between two restart dump outputs (restart dump are erased) */
 	
-	int		output_pressure;	/**< Output the pressure field in the 3D snapshots */
 	int		output_vorticity;	/**< Output the vorticity field in the 3D snapshots */
 	
 	struct VarName timevar_vars;	/**< Name of the variables needed in the timevar file */
-	struct VarName snapshot_vars;	/**< Name of the variables needed in snapshot (vtk) files */
 	
 	// initial conditions
 	int	   init_vortex;			/**< Add a 2D Kida vortex in the box. Assumes S=1. Requires b>a*/

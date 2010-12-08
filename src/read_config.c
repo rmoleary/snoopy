@@ -199,29 +199,6 @@ void read_config() {
 			}
 		}
 		
-		// find which parameters are requested in the snapshot files
-		setting = config_lookup(&config, "output.snapshot_vars");
-		
-		if(setting == NULL) {
-			ERROR_HANDLER(ERROR_WARNING, "You did not provide any variable in snapshots outputs");
-		}
-		else {
-			param.snapshot_vars.length = config_setting_length( setting );
-		
-			// Allocate output_vars
-			param.snapshot_vars.name = malloc( param.snapshot_vars.length * sizeof(char*) );
-		
-			for(i = 0 ; i < param.snapshot_vars.length ; i++) {
-				temp_string = config_setting_get_string_elem( setting, i);
-			
-				// Allocate the string
-				param.snapshot_vars.name[i] = malloc( sizeof(char) * (strlen(temp_string) + 1));
-			
-				// Copy the string in the right location
-				strcpy(param.snapshot_vars.name[i], temp_string);
-			}
-		}
-
 		
 		// Initial conditions parameters-------------------------------------------------------------------------
 		if(!config_lookup_bool(&config, "init.vortex.enable",&param.init_vortex)) {
@@ -303,26 +280,6 @@ void read_config() {
 		
 	}
 	
-	// Same for snapshot varname structure
-	if(rank !=0 ) {
-		// Allocate the name list
-		param.snapshot_vars.name = malloc( param.snapshot_vars.length * sizeof(char*) );
-	}
-	
-	// Next, allocate each name and copy it
-
-	for(i = 0 ; i < param.snapshot_vars.length ; i++) {
-		if(rank==0) n = strlen(param.snapshot_vars.name[i]);
-		
-		// Broadcast the string length and allocate it
-		MPI_Bcast( &n, 1, MPI_INT, 0, MPI_COMM_WORLD);
-		
-		if(rank != 0) param.snapshot_vars.name[i] = malloc( sizeof(char) * (n + 1));
-		
-		// Broadcast the string itself
-		MPI_Bcast( param.snapshot_vars.name[i], n+1, MPI_CHAR, 0, MPI_COMM_WORLD);
-	}
-
 #endif
 		
 	DEBUG_END_FUNC;
