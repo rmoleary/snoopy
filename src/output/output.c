@@ -71,7 +71,7 @@ void init_output() {
 		lastoutput_dump = param.t_initial - param.toutput_dump;
 	
 		init1Dspectrum();
-		clear_timevar();
+		init_timevar();
 	}
 	
 	DEBUG_END_FUNC;

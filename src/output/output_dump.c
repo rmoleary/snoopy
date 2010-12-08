@@ -48,13 +48,10 @@ void write_field(FILE *handler, double complex *fldwrite) {
 				for(i=0; i< NTOTAL_COMPLEX; i++) {
 					w1[i]=fldwrite[i];
 				}
-				printf("current rank copy\n");
 #ifdef MPI_SUPPORT
 			}
 			else {
-				printf("%d is receiving\n",rank);
 				MPI_Recv( w1, NTOTAL_COMPLEX * 2, MPI_DOUBLE, current_rank, 2, MPI_COMM_WORLD, &status);
-				printf("%d has received\n",rank);
 			}
 #endif
 			fwrite(w1, sizeof(double complex), NTOTAL_COMPLEX, handler);
@@ -66,9 +63,7 @@ void write_field(FILE *handler, double complex *fldwrite) {
 		MPI_Barrier(MPI_COMM_WORLD);
 	}
 	else {
-		printf("%d is sending\n",rank);
 		MPI_Send(fldwrite, NTOTAL_COMPLEX * 2, MPI_DOUBLE, 0, 2, MPI_COMM_WORLD);
-		printf("%d has sent\n",rank);
 		MPI_Barrier(MPI_COMM_WORLD);
 	}
 #endif

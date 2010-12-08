@@ -325,14 +325,6 @@ void read_config() {
 
 #endif
 		
-	for(i = 0 ; i < param.timevar_vars.length ; i++) {
-		printf("Rank %d has %d timevar variable to %s\n",rank,i,param.timevar_vars.name[i]);
-	}
-	
-	for(i = 0 ; i < param.snapshot_vars.length ; i++) {
-		printf("Rank %d has %d snapshot variable to %s\n",rank,i,param.snapshot_vars.name[i]);
-	}
-	
 	DEBUG_END_FUNC;
 	
 	return;
