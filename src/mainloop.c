@@ -59,6 +59,9 @@ double newdt(struct Field fldi, double tremap) {
 	double gamma_b;
 	double maxbx   , maxby, maxbz;
 #endif
+#ifdef COMPRESSIBLE
+	double q0;
+#endif
 	double dt;
 	
 	DEBUG_START_FUNC;
@@ -76,6 +79,27 @@ double newdt(struct Field fldi, double tremap) {
 	gfft_c2r_t(w2);
 	gfft_c2r_t(w3);
 	
+#ifdef COMPRESSIBLE
+	// When compressible is active, we are vj is the linear momentum
+	// Wave speeds are however computed as velocity, we therefore
+	// need a conversion
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		w4[i] = fldi.d[i];
+	}
+	
+	gfft_c2r_t(w4);
+	
+	check_positivity(wr4);
+	
+	for( i = 0 ; i < NTOTAL_COMPLEX*2 ; i++) {
+		q0=((double) NTOTAL) / wr4[i];
+		wr1[i] = wr1[i] * q0;
+		wr2[i] = wr2[i] * q0;
+		wr3[i] = wr3[i] * q0;
+	}
+	
+#endif
+	
 	maxfx=0.0;
 	maxfy=0.0;
 	maxfz=0.0;
@@ -91,10 +115,17 @@ double newdt(struct Field fldi, double tremap) {
 	maxfy = maxfy / ((double) NTOTAL);
 	maxfz = maxfz / ((double) NTOTAL);
 	
+
 #ifdef MPI_SUPPORT
 	reduce(&maxfx,2);
 	reduce(&maxfy,2);
 	reduce(&maxfz,2);
+#endif
+	
+#ifdef COMPRESSIBLE
+	maxfx=maxfx+param.cs;
+	maxfy=maxfy+param.cs;
+	maxfz=maxfz+param.cs;
 #endif
 	
 	gamma_v = (kxmax + fabs(tremap)*kymax) * maxfx + kymax * maxfy + kzmax * maxfz;
@@ -154,6 +185,19 @@ double newdt(struct Field fldi, double tremap) {
 	gfft_c2r_t(w2);
 	gfft_c2r_t(w3);
 	
+#ifdef COMPRESSIBLE
+	// When compressible is active, the alfven speed depends on the density
+	// We considers V_a=B/sqrt(rho)
+
+	for( i = 0 ; i < NTOTAL_COMPLEX*2 ; i++) {
+		q0=pow(((double) NTOTAL) / wr4[i],0.5);
+		wr1[i] = wr1[i] * q0;
+		wr2[i] = wr2[i] * q0;
+		wr3[i] = wr3[i] * q0;
+	}
+	
+#endif
+	
 	maxbx=0.0;
 	maxby=0.0;
 	maxbz=0.0;
@@ -172,6 +216,13 @@ double newdt(struct Field fldi, double tremap) {
 	reduce(&maxbx,2);
 	reduce(&maxby,2);
 	reduce(&maxbz,2);
+#endif
+
+#ifdef COMPRESSIBLE
+	// we need the phase speed of the fast magnetosonic wave, not of the torsional alfven wave
+	maxbx = pow( maxbx * maxbx + param.cs*param.cs , 0.5);
+	maxby = pow( maxby * maxby + param.cs*param.cs , 0.5);
+	maxbz = pow( maxbz * maxbz + param.cs*param.cs , 0.5);
 #endif
 	
 	gamma_b = (kxmax + fabs(tremap)*kymax) * maxbx + kymax * maxby + kzmax * maxbz;
@@ -470,7 +521,9 @@ void mainloop(double t_start, double t_end) {
 		}
 		
 		// Divergence cleaning
+#ifndef COMPRESSIBLE
 		projector(fld.vx,fld.vy,fld.vz);
+#endif
 
 #ifdef MHD
 		projector(fld.bx,fld.by,fld.bz);

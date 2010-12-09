@@ -96,6 +96,10 @@ void read_config() {
 		if(!config_lookup_float(&config, "physics.omega_shear",&param.omega_shear)) {
 			param.omega_shear = 0.0;
 		}
+		
+		if(!config_lookup_float(&config, "physics.sound_speed",&param.cs)) {
+			param.cs = 1.0;
+		}
 	
 		// Particles parameters-------------------------------------------------------------------------------------
 		if(!config_lookup_int(&config, "particles.n",&tmp_v)) {

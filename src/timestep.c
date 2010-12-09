@@ -26,6 +26,7 @@
 #include "particles.h"
 #include "ltide.h"
 
+#ifndef COMPRESSIBLE
 
 /**************************************************
 *** Timestep, called by runge-kutta loop   ********
@@ -640,6 +641,7 @@ void sgs_dissipation(struct Field fldi,
 	}
 
 }
-#endif
+#endif	// This is for SGS
 
+#endif	// This is for COMPRESSIBLE
 			   

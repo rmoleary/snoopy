@@ -338,8 +338,8 @@ void allocate_field(struct Field *fldi) {
 	fldi->nfield=fldi->nfield+3;
 #endif
 
-#ifdef WITH_LINEAR_TIDE
-	fldi->nfield=fldi->nfield+3;
+#ifdef COMPRESSIBLE
+	fldi->nfield=fldi->nfield+1;
 #endif
 
 	// Now we want to initialize the pointers of the field structure
@@ -365,19 +365,31 @@ void allocate_field(struct Field *fldi) {
 	fldi->vx = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (fldi->vx == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fldi->vx allocation");
 	fldi->farray[current_field] = fldi->vx;
+#ifndef COMPRESSIBLE
 	sprintf(fldi->fname[current_field],"vx");
+#else
+	sprintf(fldi->fname[current_field],"px");
+#endif
 	current_field++;
 	
 	fldi->vy = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (fldi->vy == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fldi->vy allocation");
 	fldi->farray[current_field] = fldi->vy;
+#ifndef COMPRESSIBLE
 	sprintf(fldi->fname[current_field],"vy");
+#else
+	sprintf(fldi->fname[current_field],"py");
+#endif
 	current_field++;
 	
 	fldi->vz = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
 	if (fldi->vz == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fldi->vz allocation");
 	fldi->farray[current_field] = fldi->vz;
+#ifndef COMPRESSIBLE
 	sprintf(fldi->fname[current_field],"vz");
+#else
+	sprintf(fldi->fname[current_field],"pz");
+#endif
 	current_field++;
 	
 #ifdef BOUSSINESQ
@@ -406,28 +418,16 @@ void allocate_field(struct Field *fldi) {
 	sprintf(fldi->fname[current_field],"bz");
 	current_field++;
 #endif
-
-	// Add a field here if you need one... (don't forget to ajust fldi.nfield accordingly)
-	// *
-#ifdef WITH_LINEAR_TIDE
-	fldi->tvx = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
-	if (fldi->tvx == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fldi->tvx allocation");
-	fldi->farray[current_field] = fldi->tvx;
-	sprintf(fldi->fname[current_field],"tvx");
-	current_field++;
-	
-	fldi->tvy = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
-	if (fldi->tvy == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fldi->tvy allocation");
-	fldi->farray[current_field] = fldi->tvy;
-	sprintf(fldi->fname[current_field],"tvy");
-	current_field++;
-	
-	fldi->tvz = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
-	if (fldi->tvz == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fldi->tvz allocation");
-	fldi->farray[current_field] = fldi->tvz;
-	sprintf(fldi->fname[current_field],"tvz");
+#ifdef COMPRESSIBLE
+	fldi->d = (double complex *) fftw_malloc( sizeof(double complex) * NTOTAL_COMPLEX);
+	if (fldi->d == NULL) ERROR_HANDLER( ERROR_CRITICAL, "No memory for fldi->d allocation");
+	fldi->farray[current_field] = fldi->d;
+	sprintf(fldi->fname[current_field]," d");
 	current_field++;
 #endif
+	// Add a field here if you need one... (don't forget to ajust fldi.nfield accordingly)
+	// *
+
 
 #ifdef WITH_PARTICLES	
 	// Init space for particle storage
@@ -687,3 +687,19 @@ void c_nan(double xi, const char ErrorRoutine[], const int line, const char File
 	}
 	return;
 }
+
+#ifdef COMPRESSIBLE
+/***************************************************************/
+/** Check that the field is definite positive *******************/
+/****************************************************************/
+
+void check_positivity(double *wri) {
+	int i;
+#ifdef _OPENMP
+	#pragma omp parallel for private(i) schedule(static)	
+#endif
+	for(i=0 ; i < 2*NTOTAL_COMPLEX ; i++) {
+		if(wri[i] < 1.0e-4) wri[i] = 1.0e-4;
+	}
+}
+#endif

@@ -89,13 +89,9 @@ void projector( double complex qx[],
 			    double complex qy[],
 			    double complex qz[]);
 				
-#ifdef ANELASTIC
-void projector_anelastic( double complex qx[],
-			    double complex qy[],
-			    double complex qz[]);
-#endif
-				
 double energy(const double complex q[]);
 
-
+#ifdef COMPRESSIBLE
+void check_positivity(double *wri);
+#endif
 				

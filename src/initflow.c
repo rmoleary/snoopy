@@ -399,6 +399,12 @@ void init_flow(struct Field fldi) {
 		}
 	}
 	
+#ifdef COMPRESSIBLE
+	// Initialise the density to 1...
+	if(rank==0) {
+		fldi.d[0] = (double) NTOTAL;
+	}
+#endif
 	if(param.init_large_scale_noise) init_LargeScaleNoise(fldi);
 	
 	if(param.init_large_scale_2D_noise) init_LargeScale2DNoise(fldi);

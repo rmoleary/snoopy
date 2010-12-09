@@ -138,6 +138,10 @@ void print_information(void) {
 #else
 	MPI_Printf("No Shear\n");
 #endif
+#ifdef COMPRESSIBLE
+	MPI_Printf("\nHas Compressibility\n");
+	MPI_Printf("sound speed=\t%f\n",param.cs);
+#endif
 #ifdef WITH_PARTICLES
 	MPI_Printf("\nHave particles\n");
 	MPI_Printf("Nparticles=\t%d\n",param.particles_n);

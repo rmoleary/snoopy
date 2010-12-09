@@ -177,7 +177,7 @@ void output_dump( const struct Field fldi,
 #ifdef WITH_PARTICLES
 		included_field+=4;
 #endif
-#ifdef WITH_LINEAR_TIDE
+#ifdef COMPRESSIBLE
 		included_field+=8;
 #endif
 		fwrite(&included_field, sizeof(int), 1, ht);
@@ -198,10 +198,8 @@ void output_dump( const struct Field fldi,
 #ifdef WITH_PARTICLES
 	write_particle_dump(ht, fldi.part);
 #endif
-#ifdef WITH_LINEAR_TIDE
-	write_field(ht, fldi.tvx);
-	write_field(ht, fldi.tvy);
-	write_field(ht, fldi.tvz);
+#ifdef COMPRESSIBLE
+	write_field(ht, fldi.d);
 #endif
 
 	if(rank==0) {
@@ -329,14 +327,12 @@ void read_dump(   struct Field fldo,
 		ERROR_HANDLER( ERROR_WARNING, "No Particles in the dump, using initial conditions.");
 	}
 #endif
-#ifdef WITH_LINEAR_TIDE
+#ifdef COMPRESSIBLE
 	// Do we have tide field in the dump?
 	if(included_field & 8) {
 		// Yes
-		MPI_Printf("Reading tide field\n");
-		read_field(ht, fldo.tvx);
-		read_field(ht, fldo.tvy);
-		read_field(ht, fldo.tvz);
+		MPI_Printf("Reading density field\n");
+		read_field(ht, fldo.d);
 	}
 	else {
 		//No

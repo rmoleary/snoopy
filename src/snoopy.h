@@ -120,13 +120,11 @@ struct Field {
 	double complex *by;
 	double complex *bz;
 #endif
+#ifdef COMPRESSIBLE
+	double complex *d;
+#endif
 #ifdef WITH_PARTICLES
 	struct Particle *part;
-#endif
-#ifdef WITH_LINEAR_TIDE
-	double complex *tvx;
-	double complex *tvy;
-	double complex *tvz;
 #endif
 };
 
@@ -154,7 +152,7 @@ struct Parameters {
 	
 	double omega_shear;		/**< Pulsation of the time dependant shear (only when WITH_SHEAR and TIME_DEPENDANT_SHEAR is on, or alternatively WITH_LINEAR_TIDE) */
 	
-	double anelastic_lambda;/**< Stratification length when using the anelastic approximation, assuming an exponential density profile */
+	double cs;				/**< Sound speed (only used when compressible is on) */
 	
 	// Particles parameters
 	int    particles_n;		/**< Number of particles */

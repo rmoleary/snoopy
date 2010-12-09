@@ -159,24 +159,11 @@ void D_show_part(struct Field fldi) {
 #endif
 
 void D_show_all(struct Field fldi) {
-	MPI_Printf("   vx:");
-	D_show_field(fldi.vx);
-	MPI_Printf("   vy:");
-	D_show_field(fldi.vy);
-	MPI_Printf("   vz:");
-	D_show_field(fldi.vz);
-#ifdef BOUSSINESQ
-	MPI_Printf("   th:");
-	D_show_field(fldi.th);
-#endif
-#ifdef MHD
-	MPI_Printf("   bx:");
-	D_show_field(fldi.vx);
-	MPI_Printf("   by:");
-	D_show_field(fldi.vy);
-	MPI_Printf("   bz:");
-	D_show_field(fldi.vz);
-#endif
+	int i;
+	for( i = 0 ; i < fldi.nfield ; i++) {
+		MPI_Printf("   %s:",fldi.fname[i]);
+		D_show_field(fldi.farray[i]);
+	}
 #ifdef WITH_PARTICLES
 	MPI_Printf("   Particles:\n");
 	D_show_part(fldi);
