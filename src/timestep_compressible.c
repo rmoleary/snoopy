@@ -142,9 +142,9 @@ void timestep( struct Field dfldo,
 	#pragma omp parallel for private(i) schedule(static)	
 #endif
 	for( i = 0 ; i < 2*NTOTAL_COMPLEX ; i++) {
-		wr7[i] = (wr2[i] * wr6[i] - wr3[i] * wr5[i]) / ((double) NTOTAL*NTOTAL);
-		wr8[i] = (wr3[i] * wr4[i] - wr1[i] * wr6[i]) / ((double) NTOTAL*NTOTAL);
-		wr9[i] = (wr1[i] * wr5[i] - wr2[i] * wr4[i]) / ((double) NTOTAL*NTOTAL);
+		wr7[i] = (wr2[i] * wr6[i] - wr3[i] * wr5[i]) / ((double) NTOTAL);
+		wr8[i] = (wr3[i] * wr4[i] - wr1[i] * wr6[i]) / ((double) NTOTAL);
+		wr9[i] = (wr1[i] * wr5[i] - wr2[i] * wr4[i]) / ((double) NTOTAL);
 	}
 
 	// Compute the curl of the emf to add in the induction equation.
@@ -258,7 +258,7 @@ void implicitstep(
 			   const double dt ) {
 			   
 	double q0;
-	int i;
+	int i,j;
 	
 #ifdef _OPENMP
 	#pragma omp parallel for private(i,q0) schedule(static)
@@ -271,6 +271,9 @@ void implicitstep(
 		fldi.vy[i] = fldi.vy[i] * q0;
 		fldi.vz[i] = fldi.vz[i] * q0;
 
+		q0 = exp( -  dt * k2t[i] / param.reynolds_d);
+		
+		fldi.d[i] = fldi.d[i] * q0;
 #ifdef MHD
 		q0 = exp( - eta * dt* k2t[i] );
 		fldi.bx[i] = fldi.bx[i] * q0;
@@ -278,6 +281,7 @@ void implicitstep(
 		fldi.bz[i] = fldi.bz[i] * q0;
 #endif
 	}
+	
 
 #ifdef FORCING
 	forcing(fldi, dt);

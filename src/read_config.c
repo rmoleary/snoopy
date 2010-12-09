@@ -75,6 +75,10 @@ void read_config() {
 			param.reynolds_B = 1.0;
 		}
 		
+		if(!config_lookup_float(&config, "physics.reynolds_density",&param.reynolds_d)) {
+			param.reynolds_d = 1e30;
+		}
+		
 		if(!config_lookup_float(&config, "physics.brunt_vaissala_squared",&param.N2)) {
 			param.N2 = 0.0;
 		}

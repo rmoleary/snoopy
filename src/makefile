@@ -6,7 +6,7 @@ all: snoopy
 snoopy: $(OBJ)
 	$(CC) -o $@ $^ $(LDFLAGS)
 
-%.o: %.c common.h gvars.h error.h debug.h gfft.h
+%.o: %.c common.h gvars.h snoopy.h error.h debug.h gfft.h
 	$(CC) -o $@ $< $(CFLAGS) -c
 
 clean:

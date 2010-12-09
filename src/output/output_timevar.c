@@ -16,12 +16,18 @@
 
 double find_max(double *wri) {
 	double q0;
-	int i;
+	int i,j,k,idx;
 	q0=wri[0];
 	
-	for(i = 0 ; i < 2 * NTOTAL_COMPLEX ; i ++) {
-		if(q0<wri[i]) q0=wri[i];
+	for(i=0 ; i < NX/NPROC ; i++) {
+		for(j=0 ; j < NY ; j++) {
+			for(k=0 ; k < NZ ; k++) {
+				idx = k + j * (NZ + 2) + i * NY * (NZ + 2);
+				if(q0<wri[idx]) q0=wri[idx];
+			}
+		}
 	}
+	
 	return(q0);
 }
 
@@ -34,12 +40,18 @@ double find_max(double *wri) {
 
 double find_min(double *wri) {
 	double q0;
-	int i;
+	int i,j,k,idx;
 	q0=wri[0];
 	
-	for(i = 0 ; i < 2 * NTOTAL_COMPLEX ; i ++) {
-		if(q0>wri[i]) q0=wri[i];
+	for(i=0 ; i < NX/NPROC ; i++) {
+		for(j=0 ; j < NY ; j++) {
+			for(k=0 ; k < NZ ; k++) {
+				idx = k + j * (NZ + 2) + i * NY * (NZ + 2);
+				if(q0>wri[idx]) q0=wri[idx];
+			}
+		}
 	}
+	
 	return(q0);
 }
 
@@ -50,7 +62,7 @@ double find_min(double *wri) {
 /***********************************************************/
 double compute_2correlation(double *wri1, double *wri2) {
 	double q0;
-	int i;
+	int i,j,k;
 	q0=0.0;
 	
 	for(i = 0 ; i < 2 * NTOTAL_COMPLEX ; i ++) {
@@ -67,7 +79,7 @@ double compute_2correlation(double *wri1, double *wri2) {
 /***********************************************************/
 double compute_3correlation(double *wri1, double *wri2, double *wri3) {
 	double q0;
-	int i;
+	int i,j,k;
 	q0=0.0;
 	
 	for(i = 0 ; i < 2 * NTOTAL_COMPLEX ; i ++) {
@@ -110,6 +122,9 @@ void output_timevar(const struct Field fldi,
 #ifdef BOUSSINESQ
 		w4[i] = fldi.th[i];
 #endif
+#ifdef COMPRESSIBLE
+		w4[i] = fldi.d[i];
+#endif
 #ifdef MHD
 		w5[i] = fldi.bx[i];
 		w6[i] = fldi.by[i];
@@ -120,8 +135,12 @@ void output_timevar(const struct Field fldi,
 	gfft_c2r(w1);
 	gfft_c2r(w2);
 	gfft_c2r(w3);
-#ifdef BOUSSINESQ
+#ifdef BOUSSINESQ	// Boussinesq and compressibility are in principle mutually exclusive.
 	gfft_c2r(w4);
+#endif
+#ifdef COMPRESSIBLE
+	gfft_c2r(w4);
+	check_positivity(wr4);
 #endif
 #ifdef MHD
 	gfft_c2r(w5);
@@ -129,13 +148,22 @@ void output_timevar(const struct Field fldi,
 	gfft_c2r(w7);
 #endif
 
+	
 	for( i = 0 ; i < 2*NTOTAL_COMPLEX ; i++) {
+#ifndef COMPRESSIBLE
 		wr1[i] = wr1[i] / ((double) NTOTAL );
 		wr2[i] = wr2[i] / ((double) NTOTAL );
 		wr3[i] = wr3[i] / ((double) NTOTAL );
 #ifdef BOUSSINESQ
 		wr4[i] = wr4[i] / ((double) NTOTAL );
 #endif
+#else
+		wr1[i] = wr1[i] / wr4[i];		// Compute the real velocity field
+		wr2[i] = wr2[i] / wr4[i];
+		wr3[i] = wr3[i] / wr4[i];
+		wr4[i] = wr4[i] / ((double) NTOTAL);
+#endif
+		
 #ifdef MHD
 		wr5[i] = wr5[i] / ((double) NTOTAL );
 		wr6[i] = wr6[i] / ((double) NTOTAL );
@@ -335,6 +363,24 @@ void output_timevar(const struct Field fldi,
 			reduce(&output_var,1);
 		}
 #endif
+#ifdef COMPRESSIBLE
+		else if(!strcmp(param.timevar_vars.name[i],"dmax")) {
+			// maximum of density
+			output_var=find_max(wr4);
+			reduce(&output_var,2);
+		}
+		else if(!strcmp(param.timevar_vars.name[i],"dmin")) {
+			// minimum of density
+			output_var=find_min(wr4);
+			reduce(&output_var,3);
+		}
+		else if(!strcmp(param.timevar_vars.name[i],"dvxvy")) {
+			// compressible reynolds stress
+			output_var=compute_3correlation(wr1,wr2,wr4);
+			reduce(&output_var,1);
+		}
+#endif
+
 		else {
 			if(!warning_flag) {
 				ERROR_HANDLER(ERROR_WARNING,"Unable to produce the requested data\n");
