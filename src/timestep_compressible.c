@@ -69,7 +69,17 @@ void timestep( struct Field dfldo,
 	gfft_c2r_t(w3);
 	gfft_c2r_t(w4);
 	
-	check_positivity(wr4);
+// convert density to the real density (via an exponential)
+/////////////////////////////////////////////////////////////
+/*
+#ifdef _OPENMP
+	#pragma omp parallel for private(i,q0) schedule(static)	
+#endif
+	for( i = 0 ; i < 2*NTOTAL_COMPLEX ; i++) {
+		wr4[i] = ((double) NTOTAL) exp( wr4[i]/((double) NTOTAL) );
+	}
+*/
+////////////////////////////////////////////////////////////
 	
 	// Here, we compute the Reynolds stress tensor p_ip_j/rho=v_iv_jrho
 #ifdef _OPENMP
@@ -104,6 +114,44 @@ void timestep( struct Field dfldo,
 					kxt[i] * w9[i] + ky[i] * w10[i] + kz[i] * w7[i] );	
 	}
 	
+///////////////////////////////////////////////////////////////
+// First term of the continuity equation (in log) /////////////
+// dt lnrho = -v.nabla lnrho -div(v)
+///////////////////////////////////////////////////////////////
+/*
+#ifdef _OPENMP
+	#pragma omp parallel for private(i) schedule(static)	
+#endif
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		w8[i] = I * mask[i] * kxt[i] * fldi.d[i];
+		w9[i] = I * mask[i] * ky[i] * fldi.d[i];
+		w10[i] = I * mask[i] * kz[i] * fldi.d[i];
+	}
+	
+	
+	
+#ifdef _OPENMP
+	#pragma omp parallel for private(i,q0) schedule(static)	
+#endif
+	for( i = 0 ; i < 2*NTOTAL_COMPLEX ; i++) {
+		q0 = 1.0/wr4[i];
+		wr5[i] = wr1[i] * q0;
+		wr6[i] = wr2[i] * q0;
+		wr7[i] = wr3[i] * q0;
+	}
+	
+	gfft_r2c_t(wr5);
+	gfft_r2c_t(wr6);
+	gfft_r2c_t(wr7);
+	
+#ifdef _OPENMP
+	#pragma omp parallel for private(i) schedule(static)	
+#endif
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		dfldo.d[i] = - I * mask[i] * (kxt[i] * w5[i] + ky[i] * w6[i] + kz[i] * w7[i]);
+	}
+*/
+
 /*********************************************
 **** MHD Terms (if needed)   *****************
 *********************************************/
@@ -257,7 +305,8 @@ void implicitstep(
 			   const double t,
 			   const double dt ) {
 			   
-	double q0;
+	double q0,lambda;
+	int exponent;
 	int i,j;
 	
 #ifdef _OPENMP
@@ -271,9 +320,9 @@ void implicitstep(
 		fldi.vy[i] = fldi.vy[i] * q0;
 		fldi.vz[i] = fldi.vz[i] * q0;
 
-		q0 = exp( -  dt * k2t[i] / param.reynolds_d);
+		//q0 = exp( -  dt * k2t[i] / param.reynolds_d);
 		
-		fldi.d[i] = fldi.d[i] * q0;
+		//fldi.d[i] = fldi.d[i] * q0;
 #ifdef MHD
 		q0 = exp( - eta * dt* k2t[i] );
 		fldi.bx[i] = fldi.bx[i] * q0;
@@ -282,7 +331,27 @@ void implicitstep(
 #endif
 	}
 	
+// Hyperviscosity (diffusive time=grid-scale sound crossing time at the cutoff scale)
+	lambda=3;
+	exponent=4;
+#ifdef _OPENMP
+	#pragma omp parallel for private(i,q0) schedule(static)
+#endif
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+	
+		q0 = exp( - dt* kmax*param.cs*pow(lambda*lambda*k2t[i]/(kmax*kmax),exponent) );
 
+		fldi.vx[i] = fldi.vx[i] * q0;
+		fldi.vy[i] = fldi.vy[i] * q0;
+		fldi.vz[i] = fldi.vz[i] * q0;
+		
+#ifdef MHD
+		fldi.bx[i] = fldi.bx[i] * q0;
+		fldi.by[i] = fldi.by[i] * q0;
+		fldi.bz[i] = fldi.bz[i] * q0;
+#endif
+	}
+		
 #ifdef FORCING
 	forcing(fldi, dt);
 #endif
