@@ -60,7 +60,8 @@ double newdt(struct Field fldi, double tremap) {
 	double maxbx   , maxby, maxbz;
 #endif
 #ifdef COMPRESSIBLE
-	double q0;
+	double q0, dmin;
+	int j,k,idx;
 #endif
 	double dt;
 	
@@ -88,6 +89,26 @@ double newdt(struct Field fldi, double tremap) {
 	}
 	
 	gfft_c2r_t(w4);
+	
+	
+	// Compute the minimum density (used to determine the viscous CFL condition)
+	dmin=wr4[0];
+	
+	for(i=0 ; i < NX/NPROC ; i++) {
+		for(j=0 ; j < NY ; j++) {
+			for(k=0 ; k < NZ ; k++) {
+				idx = k + j * (NZ + 2) + i * NY * (NZ + 2);
+				if( wr4[idx] < dmin) dmin = wr4[idx];
+			}
+		}
+	}
+	
+	dmin = dmin / ((double) NTOTAL);
+	reduce(&dmin, 3);
+	
+	if(dmin <= 0.0) ERROR_HANDLER(ERROR_CRITICAL, "Negative density detected: panic");
+
+	// Compute the velocity field (used in advection CFL condition
 	
 	check_positivity(wr4);
 	
@@ -141,6 +162,10 @@ double newdt(struct Field fldi, double tremap) {
 #endif
 #ifdef TIME_DEPENDANT_SHEAR
 	gamma_v += fabs(param.omega_shear) / param.safety_source;
+#endif
+
+#ifdef COMPRESSIBLE
+	gamma_v += ((kxmax+fabs(tremap)*kymax)*(kxmax+fabs(tremap)*kymax)+kymax*kymax+kzmax*kzmax) * nu / dmin;	// CFL condition on viscosity
 #endif
 
 #ifdef WITH_PARTICLES
@@ -239,6 +264,9 @@ double newdt(struct Field fldi, double tremap) {
 #endif
 	MPI_Printf("newdt: maxfx=%e, maxfy=%e, maxfz=%e, dt=%e\n",maxfx,maxfy, maxfz, dt);
 #endif
+
+	CHECK_NAN(dt);
+	
 	DEBUG_END_FUNC;
 	return(dt);
 }			   			   

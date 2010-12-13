@@ -144,7 +144,6 @@ struct Parameters {
 	
 	double reynolds_th;		/**< Thermal Reynolds number (actully the inverse of the thermal diffusivity)  Used only when Boussinesq is on*/
 	double reynolds_B;		/**< Reynolds number based on Braginskii viscosity */
-	double reynolds_d;		/**< artifical viscosity in the continuity equation */
 	
 	double N2;				/**< Brunt Vaissala frequency squared */
 	
