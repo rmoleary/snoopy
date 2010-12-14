@@ -22,7 +22,11 @@ double find_max(double *wri) {
 	for(i=0 ; i < NX/NPROC ; i++) {
 		for(j=0 ; j < NY ; j++) {
 			for(k=0 ; k < NZ ; k++) {
+#ifdef WITH_2D
+				idx = j + i * (NY+2);
+#else
 				idx = k + j * (NZ + 2) + i * NY * (NZ + 2);
+#endif
 				if(q0<wri[idx]) q0=wri[idx];
 			}
 		}
@@ -46,7 +50,11 @@ double find_min(double *wri) {
 	for(i=0 ; i < NX/NPROC ; i++) {
 		for(j=0 ; j < NY ; j++) {
 			for(k=0 ; k < NZ ; k++) {
+#ifdef WITH_2D
+				idx = j + i * (NY+2);
+#else
 				idx = k + j * (NZ + 2) + i * NY * (NZ + 2);
+#endif
 				if(q0>wri[idx]) q0=wri[idx];
 			}
 		}

@@ -61,7 +61,6 @@ double newdt(struct Field fldi, double tremap) {
 #endif
 #ifdef COMPRESSIBLE
 	double q0, dmin;
-	int j,k,idx;
 #endif
 	double dt;
 	
@@ -94,13 +93,9 @@ double newdt(struct Field fldi, double tremap) {
 	// Compute the minimum density (used to determine the viscous CFL condition)
 	dmin=wr4[0];
 	
-	for(i=0 ; i < NX/NPROC ; i++) {
-		for(j=0 ; j < NY ; j++) {
-			for(k=0 ; k < NZ ; k++) {
-				idx = k + j * (NZ + 2) + i * NY * (NZ + 2);
-				if( wr4[idx] < dmin) dmin = wr4[idx];
-			}
-		}
+	// Exclude 0.0 (due to dump zone of in place ffts)
+	for( i = 0 ; i < 2*NTOTAL_COMPLEX ; i++) {
+		if( (wr4[i] < dmin) && (wr4[i] != 0.0)) dmin = wr4[i];
 	}
 	
 	dmin = dmin / ((double) NTOTAL);

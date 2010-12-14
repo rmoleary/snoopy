@@ -40,7 +40,8 @@ void timestep( struct Field dfldo,
 	// NB: in the compressible version, fldi.vx,vy, vz are actually the momenta in x,y,z!
 	
 	int i;
-	double q0,S;
+	double S;
+	double complex qc;
 	
 #ifdef WITH_SHEAR
 #ifdef TIME_DEPENDANT_SHEAR
@@ -127,7 +128,7 @@ void timestep( struct Field dfldo,
 **********************************************/
 
 #ifdef _OPENMP
-	#pragma omp parallel for private(i,q0) schedule(static)	
+	#pragma omp parallel for private(i) schedule(static)	
 #endif
 	for( i = 0 ; i < 2*NTOTAL_COMPLEX ; i++) {
 		wr1[i] = wr1[i] * wr4[i];
@@ -156,13 +157,13 @@ void timestep( struct Field dfldo,
 	// Add the viscous term to the linear momentum
 	
 #ifdef _OPENMP
-	#pragma omp parallel for private(i,q0) schedule(static)	
+	#pragma omp parallel for private(i,qc) schedule(static)	
 #endif
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
-		q0 = 1.0 / 3.0 * (kxt[i] * w4[i] + ky[i] * w5[i] + kz[i] * w6[i]);
-		dfldo.vx[i] -= nu * mask[i] * (k2t[i] * w4[i] + kxt[i] * q0);
-		dfldo.vy[i] -= nu * mask[i] * (k2t[i] * w5[i] + ky[i]  * q0);
-		dfldo.vz[i] -= nu * mask[i] * (k2t[i] * w6[i] + kz[i]  * q0);
+		qc = 1.0 / 3.0 * (kxt[i] * w4[i] + ky[i] * w5[i] + kz[i] * w6[i]);
+		dfldo.vx[i] -= nu * mask[i] * (k2t[i] * w4[i] + kxt[i] * qc);
+		dfldo.vy[i] -= nu * mask[i] * (k2t[i] * w5[i] + ky[i]  * qc);
+		dfldo.vz[i] -= nu * mask[i] * (k2t[i] * w6[i] + kz[i]  * qc);
 	}
 	
 	
@@ -241,13 +242,13 @@ void timestep( struct Field dfldo,
 
 	// The 0.5 factor is here to take into account the magnetic pressure term -B^2/2 delta_ij
 #ifdef _OPENMP
-	#pragma omp parallel for private(i) schedule(static)
+	#pragma omp parallel for private(i,qc) schedule(static)
 #endif
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
-		q0 = 0.5 * (w1[i] + w2[i] + w3[i]);
-		dfldo.vx[i] += I * mask[i] * (kxt[i] * (w1[i]-q0) +     ky[i] * w7[i]      + kz[i] * w8[i]);
-		dfldo.vy[i] += I * mask[i] * (kxt[i] * w7[i]      +     ky[i] * (w2[i]-q0) + kz[i] * w9[i]);
-		dfldo.vz[i] += I * mask[i] * (kxt[i] * w8[i]      +     ky[i] * w9[i]      + kz[i] * (w3[i]-q0));
+		qc = 0.5 * (w1[i] + w2[i] + w3[i]);
+		dfldo.vx[i] += I * mask[i] * (kxt[i] * (w1[i]-qc) +     ky[i] * w7[i]      + kz[i] * w8[i]);
+		dfldo.vy[i] += I * mask[i] * (kxt[i] * w7[i]      +     ky[i] * (w2[i]-qc) + kz[i] * w9[i]);
+		dfldo.vz[i] += I * mask[i] * (kxt[i] * w8[i]      +     ky[i] * w9[i]      + kz[i] * (w3[i]-qc));
 	}
 	
 #endif
@@ -292,9 +293,9 @@ void timestep( struct Field dfldo,
 	#pragma omp parallel for private(i) schedule(static)
 #endif
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
-		dfldo.vx[i] += -I * mask[i] * kxt[i] * param.cs * fldi.d[i];
-		dfldo.vy[i] += -I * mask[i] * ky[i]  * param.cs * fldi.d[i];
-		dfldo.vz[i] += -I * mask[i] * kz[i]  * param.cs * fldi.d[i];
+		dfldo.vx[i] += -I * mask[i] * kxt[i] * param.cs * param.cs * fldi.d[i];
+		dfldo.vy[i] += -I * mask[i] * ky[i]  * param.cs * param.cs * fldi.d[i];
+		dfldo.vz[i] += -I * mask[i] * kz[i]  * param.cs * param.cs * fldi.d[i];
 	}
 		
 	// Finished
@@ -331,9 +332,9 @@ void implicitstep(
 	
 // Hyperviscosity (diffusive time=grid-scale sound crossing time at the cutoff scale)
 
+/*
 
-
-	lambda=2;
+	lambda=3;
 	exponent=4;
 #ifdef _OPENMP
 	#pragma omp parallel for private(i,q0) schedule(static)
@@ -342,9 +343,9 @@ void implicitstep(
 	
 		q0 = exp( - dt* kmax*param.cs*pow(lambda*lambda*k2t[i]/(kmax*kmax),exponent) );
 		
-		
-		fldi.d[i] = fldi.d[i] * q0;
 		q0 = 1.0;
+		fldi.d[i] = fldi.d[i] * q0;
+		q0=1.0;
 		fldi.vx[i] = fldi.vx[i] * q0;
 		fldi.vy[i] = fldi.vy[i] * q0;
 		fldi.vz[i] = fldi.vz[i] * q0;
@@ -356,6 +357,7 @@ void implicitstep(
 #endif
 	}
 
+*/
 
 #ifdef FORCING
 	forcing(fldi, dt);

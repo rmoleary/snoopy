@@ -387,6 +387,7 @@ void init_MeanField(struct Field fldi) {
 /** Init the flow arrays... */	
 void init_flow(struct Field fldi) {
 	int i,n;
+	int j,k;
 	
 	double dummy_var;
 	
@@ -427,11 +428,11 @@ void init_flow(struct Field fldi) {
 #ifdef BOUNDARY_C
 	boundary_c(fldi);
 #endif
-
-		projector(fldi.vx,fldi.vy,fldi.vz);
+	
+	projector(fldi.vx,fldi.vy,fldi.vz);
 
 #ifdef MHD
-		projector(fldi.bx,fldi.by,fldi.bz);
+	projector(fldi.bx,fldi.by,fldi.bz);
 #endif
 
 #ifdef WITH_PARTICLES
