@@ -74,6 +74,12 @@ void timestep( struct Field dfldo,
 		w5[i] =  fldi.vy[i]-fldi.by[i];
 		w6[i] =  fldi.vz[i]-fldi.bz[i];
 	}
+	
+	// These fields should have no divergence.
+	// When shear is on, however, divergence is conserved up to the timeintegrator precision.
+	// Let's clean it.
+	projector(w1,w2,w3);
+	projector(w4,w5,w6);
 
 	gfft_c2r_t(w1);
 	gfft_c2r_t(w2);
@@ -153,6 +159,11 @@ void timestep( struct Field dfldo,
 		w3[i] =  fldi.vz[i];
 	}
 
+	// These fields should have no divergence.
+	// When shear is on, however, divergence is conserved up to the timeintegrator precision.
+	// Let's clean it.
+	projector(w1,w2,w3);
+	
 	gfft_c2r_t(w1);
 	gfft_c2r_t(w2);
 	gfft_c2r_t(w3);
@@ -288,7 +299,11 @@ void timestep( struct Field dfldo,
 		w6[i] =  fldi.bz[i];
 	}
 
-
+	// These fields should have no divergence.
+	// When shear is on, however, divergence is conserved up to the timeintegrator precision.
+	// Let's clean it.
+	projector(w4,w5,w6);
+	
 	gfft_c2r_t(w4);
 	gfft_c2r_t(w5);
 	gfft_c2r_t(w6);

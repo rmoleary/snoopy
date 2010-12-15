@@ -189,7 +189,14 @@ void output_timevar(const struct Field fldi,
 		}
 		else if(!strcmp(param.timevar_vars.name[i],"ev")) {
 			// kinetic energy
+#ifndef COMPRESSIBLE
 			output_var = energy(fldi.vx) + energy(fldi.vy)+energy(fldi.vz);
+#else
+			output_var = 0.5 * ( compute_3correlation(wr1, wr1, wr4) +
+								 compute_3correlation(wr2, wr2, wr4) +
+								 compute_3correlation(wr3, wr3, wr4) );
+#endif
+
 			reduce(&output_var,1);
 		}
 		else if(!strcmp(param.timevar_vars.name[i],"vxmax")) {
