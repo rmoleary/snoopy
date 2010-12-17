@@ -27,6 +27,8 @@
 //#define		ELSASSER_FORMULATION	/**< Use Elsasser formulation for MHD terms */
 //#define		WITH_BRAGINSKII			/**< Enable Braginskii viscosity. CAUTION: this is incompatible with the Elsasser formulation */
 
+//#define		COMPRESSIBLE			/**< Solve the isothermal compressible equations (incompatible with Boussinesq for obvious physical reasons)
+
 //#define		BOUSSINESQ				/**< Uncomment to activate Boussinesq */
 //#define		VERTSTRAT				/**< Vertical stratification. Otherwise, Boussinesq stratification is in X */
 //#define		N2PROFILE				/**< Assumes N2 depends on spatial coordinates. The profile has to be set up by hand in common.c/init_N2_profile(). This feature in in alpha version. */
@@ -35,10 +37,6 @@
 
 //#define		WITH_SHEAR				/**< Uncomment to activate mean SHEAR */
 //#define		TIME_DEPENDANT_SHEAR	/**< Enable Time dependant shear */
-
-//#define		WITH_LINEAR_TIDE		/**< Enable linear tide evolution following Goodman & Oh (1997) */
-
-//#define		ANELASTIC				/**< Anelastic approximation in the x direction, assuming an exponential density profile. This work only for the moment with pure hydro (no MHD/BOUSSINESQ).*/
 
 //#define		WITH_2D					/**< 2D (x,y) reduction. Enforce NZ=1 and optimise the Fourier transform routines accordingly. Using this option should lead to a speedup>4 compared to the old NZ=2 method.*/
 

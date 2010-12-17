@@ -699,7 +699,7 @@ void check_positivity(double *wri) {
 	#pragma omp parallel for private(i) schedule(static)	
 #endif
 	for(i=0 ; i < 2*NTOTAL_COMPLEX ; i++) {
-		if(wri[i] < 1.0e-1*NTOTAL) wri[i] = 1.0e-1*NTOTAL;
+		if(wri[i] < 1.0e-2*NTOTAL) wri[i] = 1.0e-2*NTOTAL;
 	}
 }
 #endif
