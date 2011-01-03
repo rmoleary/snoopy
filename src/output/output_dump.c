@@ -22,6 +22,8 @@ extern double lastoutput_dump;								/**< Time when the last dump output was do
 ** Restart DUMP I/O routines ******************************
 ***********************************************************/
 
+
+
 /***********************************************************/
 /** 
 	write a field information to a restart dump file, taking care of the MPI reduction
@@ -139,6 +141,8 @@ void output_dump( const struct Field fldi,
 	int dump_version;
 	int size_x,	size_y, size_z;
 	int marker, included_field;
+	int nfield;
+	long int filesize;
 	
 	ht=NULL;
 	
@@ -221,6 +225,29 @@ void output_dump( const struct Field fldi,
 		fclose(ht);
 	}
 	
+	// predict the file size:
+	nfield = 3;		// Velocity fields
+#ifdef BOUSSINESQ
+	nfield += 1;
+#endif
+#ifdef MHD
+	nfield += 3;
+#endif
+#ifdef COMPRESSIBLE
+	nfield += 1;
+#endif
+
+	filesize = nfield * sizeof(double complex) * NTOTAL_COMPLEX * NPROC + 4 * sizeof( double) + 7 * sizeof( int );
+
+#ifdef WITH_PARTICLES
+	filesize += param.particles_n * sizeof(struct Particle) + sizeof(int);
+#endif
+	
+	if( check_file_size( OUTPUT_DUMP_WRITE, filesize ) ) {
+		MPI_Printf("Error checking the dump size, got %d instead of %d\n", (int) check_file_size( OUTPUT_DUMP_WRITE, filesize), (int) filesize);
+		ERROR_HANDLER( ERROR_CRITICAL, "Error writing dump file, check your quotas");
+	}
+	
 // This bit prevents the code from loosing all the dump files (this kind of thing happens sometimes...)
 // With this routine, one will always have a valid restart dump, either in OUTPUT_DUMP_WRITE, OUTPUT_DUMP or OUTPUT_DUMP_SAV 
 // (it should normally be in OUTPUT_DUMP)
@@ -229,6 +256,11 @@ void output_dump( const struct Field fldi,
 		remove(OUTPUT_DUMP_SAV);				 // Delete the previously saved output dump
 		rename(OUTPUT_DUMP, OUTPUT_DUMP_SAV);	 // Save the current dump file
 		rename(OUTPUT_DUMP_WRITE, OUTPUT_DUMP);  // Move the new dump file to its final location
+	}
+	
+	if( check_file_size( OUTPUT_DUMP, filesize ) ) {
+		MPI_Printf("Error checking the dump size, got %d instead of %d\n", (int) check_file_size( OUTPUT_DUMP, filesize), (int) filesize);
+		ERROR_HANDLER( ERROR_CRITICAL, "Error writing dump file, check your quotas");
 	}
 	
 #ifdef MPI_SUPPORT
