@@ -359,6 +359,15 @@ void output_timevar(const struct Field fldi,
 			
 			output_var=energy(w12);
 		}
+		
+		else if(!strcmp(param.timevar_vars.name[i],"vxaz")) {
+			// Source term in the streamfunction equation
+			for( j = 0 ; j < NTOTAL_COMPLEX ; j++) {
+				w12[j] = I * ik2t[j] * (kxt[j]* fldi.by[j] - ky[j] * fldi.bx[j] );
+			}
+			
+			output_var=compute_2correlation(w12,w1);
+		}
 #endif
 #ifdef BOUSSINESQ
 		else if(!strcmp(param.timevar_vars.name[i],"et")) {
