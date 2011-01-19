@@ -358,6 +358,8 @@ void output_timevar(const struct Field fldi,
 			}
 			
 			output_var=energy(w12);
+			
+			reduce(&output_var,1);
 		}
 		
 		else if(!strcmp(param.timevar_vars.name[i],"vxaz")) {
@@ -366,7 +368,15 @@ void output_timevar(const struct Field fldi,
 				w12[j] = I * ik2t[j] * (kxt[j]* fldi.by[j] - ky[j] * fldi.bx[j] );
 			}
 			
-			output_var=compute_2correlation(w12,w1);
+			gfft_c2r(w12);
+			
+			for( j = 0 ; j < 2*NTOTAL_COMPLEX ; j++) {
+				wr12[j] = wr12[j] / ((double) NTOTAL );
+			}
+			
+			output_var=compute_2correlation(wr12,wr1);
+			reduce(&output_var,1);
+			
 		}
 #endif
 #ifdef BOUSSINESQ
