@@ -463,6 +463,68 @@ void timestep( struct Field dfldo,
 
 #endif
 
+/*************************************************/
+/** HALL EFFECT **********************************/
+/*************************************************/
+
+#ifdef WITH_HALL
+
+#ifdef _OPENMP
+	#pragma omp parallel for private(i) schedule(static)	
+#endif
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		w1[i] = I * (ky[i]  * fldi.bz[i] - kz[i]  * fldi.by[i]);
+		w2[i] = I * (kz[i]  * fldi.bx[i] - kxt[i] * fldi.bz[i]);
+		w3[i] = I * (kxt[i] * fldi.by[i] - ky[i]  * fldi.bx[i]);
+		
+		w4[i] =  fldi.bx[i];
+		w5[i] =  fldi.by[i];
+		w6[i] =  fldi.bz[i];
+	}
+
+	// These fields should have no divergence.
+	// When shear is on, however, divergence is conserved up to the timeintegrator precision.
+	// Let's clean it.
+	projector(w4,w5,w6);
+	
+	gfft_c2r_t(w1);
+	gfft_c2r_t(w2);
+	gfft_c2r_t(w3);
+	gfft_c2r_t(w4);
+	gfft_c2r_t(w5);
+	gfft_c2r_t(w6);
+	
+	// J is in w1-w3, B is in w4-w6
+	// q0 is the Hall parameter
+	q0 = 1.0 / param.x_hall;
+	
+#ifdef _OPENMP
+	#pragma omp parallel for private(i) schedule(static)	
+#endif
+	for( i = 0 ; i < 2*NTOTAL_COMPLEX ; i++) {
+		wr7[i] = -q0*(wr2[i] * wr6[i] - wr3[i] * wr5[i]) / ((double) NTOTAL*NTOTAL);
+		wr8[i] = -q0*(wr3[i] * wr4[i] - wr1[i] * wr6[i]) / ((double) NTOTAL*NTOTAL);
+		wr9[i] = -q0*(wr1[i] * wr5[i] - wr2[i] * wr4[i]) / ((double) NTOTAL*NTOTAL);
+	}
+
+	// Compute the curl of the emf to add in the induction equation.
+	
+	gfft_r2c_t(wr7);
+	gfft_r2c_t(wr8);
+	gfft_r2c_t(wr9);
+	
+#ifdef _OPENMP
+	#pragma omp parallel for private(i) schedule(static)	
+#endif
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		dfldo.bx[i] += I * mask[i] * (ky[i] * w9[i] - kz[i] * w8[i]);
+		dfldo.by[i] += I * mask[i] * (kz[i] * w7[i] - kxt[i]* w9[i]);
+		dfldo.bz[i] += I * mask[i] * (kxt[i]* w8[i] - ky[i] * w7[i]);
+	}
+
+#endif	//WITH_HALL
+
+
 
 /************************************
 ** SOURCE TERMS  ********************

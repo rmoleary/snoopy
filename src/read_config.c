@@ -75,6 +75,10 @@ void read_config() {
 			param.reynolds_B = 1.0;
 		}
 		
+		if(!config_lookup_float(&config, "physics.x_Hall",&param.x_hall)) {
+			param.x_hall = 1.0;
+		}
+		
 		if(!config_lookup_float(&config, "physics.brunt_vaissala_squared",&param.N2)) {
 			param.N2 = 0.0;
 		}

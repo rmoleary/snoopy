@@ -247,6 +247,9 @@ double newdt(struct Field fldi, double tremap) {
 	
 	gamma_b = (kxmax + fabs(tremap)*kymax) * maxbx + kymax * maxby + kzmax * maxbz;
 
+#ifdef WITH_HALL
+	gamma_b += ((kxmax+fabs(tremap)*kymax)*(kxmax+fabs(tremap)*kymax)+kymax*kymax+kzmax*kzmax) * pow(maxbx*maxbx + maxby*maxby + maxbz*maxbz, 0.5) / param.x_hall;
+#endif
 	
 	dt = param.cfl / (gamma_v + gamma_b);
 #else

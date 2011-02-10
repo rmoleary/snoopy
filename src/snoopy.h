@@ -145,6 +145,8 @@ struct Parameters {
 	double reynolds_th;		/**< Thermal Reynolds number (actully the inverse of the thermal diffusivity)  Used only when Boussinesq is on*/
 	double reynolds_B;		/**< Reynolds number based on Braginskii viscosity */
 	
+	double x_hall;			/**< Hall parameter */
+	
 	double N2;				/**< Brunt Vaissala frequency squared */
 	
 	double omega;			/**< Vertical rotation rate (if Shear=1, Keplerian if found for (2.0/3.0). Only when WITH_ROTATION is on. */
