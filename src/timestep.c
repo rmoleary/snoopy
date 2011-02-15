@@ -127,13 +127,15 @@ void timestep( struct Field dfldo,
 						kxt[i] * (w10[i] + w8[i]) + ky[i] * ( 2.0   * w11[i]) + kz[i] * (w12[i] + w14[i]) );
 		dfldo.vz[i] = - I * 0.5 * mask[i] * (
 						kxt[i] * (w13[i] + w9[i]) + ky[i] * (w14[i] + w12[i]) + kz[i] * ( 2.0 * w15[i]  ) );
-						
+		
+										
 		dfldo.bx[i] = - I * 0.5 * mask[i] * (
 						                            ky[i] * ( w8[i] - w10[i]) + kz[i] * (w9[i]  - w13[i]) );
 		dfldo.by[i] = - I * 0.5 * mask[i] * (
 						kxt[i] * (w10[i] - w8[i])                             + kz[i] * (w12[i] - w14[i]) );
 		dfldo.bz[i] = - I * 0.5 * mask[i] * (
 						kxt[i] * (w13[i] - w9[i]) + ky[i] * (w14[i] - w12[i])  );
+		
 
 	}
 		
