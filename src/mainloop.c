@@ -152,15 +152,26 @@ double newdt(struct Field fldi, double tremap) {
 #ifdef WITH_SHEAR
 	gamma_v += fabs(param.shear) / param.safety_source;
 #endif
+
 #ifdef BOUSSINESQ
 	gamma_v += pow(fabs(param.N2), 0.5) / param.safety_source;
+#ifdef WITH_EXPLICIT_DISSIPATION
+	gamma_v += ((kxmax+fabs(tremap)*kymax)*(kxmax+fabs(tremap)*kymax)+kymax*kymax+kzmax*kzmax) * nu_th;		// NB: this is very conservative. It should be combined with the condition on nu
 #endif
+#endif
+
 #ifdef TIME_DEPENDANT_SHEAR
 	gamma_v += fabs(param.omega_shear) / param.safety_source;
 #endif
 
 #ifdef COMPRESSIBLE
 	gamma_v += ((kxmax+fabs(tremap)*kymax)*(kxmax+fabs(tremap)*kymax)+kymax*kymax+kzmax*kzmax) * nu / dmin;	// CFL condition on viscosity
+#endif
+
+#ifndef COMPRESSIBLE
+#ifdef WITH_EXPLICIT_DISSIPATION
+	gamma_v += ((kxmax+fabs(tremap)*kymax)*(kxmax+fabs(tremap)*kymax)+kymax*kymax+kzmax*kzmax) * nu;	// CFL condition on viscosity in incompressible regime
+#endif
 #endif
 
 #ifdef WITH_PARTICLES
@@ -249,6 +260,9 @@ double newdt(struct Field fldi, double tremap) {
 
 #ifdef WITH_HALL
 	gamma_b += ((kxmax+fabs(tremap)*kymax)*(kxmax+fabs(tremap)*kymax)+kymax*kymax+kzmax*kzmax) * pow(maxbx*maxbx + maxby*maxby + maxbz*maxbz, 0.5) / param.x_hall;
+#endif
+#ifdef WITH_EXPLICIT_DISSIPATION
+	gamma_b += ((kxmax+fabs(tremap)*kymax)*(kxmax+fabs(tremap)*kymax)+kymax*kymax+kzmax*kzmax) * eta;	// CFL condition on resistivity
 #endif
 	
 	dt = param.cfl / (gamma_v + gamma_b);

@@ -549,6 +549,32 @@ void timestep( struct Field dfldo,
 	}
 	
 /************************************
+** EXPLICIT LINEAR DISSIPATION ******
+*************************************/
+
+#ifdef WITH_EXPLICIT_DISSIPATION
+#ifdef _OPENMP
+	#pragma omp parallel for private(i) schedule(static)
+#endif
+	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
+		dfldo.vx[i] += - nu * k2t[i] * fldi.vx[i];
+		dfldo.vy[i] += - nu * k2t[i] * fldi.vy[i];
+		dfldo.vz[i] += - nu * k2t[i] * fldi.vz[i];
+		
+#ifdef MHD
+		dfldo.bx[i] += - eta * k2t[i] * fldi.bx[i];
+		dfldo.by[i] += - eta * k2t[i] * fldi.by[i];
+		dfldo.bz[i] += - eta * k2t[i] * fldi.bz[i];
+#endif	// MHD
+
+#ifdef BOUSSiNESQ
+		dfldo.th[i] += - nu_th * k2t[i] * fldi.th[i];
+#endif	// BOUSSINESQ
+	}
+
+#endif	// WITH_EXPLICIT_DISSIPATION
+	
+/************************************
 ** PRESSURE TERMS *******************
 ************************************/
 
@@ -595,19 +621,17 @@ void implicitstep(
 	sgs_dissipation( fldi, t, dt);
 #endif
 
+#ifndef WITH_EXPLICIT_DISSIPATION
 #ifdef _OPENMP
 	#pragma omp parallel for private(i,q0) schedule(static)
 #endif
-
-	
 	for( i = 0 ; i < NTOTAL_COMPLEX ; i++) {
 #ifndef SGS
 		q0 = exp( - nu * dt* k2t[i] );
-
 		fldi.vx[i] = fldi.vx[i] * q0;
 		fldi.vy[i] = fldi.vy[i] * q0;
 		fldi.vz[i] = fldi.vz[i] * q0;
-#endif
+#endif	// SGS
 		
 #ifdef BOUSSINESQ
 		q0 = exp( - nu_th * dt* k2t[i] );
@@ -620,6 +644,7 @@ void implicitstep(
 		fldi.bz[i] = fldi.bz[i] * q0;
 #endif
 	}
+#endif	// WITH_EXPLICIT_DISSIPATION
 
 #ifdef FORCING
 	forcing(fldi, dt);
