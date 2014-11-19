@@ -587,9 +587,9 @@ void init_particles(struct Field fldi) {
 		fldi.part[i].y = -param.ly/2.0 +param.ly*randm();
 		fldi.part[i].z = -param.lz/2.0 +param.lz*randm();
 		
-		fldi.part[i].vx = 0.5-randm();//vx0;
-		fldi.part[i].vy = 0.5-randm();//vy0;
-		fldi.part[i].vz = 0.5-randm();
+		fldi.part[i].vx = 0.0; //-randm();//vx0;
+		fldi.part[i].vy = 0.0; //-randm();//vy0;
+		fldi.part[i].vz = 0.0; //-randm();
 		//fldi.part[i].mass = param.particles_mass;
 		fldi.part[i].mass = param.particles_dg_ratio * param.lx * param.ly * param.lz / param.particles_n;
 		fldi.part[i].stime = param.particles_stime;
