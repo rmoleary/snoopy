@@ -87,7 +87,11 @@ void deallocate_field(struct Field *fldi);
 void init_N2_profile();
 void init_real_mask();
 
-/** Init all global variables, aligning them in memory */
+/***************************************************************/
+/**
+	Init all global variables, aligning them in memory
+*/
+/***************************************************************/
 void init_common(void) {
 	/* This routine will initialize everything */
 	int i,j,k;
@@ -316,10 +320,12 @@ void finish_common(void) {
 
 /*********************************************/
 /**
-Allocate a field structure according to the code
-current configuration
-This routine allows one to add extra fields
-to the code very easily.
+	Allocate a field structure according to the code
+	current configuration
+	This routine allows one to add extra fields
+	to the code very easily.
+
+	@param *fldi: pointer to a field structure to initialize
 **/
 /*********************************************/
 void allocate_field(struct Field *fldi) {

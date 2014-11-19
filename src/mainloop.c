@@ -182,9 +182,9 @@ double newdt(struct Field fldi, double tremap) {
 	maxfz=0.0;
 	
 	for(i = 0 ; i < param.particles_n/NPROC ; i++) {
-		if( fabs( fld.part[i].vx ) > maxfx ) maxfx = fabs( fld.part[i].vx );
-		if( fabs( fld.part[i].vy ) > maxfy ) maxfy = fabs( fld.part[i].vy );
-		if( fabs( fld.part[i].vz ) > maxfz ) maxfz = fabs( fld.part[i].vz );
+		if( fabs( fldi.part[i].vx ) > maxfx ) maxfx = fabs( fldi.part[i].vx );
+		if( fabs( fldi.part[i].vy ) > maxfy ) maxfy = fabs( fldi.part[i].vy );
+		if( fabs( fldi.part[i].vz ) > maxfz ) maxfz = fabs( fldi.part[i].vz );
 	}
 #ifdef MPI_SUPPORT
 	reduce(&maxfx,2);
@@ -286,8 +286,8 @@ double newdt(struct Field fldi, double tremap) {
 
 /***************************************************************/
 /**
-	Integrate in time the field stored in fld (found and initialized in common.c/common.h)
-	from t_start to t_end. Outputs are done according to gvars.h
+	Integrate in time the physical system from t_start to t_end.
+	 Outputs are done according to gvars.h
 	
 	@param t_start: initial time of the simulation (usually 0...)
 	@param t_end: final time of the simulation (will stop precisely at that time).
@@ -311,10 +311,14 @@ void mainloop(double t_start, double t_end) {
 	allocate_field(&dfld);
 	allocate_field(&fld1);
 		
-	
 	// Init the flow structure (aka initial conditions)
 	init_flow(fld);
-	
+
+#ifdef WITH_PARTICLES
+	init_particles(fld); //added fldi hoping it is initialized already
+#endif	
+
+
 	nloop=0;
 	
 	// Read restart file if needed

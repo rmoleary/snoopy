@@ -28,10 +28,17 @@
 
 #ifndef COMPRESSIBLE
 
-/**************************************************
-*** Timestep, called by runge-kutta loop   ********
-***************************************************/
-
+/***************************************************************/
+/**
+	Compute the right hand side of the INCOMPRESSIBLE dynamical equation
+	
+	@param dfldo: (output) right hand side of the dynamical equation
+	@param fldi: (input) current status of the flow
+	@param t: current time of the simulation
+	@param tremap: current remap time (only when shear is on)
+	@param dt: current timestep size
+*/
+/***************************************************************/
 void timestep( struct Field dfldo,
 			   struct Field fldi,
 			   const double t,
@@ -615,6 +622,12 @@ void timestep( struct Field dfldo,
 	
 	NB: this subgridscale model is applied only to the velocity field,
 	even when MHD is active!
+	
+	This is an implicit model: fldi is modified by this routine
+	
+	@param fldi: (input and output) current status of the flow
+	@param t: current time of the simulation
+	@param dt: current timestep size
 */
 /***************************************************************/
 void sgs_dissipation(struct Field fldi,
@@ -690,10 +703,17 @@ void sgs_dissipation(struct Field fldi,
 #endif	// This is for SGS
 
 
-/************************************
-** Implicit steps called by mainloop
-*************************************/
- 
+/***************************************************************/
+/**
+	Implicit steps of the integrator (essentially linear diffusion terms)
+	
+	This is an implicit model: fldi is modified by this routine
+	
+	@param fldi: (input and output) current status of the flow
+	@param t: current time of the simulation
+	@param dt: current timestep size
+*/
+/***************************************************************/
 void implicitstep(
 			   struct Field fldi,
 			   const double t,

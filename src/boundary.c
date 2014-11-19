@@ -27,10 +27,14 @@
 double	*mask_real;
 
 
-/***********************************
-** Bounadry conditions call
+/***********************************/
+/** 
+	Experimental Bounadry conditions call
+	This routine enforces a set of boundary conditions
+	on fldi (eg rigid boundary conditions, obstacles)
+	
+	@param fldi: field stucture on which we apply the BC
 ************************************/
-
 void boundary_c(struct Field fldi) {
 	DEBUG_START_FUNC;
 	

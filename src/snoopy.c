@@ -187,7 +187,8 @@ int main(int argc, char *argv[]) {
 #endif
 	print_logo();
 	MPI_Printf("The Snoopy code v6.0\n");
-	MPI_Printf("Copyright (c) 2004-2010 Geoffroy Lesur (University of Cambridge, UK)\n");
+	MPI_Printf("Copyright (c) 2004-2011 Geoffroy Lesur\n");
+	MPI_Printf("Institute of Planetology and Astrophysics of Grenoble, France\n");
 	MPI_Printf("This program comes with ABSOLUTELY NO WARRANTY;\n");
 	MPI_Printf("This is free software, and you are welcome to\n");
     MPI_Printf("redistribute it under certain conditions.\n");
@@ -197,7 +198,7 @@ int main(int argc, char *argv[]) {
 	MPI_Printf("Initializing...\n");
 	init_common();
 #ifdef WITH_PARTICLES
-	init_particles();
+	//	init_particles(); //added fldi hoping it is initialized already
 #endif
 	init_gfft();
 	init_output();

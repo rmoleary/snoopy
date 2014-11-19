@@ -27,17 +27,24 @@
 
 #ifdef COMPRESSIBLE
 
-/**************************************************
-*** Timestep, called by runge-kutta loop   ********
-***************************************************/
-
+/***************************************************************/
+/**
+	Compute the right hand side of the COMPRESSIBLE dynamical equation
+	
+	@param dfldo: (output) right hand side of the dynamical equation
+	@param fldi: (input) current status of the flow
+	@param t: current time of the simulation
+	@param tremap: current remap time (only when shear is on)
+	@param dt: current timestep size
+*/
+/***************************************************************/
 void timestep( struct Field dfldo,
 			   struct Field fldi,
 			   const double t,
 			   const double tremap,
 			   const double dt) {
 
-	// NB: in the compressible version, fldi.vx,vy, vz are actually the momenta in x,y,z!
+	// NB: in the compressible version, fldi.vx,vy, vz are actually the linear momenta in x,y,z!
 	
 	int i;
 	double S;
@@ -306,11 +313,17 @@ void timestep( struct Field dfldo,
 	return;
 }
 
-/************************************
-** Implicit steps called by mainloop
-** This is a straight copy of the incompressible version!
-*************************************/
-
+/***************************************************************/
+/**
+	Implicit steps of the integrator (essentially linear diffusion terms)
+	
+	This is an implicit model: fldi is modified by this routine
+	
+	@param fldi: (input and output) current status of the flow
+	@param t: current time of the simulation
+	@param dt: current timestep size
+*/
+/***************************************************************/
 void implicitstep(
 			   struct Field fldi,
 			   const double t,

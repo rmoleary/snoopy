@@ -17,7 +17,7 @@
 
 
 
-/*! \mainpage The SNOOPY Code Documentation
+/*! \mainpage The Snoopy Code Documentation
 <CODE>
 <PRE> <B>
           .o. 
@@ -36,13 +36,32 @@
 
 	\section intro Introduction
 	This is the Snoopy code documentation. Snoopy is a general purpose Spectral solver, solving MHD and Boussinesq equations
-	Including Shear and rotation if required.
+	Including Shear, rotation, compressibility and several other physical effects when required.
 	It can run on parallel machine using MPI OpenMP or Both at the same time. The ffts are based on FFTW3, using a custom MPI parallelisation,
 	or using the alpha version of the MPI implementation included in fftw 3.3
 	\section snoop Why Snoopy?
 	Why not? I felt that since Zeus, Athena and Ramses were already used, a bit of modern history would sound good (and cool). Snoopy actually means nothing (appart from a dog), 
 	although one might say that S stands for Spectral, and noopy stands for... (I still don't know).
+	
+	\section get_started Getting started
+	To start with Snoopy, you will need to read the following documentation pages:
+	- \subpage using "Using the code" describes compilation options and test runs
+	- \subpage code_config "Code configuration" describes in details the configuration options
+	- \subpage outputs "Code outputs" describes the outputs produced by the code
+	- \subpage matlab "Matlab scripts" presents the scripts provided in the package
+	
 	\section news What's new?
+	\subsection albert Albert (v6.0)
+		- solid particles interaction+feedback (alpha version, not totally tested)
+		- Braginskii viscosity
+		- Hall effect
+		- Isothermal compressibility
+		- Subgrid scale models (Chollet-Lesieur) for the hydro cascade
+		- Use of fftw-mpi when available
+		- Faster MHD algorithm thanks to a formulation using Elssaser variables
+		- new layout for the timevar file
+		- and many bug fixes...
+	
 	\subsection jude Jude (v5.0)
 		- Free slip boundary conditions to replace the standard periodic BCs are allowed. See boundary.c for details.
 		- 2D (x,y) large scale noise implemented
@@ -60,6 +79,8 @@
 		
 	\subsection igor Igor (v4.0)
 		Initial release
+	
+	
 	
 	\section lic License
 	The Snoopy code is free software: you can redistribute it and/or modify
@@ -83,7 +104,7 @@
 	and producing a default src/gvars.h and snoopy.cfg to setup the physics. The following options may be used with the configure script:
 	- --with-problem=PROB: Initialize the code with problem PROB. This initializes snoopy.cfg and src/gvars.h according to PROB. See the section \ref problem for a standard list of problems.
 	- --enable-mpi: Enable MPI parallelization
-	- --enable-fftw-mpi: Enable *experimental* support of MPI found in fftw3.3alpha. These routines replace the custom transpose routines found in Snoopy and are generally more efficient. NB: MPI support in fftw3 is still under developpement and untested. Unless you're sure of what you're doing, keeping this option off is safer.
+	- --enable-fftw-mpi: Enable *experimental* support of MPI found in fftw3.3alpha. These routines replace the custom transpose routines found in Snoopy and are generally more efficient. NB: MPI support in fftw3 is still under developpement and untested.
 	- --enable-openmp: Enable OpenMP support. Useful on Intel Core** processors. This option requires OpenMP support in FFTW3 (see fftw3 doc).
 	- --enable-debug: Enable debug outputs. This option will override the optimisation flags and create LOTS of outputs when the code is run.
 	- CC=xxx: force the compiler to be xxx.
@@ -140,49 +161,50 @@
 	to include them in the code. Here is an example of a gvars.h file (an updated version of this file may be found in src/problem/defaut/gvars.h):
 	\verbatim
 	
-#define NX              96            // X Dimension in real space. Must be multiples of 
-                                      // NPROC when using MPI.
-#define	 NY              96            // Y Dimension in real space. Must be multiples of 
-                                      // NPROC when using MPI.
-#define	 NZ              96            // Z Dimension in real space. 
+#define		NX       96                 // X Dimension in real space. Must be multiples of NPROC when using MPI.
+#define		NY       96                 // Y Dimension in real space. Must be multiples of NPROC when using MPI.
+#define		NZ       96                 // Z Dimension in real space. 
 
-#define	 MHD                           // Uncomment to activate MHD
+#define		MHD	                        // Uncomment to activate MHD
+#define		ELSASSER_FORMULATION        // Use Elsasser formulation for MHD terms 
 
-#define	 BOUSSINESQ                    // Uncomment to activate Boussinesq
-#define	 VERTSTRAT                     // Vertical stratification. Otherwise,
-                                      // Boussinesq stratification is in X
-									  
-#define		N2PROFILE                  // Assumes N2 depends on spatial coordinates. 
-                                       // The profile has to be set up by hand in 
-                                       // common.c/init_N2_profile(). 
-                                       // NOTA: This feature in alpha version.
+#define		WITH_BRAGINSKII             // Enable Braginskii viscosity. CAUTION: this is incompatible with the Elsasser formulation
+#define		WITH_HALL                   // Enable Hall MHD (in developement). Hall effect amplitude is set by x_hall 
+#define		WITH_EXPLICIT_DISSIPATION   // use an explicit (RK3) numerical scheme to integrate linear diffusion effects 
+		                                // instead of the standard implicit scheme 
+#define		SGS                         // Chollet-Lesieur Subgrid scale model for Hydro. This is in alpha version (see timestep.c).
 
-#define	 WITH_ROTATION                 // Uncomment to add rotation around the z axis.
+#define		COMPRESSIBLE                // Solve the isothermal compressible equations (incompatible with Boussinesq for obvious physical reasons) 
 
-#define	 WITH_SHEAR                    // Uncomment to activate shear (U_y(x))
-#define	 TIME_DEPENDANT_SHEAR          // Enable Time dependant shear
+#define		BOUSSINESQ                  // Uncomment to activate Boussinesq 
+#define		VERTSTRAT                   // Vertical stratification. Otherwise, Boussinesq stratification is in X
 
-#define		BOUNDARY_C                 // Enforce NON-PERIODIC boundary conditions on 
-                                       // the flow using Fourier space symmetries. The 
-                                       // precise boundary condition has to be set up 
-                                       // in boundary.c/boundary_c(...). 
-                                       // NOTA: This feature is in alpha version.
+#define		WITH_ROTATION               // Enable a Coriolis force, assuming the rotation axis is z. The rotation speed is set up in snoopy.cfg 
+
+#define		WITH_SHEAR                  // Uncomment to activate mean SHEAR 
+#define		TIME_DEPENDANT_SHEAR        // Enable Time dependant shear 
+
+#define		WITH_2D                     // 2D (x,y) reduction. Enforce NZ=1 and optimise the Fourier transform routines accordingly. 
+                                              // Using this option should lead to a speedup>4 compared to the old NZ=2 method.
+
+#define		WITH_PARTICLES              // Enable Lagrangian test particles tracing.
+
+#define		BOUNDARY_C                  // Enforce NON-PERIODIC boundary conditions to the flow using Fourier space symmetries. The boundary 
+			                            // condition has to be set up in boundary.c/boundary_c(); This feature is in alpha version. 
+
+#define		FORCING	                    // Uncomment to use internal forcing of the velocity field (see forcing in timestep.c) 
+
+#define		FFT_PLANNING FFTW_MEASURE   // can be either FFTW_ESTIMATE, FFTW_MEASURE, FFTW_PATIENT or FFTW_EXHAUSTIVE (see fftw3 doc). 
+                                               // Measure leads to longer initialisation of fft routines 
 
 
-#define	 FORCING                       // Uncomment to use internal forcing of the 
-                                      // velocity field (see forcing in timestep.c)
-
-#define	 FFT_PLANNING    FFTW_MEASURE  // can be either FFTW_ESTIMATE, FFTW_MEASURE, 
-                                      // FFTW_PATIENT or FFTW_EXHAUSTIVE 
-                                      // (see fftw3 doc). Measure leads to longer 
-                                      // initialisation of fft routines
 	\endverbatim
 	
 	\section configsnoopy File snoopy.cfg
 	The file snoopy.cfg is located where the executable is located and is read at run time. Snoopy uses a variation of the 
 	library <A HREF=http://www.hyperrealm.com/libconfig/>libconfig</A> to read these files. A standard snoopy file is divided into
-	4 blocks: physics, code, output and init corresponding to physical parameters, code parameters, input/output and initial conditions. If any of the described 
-	parameter (or even block) is ommited, the default value (as given below) will be used. This is a commented example of snoopy.cfg
+	5 blocks: physics, particles, code, output and init corresponding to physical parameters, code parameters, input/output and initial conditions. 
+	If any of the described parameter (or even block) is ommited, the default value (as given below) will be used. This is a commented example of snoopy.cfg
 	containing all the possible parameters assigned to their default value (an updated version of this file may be found in src/problem/defaut/snoopy.cfg):
 	\verbatim
 	# Example of a Snoopy configuration file
@@ -196,6 +218,9 @@ physics:                             // Physics parameters
 	reynolds = 1.0;                  // Reynolds number (actully the inverse of the viscosity)
 	reynolds_magnetic = 1.0;         // Magnetic Reynolds number (actully the inverse of the resistivity).  Used only when MHD is on
 	reynolds_thermic = 1.0;          // Thermal Reynolds number (actully the inverse of the thermal diffusivity).  Used only when Boussinesq is on
+	reynolds_Braginskii = 1.0;       // Braginskii viscosity-based Reynolds number (inverse of nu_B)
+	x_Hall = 1.0;                    // Amplitude of the Hall effect. Used only when WITH_HALL is enabled in gvars.h.
+
 	
 	brunt_vaissala_squared = 0.0;    // Brunt Vaissala frequency squared. Used only when Boussinesq is on
 	
@@ -204,6 +229,16 @@ physics:                             // Physics parameters
 	shear = 0.0;                     // Shear rate. Used only when WITH_SHEAR is on.
 	omega_shear = 0.0;               // Pulsation of time dependant shear. Used only when both WITH_SHEAR and TIME_DEPENDANT_SHEAR are on.
 };
+
+//-------------------------------------------------------------------------------------------------------------------------
+
+particles:                           // Test particles parameters. Only used when WITH_PARTICLES is enabled.
+{
+	n = 1000;                        // Total number of test particles
+	mass = 1.0;                      // Particles mass
+	stime = 1.0;                     // Particles stopping time
+};
+
 
 //-------------------------------------------------------------------------------------------------------------------------
 
@@ -232,16 +267,17 @@ code:                                // code parameters
 output:	                             // output parameters
 {
 	timevar_step = 1.0;	             // Time between two outputs in the timevar file
-	snapshot_step = 1.0;             // Time between two snapshot outputs
+	snapshot_step = 1.0;             // Time between two snapshot outputs (VTK format)
 	dump_step = 1.0;                 // Time between two restart dump outputs (restart dump are erased)
 	
-	vtk_output = true;               // Use VTK legacy files for output instead of raw binaries (useful with paraview)
-                                     // NB: the support of raw binaries is depreciated. Please use vtk instead.
 									 
-	fortran_output_order = false;    // If vtk_output is disabled, the code will output binary in C-major order. 
-                                     // Uncomment this to get outputs in FORTRAN-major order (doesn't work with MPI)
+	timevar_vars = ( "t","ev","em","vxmax","vxmin","vymax","vymin","vzmax","vzmin","vxvy", 
+								"bxmax","bxmin","bymax","bymin","bzmax","bzmin","bxby",
+								"dmin","dmax","dvxvy",
+								"thmax","thmin","thvx","thvz","w2","j2","hm" );
+								
+									 // List of statistical quantities to be written in the timevar file
 	
-	pressure = false;                // Output the pressure field in the 3D snapshots
 	vorticity = false;               // Output the vorticity field in the 3D snapshots
 };
 
@@ -291,31 +327,51 @@ init:                                // Initial conditions parameters
 
 /*!	\page outputs Code outputs
 	\section timevar Averaged quantities (timevar)
-	A text file containing several averaged quantities in a column style file. Each line corespond to a given instant in the simulation. Each column reads as follow:
+	A text file containing several averaged quantities in a column style file. The variables to be written are choosen in snoopy.cfg (see output.timevar_vars). The following strings can
+	be used in timevar_vars:
 	
-		- 1st column: time of the simulation
-		- 2nd column: Box averaged kinetic energy
-		- 3rd column: Box averaged magnetic energy
-		- 4th column: x velocity maximum
-		- 5th column: x velocity minimum
-		- 6th column: y velocity maximum
-		- 7th column: y velocity minimum
-		- 8th column: z velocity maximum
-		- 9th column: z velocity minimum
-		- 10th column: xy component of the Reynolds stress (box averaged)
-		- 11th column: x magnetic field maximum
-		- 12th column: x magnetic field minimum
-		- 13th column: y magnetic field maximum
-		- 14th column: y magnetic field minimum
-		- 15th column: z magnetic field maximum
-		- 16th column: z magnetic field minimum
-		- 17th column: xy component of the Maxwell stress (box averaged)
-		- 18th column: maximum of the potential temperature
-		- 19th column: minimum of the potential temperature
-		- 20th column: Box averaged enstrophy (omega^2/2)
-		- 21st column: Box averaged current squared (J^2/2)
-		- 22nd column: Box averaged magnetic helicity (makes sense only when no mean field is present)
-		- 23rd column: Total shear (when time dependant shear is activated)
+		- t: time of the simulation
+		- ev: Box averaged kinetic energy (incompressible)
+		- vxmax: x velocity maximum
+		- vxmin: x velocity minimum
+		- vymax: y velocity maximum
+		- vymin: y velocity minimum
+		- vzmax: z velocity maximum
+		- vzmin: z velocity minimum
+		- vxvy: xy component of the (incompressible) Reynolds stress (box averaged)
+		- hv: kinetic helicity
+		- w2: total enstrophy
+		
+	when MHD is on, the following quantities can also be computed:
+	
+		- em: Box averaged magnetic energy
+		- bxmax: x magnetic field maximum
+		- bxmin: x magnetic field minimum
+		- bymax: y magnetic field maximum
+		- bymin: y magnetic field minimum
+		- bzmax: z magnetic field maximum
+		- bzmin: z magnetic field minimum
+		- bxby: xy component of the Maxwell stress
+		- hc: box averaged cross helicity
+		- hm: box averaged magnetic helicity
+		- j2: box averaged current square
+		- az2: box average vertical component of the vector potential squared (conserved in 2D)
+		- vxaz: correlation tensor vx*az
+	
+	when BOUSSINESQ is on, the following quantities can also be computed:
+		
+		- et: Box averaged thermal energy
+		- thmax: potential temperature maximum
+		- thmin: potential temperature minimum
+		- thvx: correlation th*vx (turbulent transport of heat in x)
+		- thvz: correlation th*vz (turbulent transport of heat in z)
+		
+	when COMPRESSIBLE is on, the following quantities can also be computed:
+		
+		- dmax: maximum of the density field
+		- dmin: minimum of the density field
+		- dvxvy: xy component of the (compressible) reynolds stress
+		
 		
 	The average time between two lines in the timevar file is set by output.timevar_step (snoopy.cfg). This file can be read using a Matlab script provided in the Snoopy distribution (see \ref timevol)
 	
@@ -328,13 +384,12 @@ init:                                // Initial conditions parameters
 	NOTA: the spectrum output routines are still in developement.
 	
 	\section snap Snapshots
-	Snapshots can be written in raw binary files (.raw) or in vtk legacy format (.vtk, default) in the data directory. The output format is set in snoopy.cfg (default is VTK). VTK files can are read natively
+	Snapshots can be written in vtk legacy format (.vtk) in the data directory. VTK files can are read natively
 	by Paraview 2-3 or Visit, available for free on the web. Several Matlab script are also provided in the Snoopy distribution to read VTK files (see \ref get_frame). The fields written in the VTK files are by default vx,vy and vz
-	plus bx,by,bz when MHD is on, th (potential temperature) when BOUSSINESQ is on, p (pressure) when output.pressure is true (see snoopy.cfg) and wx,wy,wz (vorticity) when output.vorticity is true (see snoopy.cfg).
+	plus bx,by,bz when MHD is on, th (potential temperature) when BOUSSINESQ is on and wx,wy,wz (vorticity) when output.vorticity is true (see snoopy.cfg).
 	
 	The average time between two snapshot outputs is set by output.snapshot_step (snoopy.cfg)
 	
-	NOTA: Raw binary files are depreciated and will be removed in the next release of the Snoopy code.
 	
 	\section dump Restart dump files
 	Binary restart file. A maximum of two restart dumps can be found in the running directory: dump.dmp and dump_sav.dmp. The former is the more recent dump whereas the latter is the preceeding dump. 
@@ -347,7 +402,7 @@ init:                                // Initial conditions parameters
 	Several Matlab scripts are now provided with Snoopy (in the matlab directory). These are basic scripts which can be a useful start for a specific project.
 	
 	\section timevol Timevol script
-	The file timevol.m reads the timevar file produced by snoopy and display several time history plots for various quantity (energy, transport, helicity, etc... see \ref timevar).
+	The file timevol.m reads the timevar file produced by snoopy and display several time history plots for the variables chosen in snoopy.cfg (energy, transport, helicity, etc... see \ref timevar).
 	
 	\section get_frame Get_frame script
 	The file get_frame.m reads one VTK file created by snoopy and display several cuts of the flow in the xy, xz and yz plane. This script can be easely modified to display other cuts. 
